@@ -249,4 +249,35 @@ public class RealFirmwareTests
         Assert.True(r.MatchesKnown);
         Assert.Equal(changedBytes, r.ChangedAppBytes);
     }
+
+    [Fact]
+    public void AtecConMandoSoyeaSoloCambiaLaComparacionDelCliente()
+    {
+        var path = FindFirmware("Atec_32_KPC_Salva.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del ATEC.");
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "atec-32l18d-lp141wx1");
+        var fw = File.ReadAllBytes(path);
+        var r = FirmwareBuilder.Build(fw, profile, new Dictionary<string, string> { ["bits"] = "8", ["mando"] = "soyea" },
+            cancel: TestContext.Current.CancellationToken);
+        Assert.Null(r.Known);
+        Assert.Equal(25 + 3, r.ChangedAppBytes); // panel (25) + inmediato de sfeqi (3)
+        var a = FirmwareAnalyzer.Analyze(r.Output);
+        Assert.True(a.App.AsSpan(0x3233D5 - 0x243800, 4).SequenceEqual(Convert.FromHexString("c0ef06e0")));
+    }
+
+    [Fact]
+    public void LaTablaDelMandoDelAtecEsLaDelSoyea()
+    {
+        // Base de la opción "mando=soyea": misma tabla código→función (256 bytes) en ambos firmwares.
+        var atec = FindFirmware("Atec_32_KPC_Salva.BIN");
+        var soyea = FindFirmware("MST_EXT_SPI_ISP_20230301_153737.BIN");
+        if (atec is null || soyea is null)
+            Assert.Skip("Faltan los firmwares del ATEC o del Soyea.");
+        var a = FirmwareAnalyzer.AnalyzeFile(atec).App!;
+        var s = FirmwareAnalyzer.AnalyzeFile(soyea).App!;
+        Assert.True(a.AsSpan(0x422090 - 0x243800, 256).SequenceEqual(s.AsSpan(0x423CE0 - 0x243800, 256)));
+        // Y la comparación del cliente del Soyea es exactamente la instrucción que escribe el parche.
+        Assert.True(s.AsSpan(0x3251E3 - 0x243800, 4).SequenceEqual(Convert.FromHexString("c0ef06e0")));
+    }
 }

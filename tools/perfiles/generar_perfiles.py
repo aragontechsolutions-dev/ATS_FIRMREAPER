@@ -208,8 +208,8 @@ else:
     guardar("atec-32l18d-lp141wx1.json", {
         "formato": 1,
         "id": "atec-32l18d-lp141wx1",
-        "version": 1,
-        "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LG.Philips LP141WX1 1280x800",
+        "version": 2,
+        "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800 y mando",
         "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV "
                        "(necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
         "estado": "verificado",
@@ -217,6 +217,7 @@ else:
         "app": {"baseRam": "0x%06X" % base},
         "compresion": {"metodo": "zlib", "nivel": 9},
         "zonasPermitidas": [
+            zona(0x3233D5, 0x3233D9, "comparación del código de cliente del mando (rutina IR 0x3233AA)"),
             zona(base + o, base + o + at.ENTRY_SIZE, "entrada #1 de la tabla de paneles (la que usa este TV)"),
         ],
         "parchesFijos": [],
@@ -229,12 +230,21 @@ else:
                   "parches": [parche(base + o, orig_entry.hex(), variantes[True].hex(),
                                      desc + ", 6 bits (TiBitMode 3, OutputFormat 1, dither)")]},
              ]},
+            # La rutina IR del ATEC (0x3233AA) es la del Soyea (0x32519F) y su tabla código→función
+            # (0x422090) es idéntica a la del Soyea (0x423CE0): solo cambia el código de cliente.
+            {"id": "mando", "etiqueta": "Mando", "tipo": "lista", "porDefecto": "atec",
+             "valores": [
+                 {"id": "atec", "etiqueta": "ATEC original (cliente 0x7736)", "parches": []},
+                 {"id": "soyea", "etiqueta": "Soyea LKK32CMB (cliente 0x7837) — sin probar en el TV",
+                  "parches": [parche(0x3233D5, "c0eee6c0", "c0ef06e0",
+                                     "IR: bg.sfeqi r7,0x7736 -> bg.sfeqi r7,0x7837 (código de cliente del mando Soyea)")]},
+             ]},
         ],
         "salidasConocidas": [
-            {"opciones": {"bits": "8"},
+            {"opciones": {"bits": "8", "mando": "atec"},
              "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
              "archivo": "Atec32L18D_LP141WX1_8bit.BIN"},
-            {"opciones": {"bits": "6"},
+            {"opciones": {"bits": "6", "mando": "atec"},
              "sha256": "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2",
              "archivo": "Atec32L18D_LP141WX1_6bit.BIN"},
         ],
