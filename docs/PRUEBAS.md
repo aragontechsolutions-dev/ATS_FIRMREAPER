@@ -14,11 +14,12 @@ Usa xUnit v3 con Microsoft Testing Platform (activado en `global.json`).
 | `RawInflaterTests` | Igual que `DeflateStream` en varios tamaños/niveles; posición final con datos detrás; truncado; límite de salida; bloque inválido; 2 000 entradas aleatorias |
 | `AnalyzerSyntheticTests` | Imagen MStar **sintética** (sin datos del fabricante): válida; CRC, cola, fin en flash, TEL, solapamiento y offsets corruptos; no modifica la entrada |
 | `CatalogTests` | Catálogo incrustado válido; 10 tipos de catálogo malicioso rechazados |
-| `RealFirmwareTests` | 11 firmwares reales: huella, fin de flash, CRC y tamaño de app iguales a Python; 1 bit cambiado → inválido; cambio fuera del CRC → "desconocido válido"; Zopfli recomprime la app del LG v5 igual; el perfil LG genera las 2 versiones v5 idénticas; solo espejo = 1 byte; Konka: menú+logo girado = `81bd3c8b…`, menú sin logo, fijo; girar el logo = JPEG de Pillow; logo propio demasiado grande; LG con tabla editada (solo cambia 1 byte frente a la v5); zlib recomprime la app del ATEC igual; perfil ATEC 8/6 bits idéntico a `patch_panel.py`; ATEC con mando Soyea (solo cambia la comparación del cliente); tabla del mando ATEC = Soyea |
+| `RealFirmwareTests` | 11 firmwares reales: huella, fin de flash, CRC y tamaño de app iguales a Python; 1 bit cambiado → inválido; cambio fuera del CRC → "desconocido válido"; Zopfli recomprime la app del LG v5 igual; el perfil LG genera las 2 versiones v5 idénticas; solo espejo = 1 byte; Konka: menú+logo girado = `81bd3c8b…`, menú sin logo, fijo; girar el logo = JPEG de Pillow; logo propio demasiado grande; LG con tabla editada (solo cambia 1 byte frente a la v5); zlib recomprime la app del ATEC igual; perfil ATEC 8/6 bits idéntico a `patch_panel.py`; ATEC con mando Soyea (solo cambia la comparación del cliente); tabla del mando ATEC = Soyea; logos del ATEC (4:2:0) y del LG (4:2:2) girados = JPEG de Pillow; ATEC girado/propio: solo cambia el recurso 0x0300 y su CRC-16 queda correcto; LG girado: solo cambia la zona 0x370000–0x3B0000; logo propio demasiado grande → se recomprime hasta caber |
 | `ZopfliTests` | 7 vectores de py-zopfli idénticos; símbolos de distancia; `ExactLog` = glibc en 1..2 100 000; constantes de ln 2 |
 | `ZlibTests` | 9 vectores de zlib 1.3 (Python) idénticos, incluida entrada vacía, aleatoria y > 1 MB |
 | `ProfileTests` | Perfiles integrados válidos y coherentes con el catálogo; 22 perfiles manipulados rechazados; carpeta externa |
-| `LogoTests` | Codificador → JPEG válido; girar conserva tablas; logos inválidos rechazados (dimensiones, progresivo, basura final, truncado); 3 000 JPEG corruptos sin excepciones inesperadas; reglas de `logo` en perfiles |
+| `JpegEncoderTests` | 24 JPEG idénticos a Pillow 12.3.0 (4:4:4, 4:2:2 y 4:2:0; tamaños impares 37x29, 17x9, 2167x40 y 64x48; con y sin reinicios); submuestreos no admitidos |
+| `LogoTests` | Codificador → JPEG válido; girar conserva formato (tablas, submuestreo, reinicios) en 4:4:4/4:2:2/4:2:0; bajar la calidad hasta caber; rechazo si no cabe ni al mínimo; JPEG exacto usado tal cual; otro submuestreo convertido; encajar sin deformar con bandas negras; PNG (RGB, RGBA) y BMP; PNG dañado; 3 000 JPEG y 2 000 PNG/BMP corruptos sin excepciones inesperadas; CRC-16 (`"123456789"` → `0xFEE8`); 12 reglas de `logo` en perfiles (TEL, CRC, zona de flash) |
 | `KeyTableTests` | Tabla por defecto = v5 (codificada igual que el parche); exportar/importar; 5 tablas inválidas; archivo de otro perfil o mal formado; perfil con tabla incoherente; tabla con la opción que no la aplica |
 | `BuilderTests` | Generación sintética; no modifica la entrada; huella/bytes distintos; ya aplicado; no cabe; base incorrecta; guardado sin sobrescribir, con copia y sin temporales; original cambiado en disco |
 
@@ -62,10 +63,24 @@ python3 ../../tools/referencia_python/patch_mirror_menu.py ../originales/TV4-32K
 (renombrar la salida a `TV4-32K16_MIRROR_MENU_SIN_LOGO.bin`; después, sin `--sin-logo`, sale la versión con logo.
 El logo depende de Pillow: se generó con Pillow 12.3.0 / libjpeg-turbo 3.1.4.1.)
 
+Huellas de los logos girados (Pillow 12.3.0; `j` = JPEG original sacado del `.BIN`; `dri` = intervalo de reinicio
+del JPEG principal, leyendo sus segmentos hasta SOS, no la miniatura EXIF):
+
+```python
+im = Image.open(io.BytesIO(j)); q = im.quantization
+im.convert("RGB").rotate(180).save(b, "JPEG", qtables=[q[0], q[1]], subsampling=S, optimize=False,
+                                   progressive=False, restart_marker_blocks=dri)   # sin restart si dri = 0
+```
+
+Vectores del codificador (`JpegEncoderTests`): la misma imagen determinista en Python (`TestImage`: degradados +
+generador congruencial `s = (s*1103515245 + 12345) & 0x7FFFFFFF`), `qtables=[ql, qc]` con
+`ql[i] = i*3 % 40 + 2`, `qc[i] = i*5 % 60 + 3` (Pillow las toma en orden natural), `subsampling` 0/1/2 y
+`restart_marker_blocks` 0/3.
+
 Vectores de Zopfli (Python, `pip install zopfli==0.4.3`): ver el generador en el comentario de
 `ZopfliTests.Gen`; huella del logaritmo: `math.log(i)` empaquetado `'<d'` para i = 1..2 100 000.
 
 ## Resultado actual
 
-152 pruebas, 152 superadas (con firmwares, Linux). En GitHub Actions (Windows, sin firmwares) se omiten las
+198 pruebas, 198 superadas (con firmwares, Linux). En GitHub Actions (Windows, sin firmwares) se omiten las
 que necesitan los `.BIN`.

@@ -9,13 +9,15 @@ FirmReaper.Core.Tests (xUnit v3) ──────┘
 ```
 
 El motor (`Core`) no depende de Windows: se prueba en Linux y en Windows con el mismo código.
-Única dependencia externa: `BitMiracle.LibJpeg.NET` (gestionada, BSD) para decodificar el logo.
+Única dependencia externa: `BitMiracle.LibJpeg.NET` (gestionada, BSD) para decodificar JPEG (solo la parte
+entrópica, la IDCT y la salida YCbCr; el ensanchado de la crominancia y el color se hacen en `LogoImage`).
 
 ## Componentes de `FirmReaper.Core`
 
 | Archivo | Responsabilidad |
 |---|---|
 | `Crc32Msb.cs` | CRC-32 MSB de MStar |
+| `Crc16Tel.cs` | CRC-16 (0x8005) del final de cada recurso TEL |
 | `Compression/RawInflater.cs` | Descompresor deflate propio (dice dónde termina el flujo) |
 | `MStar/MStarLayout.cs` | Constantes del formato |
 | `MStar/AppHeader.cs` | Cabecera en 0x20000 |
@@ -38,7 +40,8 @@ El motor (`Core`) no depende de Windows: se prueba en Linux y en Windows con el 
 | `Reporting/BuildReport.cs` | Informe de cada firmware generado |
 | `Imaging/JpegInfo.cs` | Lectura validada de la estructura de un JPEG (sin decodificar) |
 | `Imaging/JpegBaselineEncoder.cs` | Codificador JPEG que reproduce byte a byte a libjpeg-turbo (configuración de Pillow) |
-| `Imaging/LogoImage.cs` | Decodificar (LibJpeg.NET) y girar 180° el logo |
+| `Imaging/LogoImage.cs` | Formato del logo (`LogoFormat`); decodificar como libjpeg-turbo; girar; encajar una imagen en el tamaño del logo; codificar ajustando la calidad al hueco |
+| `Imaging/ImageDecoder.cs` | Lectura validada de la imagen del usuario: JPEG, PNG (propio, con `RawInflater`) y BMP 24/32 bits |
 | `Profiles/KeyTable.cs` | Tabla botón → función del mando: codificar, decodificar, validar, importar/exportar JSON |
 
 Interfaz (`FirmReaper.App`): `MainWindow` (analizar, generar, cambios en hexadecimal), `KeyMapWindow`
@@ -83,14 +86,35 @@ comprobarlo** en un Windows 10 real.
 | Original cambiado entre análisis y guardado | Se vuelve a calcular su huella antes de guardar |
 | Resultado distinto en Windows | `ExactLog` hace la compresión independiente de la biblioteca matemática del sistema |
 
-| Logo propio manipulado | Parser de marcadores con límites; baseline, dimensiones exactas, tamaño máximo, sin basura tras FFD9, decodificación completa, máximo 4096×4096 píxeles y 4 MB de archivo |
+| Logo propio manipulado | Parser de marcadores con límites; baseline, dimensiones exactas, tamaño máximo, sin basura tras FFD9, decodificación completa, máximo 4096×4096 píxeles y 4 MB de archivo (ampliado en la etapa 6, ver abajo) |
 | Tabla del mando manipulada | Solo sustituye los bytes nuevos de un parche ya autorizado (misma dirección y longitud); botones y funciones de listas cerradas; sin repetidos; máximo de entradas; archivo JSON estricto y del mismo perfil |
 | Escribir fuera del hueco del logo | La verificación final solo admite cambios en el hueco del recurso TEL del logo (JPEG + ceros); el resto del recurso y de la flash, idénticos |
 
 ### ¿Por qué un codificador JPEG propio?
-Para que el logo girado sea **idéntico** al probado en el TV. LibJpeg.NET (port de libjpeg 6b) decodifica
-igual que Pillow pero **codifica distinto** (libjpeg-turbo cuantiza con recíprocos). El codificador propio
-replica el camino de libjpeg-turbo y da los mismos bytes, sin bibliotecas nativas (antes se valoró incluir
-libjpeg-turbo nativo; ya no hace falta).
+Para que el logo girado sea **idéntico** al probado en el TV. LibJpeg.NET **codifica distinto** que
+libjpeg-turbo (que cuantiza con recíprocos). El codificador propio replica el camino de libjpeg-turbo
+(4:4:4, 4:2:2 y 4:2:0: `jccolor`, `jcsample`, `jfdctint`, `jcdctmgr`, `jchuff`, bloques ficticios de `jccoefct`)
+y da los mismos bytes que Pillow, sin bibliotecas nativas.
+
+### ¿Y la decodificación? (corregido en la etapa 6)
+En la etapa 3 se escribió que LibJpeg.NET "decodifica igual que Pillow". **Solo es cierto en 4:4:4** (el Konka).
+LibJpeg.NET sigue el modelo de libjpeg 7/8: con "fancy upsampling" calcula la crominancia con una IDCT escalada
+(16x8 o 16x16), mientras que libjpeg-turbo (API 6b, la de Pillow) la decodifica a 8x8 y la ensancha con un filtro
+triangular. Con el logo en color del LG (4:2:2) salían hasta 17 niveles de diferencia en el 0,5 % de los bytes. (El
+ATEC, 4:2:0, coincidía por casualidad: su logo es blanco y negro y la crominancia es plana.)
+Solución: LibJpeg.NET entrega YCbCr **sin** "fancy" (crominancia a 8x8, solo duplicada → se recupera exacta) y
+`LogoImage` aplica el filtro de `jdsample.c` y la conversión de `jdcolor.c`. Ahora Konka, ATEC y LG girados son
+byte a byte los de Pillow.
+
+## Seguridad (revisión de la etapa 6: logo en ATEC y LG, imágenes del usuario)
+
+| Riesgo | Medida |
+|---|---|
+| Imagen del usuario manipulada (JPEG/PNG/BMP) | Todo se trata como dato no confiable: máximo 64 MB de archivo y 36 millones de píxeles (≤ 16384 por lado); PNG con CRC de cada bloque y Adler-32, cabecera zlib comprobada, descompresión limitada al tamaño exacto de la imagen (sin "bombas"), filtros y paletas con límites, entrelazado rechazado; BMP solo 24/32 bits sin comprimir y con límites calculados en 64 bits; JPEG: estructura validada antes de decodificar. Cualquier incoherencia → `InvalidDataException` → no se genera nada. Pruebas con 2 000 PNG/BMP y 3 000 JPEG corrompidos |
+| Perfil externo que intente escribir en otra zona con `zonaFlash` | Al cargar: la zona debe estar a partir de `0x23080` y dentro de 4 MB. Al generar: debe empezar después de la app, de todos los recursos TEL y del fin del área TEL (`0x22088`), y en el original tiene que haber **un JPEG de exactamente** `longitudJpeg` bytes y `ancho`×`alto` seguido **solo** del relleno. Una zona con datos (ajustes, canales…) no cumple eso, así que se rechaza sin tocar nada |
+| Recurso TEL con CRC-16 | Con `crc16` se exige que el CRC original sea correcto; se recalcula y se vuelve a comprobar en la salida |
+| Logo nuevo que el TV no sepa mostrar | Siempre se escribe en el formato exacto del original (dimensiones, submuestreo, tablas, reinicios); un JPEG del usuario solo se usa tal cual si ya tiene ese formato. Validación final: SOF0, en color, dimensiones y submuestreo, sin datos tras FFD9, cabe y se decodifica |
+| Escribir fuera del hueco | Verificación final: idéntico al original fuera del hueco (y de los 2 bytes del CRC); dentro, el JPEG y después solo el relleno |
+| Consumo excesivo | Como máximo 15 intentos de codificación para ajustar la calidad; el redimensionado guarda solo las filas que aún necesita |
 
 Perfiles firmados: no se implementan (uso por una sola persona); se registra la huella de cada perfil.

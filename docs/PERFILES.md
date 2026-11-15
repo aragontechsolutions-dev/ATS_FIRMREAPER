@@ -58,8 +58,8 @@ leen de los scripts de referencia; no se copian a mano).
 | `opciones` | Tipo `lista`: el usuario elige un valor; cada valor trae sus parches (puede no traer ninguno). |
 | parche | `direccion` (RAM, `0x…`), `original` y `nuevo` (hex en minúsculas, misma longitud, máx. 4096 bytes, distintos), `descripcion`. |
 | `salidasConocidas` | Huella del resultado para una combinación de opciones (todas las opciones definidas). Si coincide, se informa "idéntico a la versión documentada". |
-| `logo` (opcional) | Recurso del logo: `idTel` (id en la tabla TEL, `0x…`), `longitudJpeg` (bytes del JPEG original hasta FFD9), `ancho`, `alto`. |
-| valor `.logo` (opcional) | `"girar"` (180°, re-codificado idéntico a Pillow) o `"propio"` (JPEG del usuario). Sin el campo, el logo no cambia. Solo UNA opción puede actuar sobre el logo. |
+| `logo` (opcional) | Dónde está el logo de arranque y cómo es el original. **Uno y solo uno** de: `idTel` (recurso de la tabla TEL, `0x…`; con `crc16: true` si el recurso termina en CRC-16 que hay que mantener) o `zonaFlash` (`desde`, `hasta` = dirección de **flash**, no de RAM; `relleno`, normalmente `0xFF`). Además `longitudJpeg` (bytes del JPEG original hasta FFD9 incluido), `ancho`, `alto`. |
+| valor `.logo` (opcional) | `"girar"` (180°, re-codificado en el formato del original, idéntico a Pillow) o `"propio"` (imagen del usuario: JPEG, PNG o BMP). Sin el campo, el logo no cambia. Solo UNA opción puede actuar sobre el logo. |
 
 | `tablaMando` (opcional) | Tabla botón → función editable: `direccion`, `entradas`, `prefijoCodigo`, `opcion`/`valor` (el valor de opción que la aplica), `funciones` (`indice` + `nombre`, las únicas permitidas) y `botones` (`codigo` + `nombre`). |
 
@@ -78,12 +78,32 @@ leen de los scripts de referencia; no se copian a mano).
 
 ### El logo
 
-- El hueco del logo es el recurso TEL indicado: se escribe el JPEG nuevo, se rellena con ceros hasta
-  `longitudJpeg` y **lo que hubiera después en el recurso se conserva** (en el Konka, 3 bytes `00 47 0E`).
-- Un logo propio debe ser JPEG **baseline** (no progresivo), en color, de **exactamente** `ancho`×`alto`,
-  sin datos tras el FFD9 y de **como máximo** `longitudJpeg` bytes; además se decodifica entero antes de
-  aceptarlo.
-- Ejemplo (Konka): `"logo": {"idTel": "0x065E", "longitudJpeg": 131381, "ancho": 1366, "alto": 768}`.
+**Antes de tocar nada** el programa comprueba en el original: que en el hueco hay un JPEG de exactamente
+`longitudJpeg` bytes y `ancho`×`alto`; que el resto del hueco tiene el relleno esperado; y, con `crc16`, que el
+CRC-16 original es correcto. Si algo no cuadra, no genera nada (así un perfil mal escrito no puede pisar datos).
+
+Tres formas de hueco:
+
+| Tipo | Hueco donde va el JPEG nuevo | Relleno | Ejemplo |
+|---|---|---|---|
+| `idTel` sin `crc16` | `longitudJpeg` bytes al inicio del recurso; lo que sigue en el recurso se conserva | `00` | Konka: `{"idTel":"0x065E","longitudJpeg":131381,"ancho":1366,"alto":768}` (así lo hacía el script; las versiones probadas salen idénticas) |
+| `idTel` con `crc16: true` | todo el recurso menos sus 2 últimos bytes; después se recalcula el CRC-16 | `00` | ATEC: `{"idTel":"0x0300","crc16":true,"longitudJpeg":49128,"ancho":2167,"alto":1228}` |
+| `zonaFlash` | `[desde, hasta)`; debe estar después de la app, de todos los recursos y del fin del área TEL (campo `0x22088`) | `relleno` | LG: `{"zonaFlash":{"desde":"0x370000","hasta":"0x3B0000","relleno":"0xFF"},"longitudJpeg":27753,"ancho":1376,"alto":768}` |
+
+**Formato del logo nuevo.** Siempre el del original: mismas dimensiones, mismo submuestreo (4:4:4, 4:2:2 o 4:2:0),
+mismas tablas de cuantización y mismo intervalo de reinicio. Así el TV recibe un JPEG como el que ya sabe mostrar.
+
+- **Girar:** se decodifica el original, se gira y se vuelve a codificar con sus tablas. Para el Konka, ATEC y LG el
+  resultado es byte a byte el de Pillow 12.3.0 (`im.convert("RGB").rotate(180).save(..., qtables=im.quantization,
+  subsampling=…, restart_marker_blocks=…)`).
+- **Propio:** la imagen del usuario (JPEG, PNG o BMP, cualquier tamaño):
+  - si ya es un JPEG baseline con el formato exacto (dimensiones y submuestreo) y cabe, se escribe **tal cual**;
+  - si no, se encaja en `ancho`×`alto` **sin deformarla** (centrada, con bandas negras si la proporción es otra) y se
+    codifica en el formato del original.
+- **Si no cabe**, se baja la calidad por pasos: tablas del original ×1,25 … ×10 y luego tablas JPEG estándar a
+  calidad 50, 25, 10, 5 y 1. El informe dice qué paso se usó. Si ni así cabe, se rechaza.
+- Antes de escribir se valida el JPEG final (baseline, en color, dimensiones y submuestreo del original, nada tras el
+  FFD9, cabe y se decodifica entero) y, después de escribir, que fuera del hueco (y del CRC) el archivo no cambió.
 
 ## Reglas que comprueba el programa al cargar (si falla una, el perfil se rechaza entero)
 

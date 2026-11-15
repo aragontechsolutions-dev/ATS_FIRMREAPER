@@ -73,10 +73,11 @@ BOTONES_SOYEA = [(c, n) for c, _, n in lg.SOYEA_MAP] + [
 guardar("lg-42lf652vx-soyea.json", {
     "formato": 1,
     "id": "lg-42lf652vx-soyea",
-    "version": 5,
-    "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB",
+    "version": 6,
+    "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB y logo",
     "descripcion": "Obedecer al mando Soyea LKK32CMB con la misma función por botón que el firmware Soyea; "
-                   "cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica.",
+                   "cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica. "
+                   "Logo de arranque (zona del logo capturado 0x370000): girado o propio.",
     "estado": "verificado",
     "original": {"sha256": lg.ORIG_SHA256},
     "app": {"baseRam": "0x%06X" % lg.APP_BASE},
@@ -99,12 +100,24 @@ guardar("lg-42lf652vx-soyea.json", {
              {"id": "original", "etiqueta": "Como el original (activado)", "parches": []},
              {"id": "off", "etiqueta": "Desactivado", "parches": [p_espejo]},
          ]},
+        # Logo de arranque: el programa del TV (función 0x2C238C) lee 0x40000 bytes desde 0x370000 (logo
+        # "capturado", el de "LG Life's Good") si el ajuste de logo vale 2; si no, usa el recurso TEL 0x0301
+        # (imagen azul lisa). 0x370000 = inicio de la zona escribible por el TV (msAPI_Flash_Init).
+        {"id": "logo", "etiqueta": "Logo de arranque (zona 0x370000)", "tipo": "lista", "porDefecto": "original",
+         "valores": [
+             {"id": "original", "etiqueta": "Sin cambios", "parches": []},
+             {"id": "girado", "etiqueta": "Girado 180° — sin probar en el TV", "parches": [], "logo": "girar"},
+             {"id": "propio", "etiqueta": "Propio (imagen; se ajusta a 1376x768) — sin probar en el TV",
+              "parches": [], "logo": "propio"},
+         ]},
     ],
+    "logo": {"zonaFlash": {"desde": "0x370000", "hasta": "0x3B0000", "relleno": "0xFF"},
+             "longitudJpeg": 27753, "ancho": 1376, "alto": 768},
     "salidasConocidas": [
-        {"opciones": {"mando": "si", "espejo": "original"},
+        {"opciones": {"mando": "si", "espejo": "original", "logo": "original"},
          "sha256": "17918f8fa6607bb802fdf6c2e71f554b547a390201eb65b9e704494b9fd9b002",
          "archivo": "LG_42LF652VX_MANDO_SOYEA_v5.BIN"},
-        {"opciones": {"mando": "si", "espejo": "off"},
+        {"opciones": {"mando": "si", "espejo": "off", "logo": "original"},
          "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
          "archivo": "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN"},
     ],
@@ -208,8 +221,8 @@ else:
     guardar("atec-32l18d-lp141wx1.json", {
         "formato": 1,
         "id": "atec-32l18d-lp141wx1",
-        "version": 2,
-        "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800 y mando",
+        "version": 3,
+        "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
         "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV "
                        "(necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
         "estado": "verificado",
@@ -239,12 +252,22 @@ else:
                   "parches": [parche(0x3233D5, "c0eee6c0", "c0ef06e0",
                                      "IR: bg.sfeqi r7,0x7736 -> bg.sfeqi r7,0x7837 (código de cliente del mando Soyea)")]},
              ]},
+            # Logo: el programa (0x2E350F) carga SIEMPRE el recurso TEL 0x0300; la búsqueda de recursos
+            # (0x322A4A) no comprueba el CRC-16, pero se mantiene correcto.
+            {"id": "logo", "etiqueta": "Logo de arranque", "tipo": "lista", "porDefecto": "original",
+             "valores": [
+                 {"id": "original", "etiqueta": "Sin cambios", "parches": []},
+                 {"id": "girado", "etiqueta": "Girado 180° — sin probar en el TV", "parches": [], "logo": "girar"},
+                 {"id": "propio", "etiqueta": "Propio (imagen; se ajusta a 2167x1228) — sin probar en el TV",
+                  "parches": [], "logo": "propio"},
+             ]},
         ],
+        "logo": {"idTel": "0x0300", "crc16": True, "longitudJpeg": 49128, "ancho": 2167, "alto": 1228},
         "salidasConocidas": [
-            {"opciones": {"bits": "8", "mando": "atec"},
+            {"opciones": {"bits": "8", "mando": "atec", "logo": "original"},
              "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
              "archivo": "Atec32L18D_LP141WX1_8bit.BIN"},
-            {"opciones": {"bits": "6", "mando": "atec"},
+            {"opciones": {"bits": "6", "mando": "atec", "logo": "original"},
              "sha256": "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2",
              "archivo": "Atec32L18D_LP141WX1_6bit.BIN"},
         ],

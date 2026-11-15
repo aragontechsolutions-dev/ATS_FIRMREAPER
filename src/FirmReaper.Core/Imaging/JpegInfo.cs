@@ -13,6 +13,8 @@ public sealed class JpegInfo
     public required int Components { get; init; }
     /// <summary>True si todos los componentes son 1x1 (4:4:4).</summary>
     public required bool Is444 { get; init; }
+    /// <summary>Factor de muestreo (horizontal, vertical) de cada componente, en orden de aparición.</summary>
+    public required IReadOnlyList<(int H, int V)> Sampling { get; init; }
     public required int RestartInterval { get; init; }
     /// <summary>Tablas de cuantización de 8 bits en ORDEN NATURAL, por id.</summary>
     public required IReadOnlyDictionary<int, int[]> QuantTables { get; init; }
@@ -22,6 +24,24 @@ public sealed class JpegInfo
     public required int Length { get; init; }
 
     public bool IsBaseline => SofMarker is 0xC0 or 0xC1;
+
+    /// <summary>
+    /// Submuestreo en el formato que admite <see cref="JpegBaselineEncoder"/>: 3 componentes, Cb y Cr 1x1 y
+    /// Y 1x1, 2x1 o 2x2. Devuelve null si el JPEG usa otra combinación.
+    /// </summary>
+    public (int H, int V)? EncoderSampling =>
+        Components == 3 && Sampling[1] == (1, 1) && Sampling[2] == (1, 1) && Sampling[0] is (1, 1) or (2, 1) or (2, 2)
+            ? Sampling[0]
+            : null;
+
+    /// <summary>Texto legible del submuestreo ("4:4:4", "4:2:2", "4:2:0" u "otro").</summary>
+    public string SamplingName => EncoderSampling switch
+    {
+        (1, 1) => "4:4:4",
+        (2, 1) => "4:2:2",
+        (2, 2) => "4:2:0",
+        _ => "otro",
+    };
 
     public static JpegInfo Parse(ReadOnlySpan<byte> j)
     {
@@ -34,6 +54,7 @@ public sealed class JpegInfo
         bool is444 = true;
         var qt = new Dictionary<int, int[]>();
         var compQ = new List<int>();
+        var sampling = new List<(int, int)>();
         bool sawSos = false;
 
         while (true)
@@ -60,7 +81,10 @@ public sealed class JpegInfo
                 if (seg.Length < 6 + comps * 3) throw Bad("SOF incompleto.");
                 for (int c = 0; c < comps; c++)
                 {
-                    if (seg[6 + c * 3 + 1] != 0x11) is444 = false;
+                    byte hv = seg[6 + c * 3 + 1];
+                    if (hv != 0x11) is444 = false;
+                    if ((hv >> 4) is < 1 or > 4 || (hv & 15) is < 1 or > 4) throw Bad("factor de muestreo no válido.");
+                    sampling.Add((hv >> 4, hv & 15));
                     compQ.Add(seg[6 + c * 3 + 2]);
                 }
             }
@@ -116,6 +140,7 @@ public sealed class JpegInfo
             SofMarker = sof,
             Components = comps,
             Is444 = is444,
+            Sampling = sampling,
             RestartInterval = restart,
             QuantTables = qt,
             ComponentQuantTable = compQ,

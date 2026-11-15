@@ -27,6 +27,8 @@ public sealed class BuildResult
     /// <summary>SHA-256 y tamaño del JPEG escrito en el hueco del logo (null si el logo no cambia).</summary>
     public string? LogoSha256 { get; init; }
     public int LogoLength { get; init; }
+    /// <summary>Dónde se escribió el logo y cómo se obtuvo (null si el logo no cambia).</summary>
+    public string? LogoDetail { get; init; }
     /// <summary>Tabla del mando escrita (null si el perfil no tiene tabla o la opción no la aplica).</summary>
     public IReadOnlyList<KeyAssignment>? KeyMap { get; init; }
     /// <summary>True si la tabla del mando es distinta de la del perfil.</summary>
@@ -45,12 +47,12 @@ public sealed class BuildException(string message) : Exception(message);
 /// Genera un firmware modificado según un perfil. Pasos (cada uno debe superarse o no hay salida):
 /// 1) contenedor válido y huella = original del perfil; 2) bytes originales en cada parche;
 /// 3) aplicar; 4) recomprimir con Zopfli; 5) cabe antes de los recursos; 6) nueva cabecera y CRC;
-/// 7) logo (girar o propio) validado; 8) re-verificar la salida y que solo cambió lo previsto.
+/// 7) logo (girar o propio) en el formato del original y validado; 8) re-verificar la salida y que solo cambió lo previsto.
 /// </summary>
 public static class FirmwareBuilder
 {
-    /// <summary>Tamaño máximo aceptado para un JPEG propio leído de disco.</summary>
-    public const int MaxCustomLogoBytes = 4 * 1024 * 1024;
+    /// <summary>Tamaño máximo aceptado para la imagen del logo propio leída de disco (JPEG, PNG o BMP).</summary>
+    public const int MaxCustomLogoBytes = 64 * 1024 * 1024;
 
     public static BuildResult Build(byte[] fw, Profile profile, IReadOnlyDictionary<string, string> selection,
         byte[]? customLogo = null, IProgress<string>? progress = null, CancellationToken cancel = default,
@@ -105,7 +107,7 @@ public static class FirmwareBuilder
         if (patches.Count == 0 && logoAction == LogoAction.Ninguna)
             throw new BuildException("Con estas opciones no hay nada que cambiar: el resultado sería el original.");
         if (logoAction != LogoAction.Propio && customLogo is not null)
-            throw new BuildException("Se indicó un logo propio, pero la opción elegida no usa un logo propio.");
+            throw new BuildException("Se indicó una imagen para el logo, pero la opción elegida no usa un logo propio.");
 
         var outFw = (byte[])fw.Clone();
         var h = a.Header;
@@ -182,53 +184,48 @@ public static class FirmwareBuilder
 
         // 7. Logo
         byte[]? newLogo = null;
-        int logoOffset = 0, logoSlot = 0;
+        string? logoDetail = null;
+        LogoSlot? slot = null;
         if (logoAction != LogoAction.Ninguna)
         {
-            var spec = profile.Logo ?? throw new BuildException("El perfil no describe el recurso del logo.");
-            var entry = a.Tel.Entries.FirstOrDefault(e => e.Id == spec.TelId)
-                ?? throw new BuildException($"No existe el recurso 0x{spec.TelId:X4} (logo) en la tabla TEL.");
-            if (entry.Length < spec.JpegLength || entry.Offset < limit)
-                throw new BuildException("El recurso del logo no tiene el tamaño o la posición esperados.");
-            logoOffset = (int)entry.Offset;
-            logoSlot = spec.JpegLength;
-            var orig = fw.AsSpan(logoOffset, spec.JpegLength).ToArray();
-            JpegInfo oi;
+            var spec = profile.Logo ?? throw new BuildException("El perfil no describe el logo.");
+            slot = ResolveLogoSlot(fw, a.Tel, spec, limit);
+            Ok($"Logo original correcto en {spec.Location}: JPEG {slot.Format.Description}, {Fmt.N(spec.JpegLength)} bytes; " +
+               $"hueco de {Fmt.N(slot.Length)} bytes.");
+
+            cancel.ThrowIfCancellationRequested();
             try
             {
-                oi = JpegInfo.Parse(orig);
+                LogoEncoding enc;
+                if (logoAction == LogoAction.Girar)
+                {
+                    progress?.Report("Girando el logo 180°…");
+                    enc = LogoImage.Rotated(slot.Original, slot.Length);
+                }
+                else
+                {
+                    progress?.Report("Preparando el logo propio…");
+                    enc = LogoImage.FromUserImage(customLogo ?? throw new BuildException("Falta la imagen del logo propio."),
+                        slot.Format, slot.Length);
+                }
+                newLogo = enc.Jpeg;
+                logoDetail = $"{spec.Location}: {enc.Detail}";
             }
             catch (InvalidDataException ex)
             {
-                throw new BuildException("El logo original no es el esperado: " + ex.Message);
+                throw new BuildException("Logo: " + ex.Message);
             }
-            if (oi.Length != spec.JpegLength || oi.Width != spec.Width || oi.Height != spec.Height)
-                throw new BuildException("El logo original no es el esperado (longitud o dimensiones).");
+            ValidateLogo(newLogo, slot.Format, slot.Length);
+            Ok($"Logo {(logoAction == LogoAction.Girar ? "girado 180°" : "propio")} válido: {logoDetail}");
 
-            cancel.ThrowIfCancellationRequested();
-            if (logoAction == LogoAction.Girar)
+            // JPEG + relleno hasta el final del hueco; con CRC-16, se recalcula al final del recurso.
+            outFw.AsSpan(slot.Offset, slot.Length).Fill(slot.Fill);
+            newLogo.CopyTo(outFw, slot.Offset);
+            if (slot.CrcLength > 0)
             {
-                progress?.Report("Girando el logo 180°…");
-                try
-                {
-                    newLogo = LogoImage.Rotate180(orig);
-                }
-                catch (InvalidDataException ex)
-                {
-                    throw new BuildException("No se pudo girar el logo: " + ex.Message);
-                }
+                Crc16Tel.Update(outFw.AsSpan(slot.Offset, slot.CrcLength));
+                Ok($"CRC-16 del recurso actualizado (0x{BinaryPrimitives.ReadUInt16BigEndian(outFw.AsSpan(slot.Offset + slot.CrcLength - 2)):X4}).");
             }
-            else
-            {
-                newLogo = customLogo ?? throw new BuildException("Falta el archivo JPEG del logo propio.");
-            }
-            ValidateLogo(newLogo, spec);
-            Ok($"Logo {(logoAction == LogoAction.Girar ? "girado 180°" : "propio")} válido: JPEG baseline {spec.Width}x{spec.Height}, " +
-               $"{Fmt.N(newLogo.Length)} bytes (máximo {Fmt.N(spec.JpegLength)}).");
-
-            // Mismo formato que el script: JPEG + ceros hasta la longitud original; el resto del recurso se conserva.
-            outFw.AsSpan(logoOffset, logoSlot).Clear();
-            newLogo.CopyTo(outFw, logoOffset);
         }
 
         // 8. Verificación independiente de la salida
@@ -265,16 +262,19 @@ public static class FirmwareBuilder
             && SameRange(MStarLayout.HeaderOffset, MStarLayout.HeaderOffset + 8)
             && SameRange(MStarLayout.HeaderOffset + 0x10, MStarLayout.HeaderOffset + 0x14)
             && SameRange(MStarLayout.HeaderOffset + AppHeader.Size, MStarLayout.DeflateOffset);
-        if (newLogo is null)
+        if (slot is null)
         {
             outsideOk &= SameRange((int)limit, fw.Length);
         }
         else
         {
-            outsideOk &= SameRange((int)limit, logoOffset) && SameRange(logoOffset + logoSlot, fw.Length);
-            var slot = outFw.AsSpan(logoOffset, logoSlot);
-            if (!slot[..newLogo.Length].SequenceEqual(newLogo) || slot[newLogo.Length..].IndexOfAnyExcept((byte)0) >= 0)
+            int slotEnd = slot.Offset + Math.Max(slot.Length, slot.CrcLength);
+            outsideOk &= SameRange((int)limit, slot.Offset) && SameRange(slotEnd, fw.Length);
+            var written = outFw.AsSpan(slot.Offset, slot.Length);
+            if (!written[..newLogo!.Length].SequenceEqual(newLogo) || written[newLogo.Length..].IndexOfAnyExcept(slot.Fill) >= 0)
                 throw new BuildException("El hueco del logo no quedó como se esperaba.");
+            if (slot.CrcLength > 0 && !Crc16Tel.IsValid(outFw.AsSpan(slot.Offset, slot.CrcLength)))
+                throw new BuildException("El CRC-16 del recurso del logo no quedó correcto.");
         }
         if (!outsideOk)
             throw new BuildException("Hay cambios fuera de las zonas previstas.");
@@ -306,6 +306,7 @@ public static class FirmwareBuilder
             Logo = logoAction,
             LogoSha256 = newLogo is null ? null : Convert.ToHexStringLower(SHA256.HashData(newLogo)),
             LogoLength = newLogo?.Length ?? 0,
+            LogoDetail = logoDetail,
             KeyMap = appliedKeyMap,
             KeyMapEdited = keyMapEdited,
             Known = known,
@@ -313,38 +314,76 @@ public static class FirmwareBuilder
         };
     }
 
+    /// <summary>Hueco del logo en el archivo: [Offset, Offset+Length) se rellena con Fill y recibe el JPEG.</summary>
+    /// <param name="CrcLength">Si &gt; 0: longitud del recurso TEL cuyo CRC-16 (2 últimos bytes) hay que recalcular.</param>
+    private sealed record LogoSlot(int Offset, int Length, byte Fill, int CrcLength, LogoFormat Format, byte[] Original);
+
     /// <summary>
-    /// Comprueba un JPEG para el hueco del logo: baseline (no progresivo), dimensiones exactas, en color,
-    /// que termina en EOI sin basura detrás, que cabe, y que se decodifica entero.
+    /// Localiza el hueco del logo y comprueba que el original es exactamente el que describe el perfil:
+    /// JPEG de la longitud y dimensiones indicadas, el resto del hueco con el relleno esperado y, si el recurso
+    /// lleva CRC-16, que el CRC original sea correcto. Si algo no cuadra, no se toca nada.
     /// </summary>
-    public static void ValidateLogo(byte[] jpeg, LogoSpec spec)
+    private static LogoSlot ResolveLogoSlot(byte[] fw, TelTable tel, LogoSpec spec, uint appLimit)
     {
+        int offset, length, crcLength = 0;
+        byte fill;
+        if (spec.TelId is { } id)
+        {
+            var e = tel.Entries.FirstOrDefault(x => x.Id == id)
+                ?? throw new BuildException($"No existe el recurso 0x{id:X4} (logo) en la tabla TEL.");
+            if (e.Offset < appLimit || e.Length < spec.JpegLength + (spec.Crc16 ? 2 : 0))
+                throw new BuildException("El recurso del logo no tiene el tamaño o la posición esperados.");
+            offset = (int)e.Offset;
+            fill = 0;
+            if (spec.Crc16)
+            {
+                if (!Crc16Tel.IsValid(fw.AsSpan(offset, (int)e.Length)))
+                    throw new BuildException($"El CRC-16 del recurso 0x{id:X4} no es correcto en el original.");
+                crcLength = (int)e.Length;
+                length = crcLength - 2;
+            }
+            else
+            {
+                length = spec.JpegLength;
+            }
+        }
+        else
+        {
+            // Zona fija: después de la app, de todos los recursos y del área TEL declarada; sin solaparse con nada.
+            uint telEnd = tel.Entries.Count == 0 ? 0 : tel.Entries.Max(e => e.Offset + e.Length);
+            if (spec.FlashFrom < appLimit || spec.FlashFrom < telEnd || spec.FlashFrom < tel.ReservedSize || spec.FlashTo > fw.Length)
+                throw new BuildException($"La zona del logo (0x{spec.FlashFrom:X6}) se solapa con la app o con los recursos TEL.");
+            offset = (int)spec.FlashFrom;
+            length = (int)(spec.FlashTo - spec.FlashFrom);
+            fill = spec.Fill;
+        }
+
+        var original = fw.AsSpan(offset, spec.JpegLength).ToArray();
         JpegInfo info;
+        LogoFormat fmt;
         try
         {
-            info = JpegInfo.Parse(jpeg);
+            info = JpegInfo.Parse(original);
+            fmt = LogoFormat.FromJpeg(original);
         }
         catch (InvalidDataException ex)
         {
-            throw new BuildException("Logo: " + ex.Message);
+            throw new BuildException("El logo original no es el esperado: " + ex.Message);
         }
-        if (!info.IsBaseline)
-            throw new BuildException("Logo: debe ser JPEG baseline (no progresivo).");
-        if (info.Width != spec.Width || info.Height != spec.Height)
-            throw new BuildException($"Logo: debe medir {spec.Width}x{spec.Height} (mide {info.Width}x{info.Height}).");
-        if (info.Components != 3)
-            throw new BuildException("Logo: debe ser en color (3 componentes).");
-        if (info.Length != jpeg.Length)
-            throw new BuildException("Logo: hay datos después del final del JPEG (FFD9).");
-        if (jpeg.Length > spec.JpegLength)
-            throw new BuildException($"Logo: ocupa {Fmt.N(jpeg.Length)} bytes; el máximo es {Fmt.N(spec.JpegLength)}.");
-        try
-        {
-            LogoImage.DecodeRgb(jpeg, out _, out _);
-        }
-        catch (InvalidDataException ex)
-        {
-            throw new BuildException("Logo: " + ex.Message);
-        }
+        if (info.Length != spec.JpegLength || info.Width != spec.Width || info.Height != spec.Height)
+            throw new BuildException("El logo original no es el esperado (longitud o dimensiones).");
+        if (fw.AsSpan(offset + spec.JpegLength, length - spec.JpegLength).IndexOfAnyExcept(fill) >= 0)
+            throw new BuildException($"Tras el logo original hay datos distintos del relleno 0x{fill:X2}: no se modifica.");
+        return new LogoSlot(offset, length, fill, crcLength, fmt, original);
+    }
+
+    /// <summary>
+    /// Última comprobación del JPEG que se va a escribir: baseline, en color, mismas dimensiones y submuestreo
+    /// que el original, nada tras el FFD9, que cabe y que se decodifica entero.
+    /// </summary>
+    public static void ValidateLogo(byte[] jpeg, LogoFormat format, int maxBytes)
+    {
+        if (LogoImage.WhyNotDirect(jpeg, format, maxBytes) is { } why)
+            throw new BuildException("Logo: " + why + ".");
     }
 }

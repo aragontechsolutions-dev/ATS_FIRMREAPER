@@ -170,13 +170,80 @@ public class RealFirmwareTests
         const int Off = 0x29B1B8, Len = 131381;
         var jpeg = File.ReadAllBytes(orig).AsSpan(Off, Len).ToArray();
         var expectedSlot = File.ReadAllBytes(pillow).AsSpan(Off, Len).ToArray();
-        var rotated = FirmReaper.Core.Imaging.LogoImage.Rotate180(jpeg);
+        var rotated = FirmReaper.Core.Imaging.LogoImage.Rotated(jpeg, Len).Jpeg;
         Assert.True(expectedSlot.AsSpan(0, rotated.Length).SequenceEqual(rotated));
         Assert.True(expectedSlot.AsSpan(rotated.Length).IndexOfAnyExcept((byte)0) < 0);
     }
 
+    /// <summary>
+    /// Girar el logo del ATEC (4:2:0, reinicio cada 136 MCU) y del LG (4:2:2, sin reinicios) da el MISMO JPEG
+    /// que Pillow 12.3.0 con: im.convert("RGB").rotate(180).save(…, qtables=im.quantization,
+    /// subsampling=2|1, restart_marker_blocks=136|—). Huellas calculadas con ese código (docs/PRUEBAS.md).
+    /// </summary>
+    [Theory]
+    [InlineData("Atec_32_KPC_Salva.BIN", 0x2D5010, 49128, "d22a2ea3be43c05b5d120707d37e952455cc27f033b55711e4e99589cbcd74ef")]
+    [InlineData("MST_EXT_SPI_ISP_20220511_165639.BIN", 0x370000, 27753, "d0f6f59f3132d8f72f6740b2efa217aa94b0a17719b431f1c58946a4684250ed")]
+    public void GirarLogos420y422IgualQuePillow(string file, int off, int len, string expectedSha)
+    {
+        var path = FindFirmware(file);
+        if (path is null)
+            Assert.Skip($"No está {file}.");
+        var jpeg = File.ReadAllBytes(path).AsSpan(off, len).ToArray();
+        var rotated = FirmReaper.Core.Imaging.LogoImage.Rotated(jpeg, 1 << 20).Jpeg;
+        Assert.Equal(expectedSha, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(rotated)));
+    }
+
+    [Theory]
+    [InlineData("girado")]
+    [InlineData("propio")]
+    public void AtecLogoSoloCambiaElRecursoYMantieneSuCrc(string logo)
+    {
+        var path = FindFirmware("Atec_32_KPC_Salva.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del ATEC.");
+        var fw = File.ReadAllBytes(path);
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "atec-32l18d-lp141wx1");
+        var custom = logo == "propio" ? LogoTests.Bmp24(new FirmReaper.Core.Imaging.RgbImage(
+            Enumerable.Range(0, 640 * 360 * 3).Select(i => (byte)(i % 3 == 0 ? 255 : i / 3 % 640 * 255 / 640)).ToArray(), 640, 360)) : null;
+        var r = FirmwareBuilder.Build(fw, profile, new Dictionary<string, string> { ["logo"] = logo }, custom,
+            cancel: TestContext.Current.CancellationToken);
+
+        // Con bits=8 por defecto la app cambia (entrada del panel); fuera de la app solo cambia el recurso 0x0300.
+        const int ResOff = 0x2D5010, ResLen = 49136;
+        var o = r.Output;
+        Assert.True(o.AsSpan(0x2D5010 - 0x100, 0x100).SequenceEqual(fw.AsSpan(0x2D5010 - 0x100, 0x100)));
+        Assert.True(o.AsSpan(ResOff + ResLen).SequenceEqual(fw.AsSpan(ResOff + ResLen)));
+        Assert.True(Crc16Tel.IsValid(o.AsSpan(ResOff, ResLen)));
+        Assert.False(o.AsSpan(ResOff, ResLen).SequenceEqual(fw.AsSpan(ResOff, ResLen)));
+        var a = FirmReaper.Core.Analysis.FirmwareAnalyzer.Analyze(o);
+        Assert.True(a.ContainerValid);
+        Assert.Equal(FirmReaper.Core.Analysis.CheckStatus.Ok, a.Checks.Single(c => c.Id == "tel.crc").Status);
+        var info = FirmReaper.Core.Imaging.JpegInfo.Parse(o.AsSpan(ResOff, ResLen - 2).ToArray());
+        Assert.Equal((2167, 1228, (2, 2), 136), (info.Width, info.Height, info.EncoderSampling!.Value, info.RestartInterval));
+    }
+
     [Fact]
-    public void LogoPropioDemasiadoGrandeSeRechaza()
+    public void LgLogoSoloCambiaLaZonaDelLogoCapturado()
+    {
+        var path = FindFirmware("MST_EXT_SPI_ISP_20220511_165639.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del LG.");
+        var fw = File.ReadAllBytes(path);
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "lg-42lf652vx-soyea");
+        // Solo el logo: sin mando ni espejo → la app no cambia y no se recomprime.
+        var r = FirmwareBuilder.Build(fw, profile,
+            new Dictionary<string, string> { ["mando"] = "no", ["espejo"] = "original", ["logo"] = "girado" },
+            cancel: TestContext.Current.CancellationToken);
+        var o = r.Output;
+        Assert.True(o.AsSpan(0, 0x370000).SequenceEqual(fw.AsSpan(0, 0x370000)));
+        Assert.True(o.AsSpan(0x3B0000).SequenceEqual(fw.AsSpan(0x3B0000)));
+        Assert.Equal(27727, r.LogoLength);
+        Assert.True(o.AsSpan(0x370000 + r.LogoLength, 0x40000 - r.LogoLength).IndexOfAnyExcept((byte)0xFF) < 0);
+        Assert.Equal("d0f6f59f3132d8f72f6740b2efa217aa94b0a17719b431f1c58946a4684250ed", r.LogoSha256);
+    }
+
+    [Fact]
+    public void LogoPropioDemasiadoGrandeSeRecomprimeParaCaber()
     {
         var path = FindFirmware("TV4-32K16.bin");
         if (path is null)
@@ -185,9 +252,10 @@ public class RealFirmwareTests
         // JPEG válido 1366x768 pero de más de 131 381 bytes (ruido con calidad máxima).
         var big = LogoTests.NoiseJpeg(1366, 768, quality1: true);
         Assert.True(big.Length > 131381);
-        var ex = Assert.Throws<BuildException>(() => FirmwareBuilder.Build(File.ReadAllBytes(path), profile,
-            new Dictionary<string, string> { ["logo"] = "propio" }, big, cancel: TestContext.Current.CancellationToken));
-        Assert.Contains("máximo", ex.Message);
+        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile,
+            new Dictionary<string, string> { ["logo"] = "propio" }, big, cancel: TestContext.Current.CancellationToken);
+        Assert.True(r.LogoLength <= 131381);
+        Assert.Contains("calidad reducida", r.LogoDetail);
     }
 
     [Fact]

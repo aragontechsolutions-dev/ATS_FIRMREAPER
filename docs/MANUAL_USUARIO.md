@@ -1,4 +1,4 @@
-# FirmReaper 1.1 — Manual de usuario
+# FirmReaper 1.2 — Manual de usuario
 
 Programa para Windows que **analiza** volcados de firmware de placas de TV MStar (memoria SPI de 4 MB) y
 **genera versiones modificadas** de los firmwares que conoce, verificando todo antes de escribir.
@@ -21,9 +21,9 @@ Programa para Windows que **analiza** volcados de firmware de placas de TV MStar
 
 | Modelo | Placa | Modificaciones |
 |---|---|---|
-| LG 42LF652VX | TP.VST56.PB801 | Mando Soyea LKK32CMB (sí/no), espejo de imagen (original/desactivado), tabla del mando editable |
+| LG 42LF652VX | TP.VST56.PB801 | Mando Soyea LKK32CMB (sí/no), espejo de imagen (original/desactivado), tabla del mando editable, logo de arranque (sin cambios / girado / propio) |
 | Konka TV4-32K16 | TP.VST59S.PB813 | Espejo (opción MIRROR en el menú de fábrica / fijo), logo de arranque (girado 180° / propio / sin cambios) |
-| ATEC 32L18D | BD_MST061B_10AZU_14014 | Panel LG.Philips LP141WX1 1280x800 (salida LVDS de 8 o 6 bits); mando Soyea LKK32CMB (opcional) |
+| ATEC 32L18D | BD_MST061B_10AZU_14014 | Panel LG.Philips LP141WX1 1280x800 (salida LVDS de 8 o 6 bits); mando Soyea LKK32CMB (opcional); logo de arranque (sin cambios / girado / propio) |
 
 **No hace:**
 
@@ -99,7 +99,7 @@ Mensajes posibles:
 
 ### 3.2 Pestaña "Comprobaciones"
 
-Lista de 11 comprobaciones del archivo. Cada fila sale como OK, AVISO (amarillo) o ERROR (rojo):
+Lista de 12 comprobaciones del archivo. Cada fila sale como OK, AVISO (amarillo) o ERROR (rojo):
 
 | Comprobación | Qué mira |
 |---|---|
@@ -107,6 +107,7 @@ Lista de 11 comprobaciones del archivo. Cada fila sale como OK, AVISO (amarillo)
 | Inicio de la app / fin en RAM | Que la cabecera del programa (en 0x20000) sea coherente |
 | **CRC-32 de la aplicación** | Que el programa no esté dañado. Si falla, **el TV no arrancaría** con ese archivo |
 | Tabla de recursos TEL | La lista de logos, fuentes, etc. |
+| CRC-16 de los recursos | Cada recurso termina con un CRC-16. Sale **AVISO** si no coincide: pasa en `TV4-32K16_MIRROR_MENU.bin` (logo girado por el script antiguo), que funciona igual, porque el TV no lo comprueba |
 | La app no pisa los recursos | Que el programa comprimido termine antes del primer recurso |
 | Descompresión del programa | Que el programa comprimido se pueda descomprimir entero |
 | Tamaño en la cola / fin en flash | Coherencia entre el programa y la cabecera |
@@ -128,7 +129,7 @@ mala conexión de la pinza.
 
 1. Abre el **original** (franja verde, "ORIGINAL reconocido").
 2. Ve a la pestaña **Generar**.
-3. Elige las opciones (ver apartados 4.1 a 4.3).
+3. Elige las opciones (ver apartados 4.1 a 4.5).
 4. Pulsa **Generar…** y elige la **carpeta** donde guardar el resultado.
 5. Espera (de 1 a 15 segundos según el modelo). El registro muestra cada paso. **Cancelar** detiene el
    proceso sin guardar nada.
@@ -152,9 +153,14 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 | Mando Soyea LKK32CMB | **Sí (v5)** / No (mando LG original) |
 | Espejo de imagen | **Como el original (activado)** / Desactivado |
 | Tabla del mando | Solo con "Mando Soyea: Sí". **Editar…** abre el editor (4.4) |
+| Logo de arranque (zona 0x370000) | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 
-- Con "Sí" + "Como el original" sale `LG_42LF652VX_MANDO_SOYEA_v5.BIN`.
-- Con "Sí" + "Desactivado" sale `LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN`.
+- Con "Sí" + "Como el original" + logo "Sin cambios" sale `LG_42LF652VX_MANDO_SOYEA_v5.BIN`.
+- Con "Sí" + "Desactivado" + logo "Sin cambios" sale `LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN`.
+- **Logo:** este firmware guarda el logo "LG Life's Good" en una zona aparte (`0x370000`, la del "logo
+  capturado"). El programa del TV lo usa **si su ajuste de logo está en ese modo**; si no, muestra una imagen
+  **azul lisa**. Si al encender tu TV ves "LG Life's Good", es este logo el que cambia; si ves una pantalla azul,
+  cambiarlo no tendrá efecto.
 - **Pendiente de probar en el TV:** encender desde reposo con el mando Soyea (el modo de reposo no se modificó).
 
 ### 4.2 Konka TV4-32K16
@@ -171,15 +177,7 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 - El logo de arranque se dibuja **antes** de que actúe el espejo; por eso se gira 180°. Con MIRROR en OFF el
   logo girado saldría al revés.
 
-**Logo propio:** al pulsar Generar… el programa pide el archivo. Debe ser:
-
-- JPEG **baseline** (no "progresivo"), en color;
-- de **exactamente 1366 × 768** píxeles;
-- de **como máximo 131 381 bytes**;
-- sin datos añadidos después del final del JPEG.
-
-Si no cumple, el programa dice por qué (por ejemplo *"Logo: debe medir 1366x768 (mide 800x600)"*).
-Truco: en cualquier editor de imágenes, "Guardar como JPEG" con calidad 80–90 % y **sin** "progresivo".
+**Logo propio:** ver 4.5 (1366 × 768).
 
 ### 4.3 ATEC 32L18D
 
@@ -187,6 +185,7 @@ Truco: en cualquier editor de imágenes, "Guardar como JPEG" con calidad 80–90
 |---|---|
 | Salida LVDS | **8 bits (probado: FUNCIONÓ)** / 6 bits + dither (probado: NO funcionó) |
 | Mando | **ATEC original** / Soyea LKK32CMB (sin probar en el TV) |
+| Logo de arranque | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 
 - Cambia la entrada del panel a 1280x800 (LP141WX1). La salida de 8 bits necesita **mapeo JEIDA**; el par 3
   de datos queda sin conectar.
@@ -195,6 +194,8 @@ Truco: en cualquier editor de imágenes, "Guardar como JPEG" con calidad 80–90
 - **Mando Soyea:** el firmware del ATEC es el mismo que el del Soyea (misma placa) y su tabla de botones es
   idéntica; solo cambia el código del mando. Con esta opción el TV obedece al mando Soyea **y deja de obedecer
   al mando original del ATEC**. Encender desde reposo con el mando Soyea no está comprobado.
+- **Logo:** el TV muestra siempre el recurso `0x0300` (el logo "atec" sobre negro). Mide 2167 × 1228 y el hueco
+  es pequeño (49 134 bytes): con imágenes con mucho detalle el programa tendrá que bajar la calidad.
 
 ### 4.4 Editor de la tabla del mando (LG)
 
@@ -208,6 +209,29 @@ Pestaña Generar → *Tabla del mando* → **Editar…**
 - Algunas funciones salen como *"función LG 0xNN (sin identificar)"*: existen en el TV pero no se sabe qué
   hacen. Úsalas solo para probar.
 - **Una tabla editada no está probada en el TV.** El informe lo indica ("EDITADA") y ya no la compara con la v5.
+
+### 4.5 Logo de arranque: girado o propio (LG, Konka, ATEC)
+
+- **Girado 180°:** el logo de fábrica, girado. Útil cuando la imagen del TV está espejada (panel montado al
+  revés), porque el logo se dibuja antes de que actúe el espejo.
+- **Propio:** al pulsar **Generar…** el programa pide una **imagen JPEG, PNG o BMP de cualquier tamaño**. La
+  adapta solo:
+  - la **encaja** en el tamaño del logo de ese TV **sin deformarla** (centrada; si la proporción es distinta,
+    con bandas negras). Para que ocupe toda la pantalla, usa una imagen con esa proporción:
+
+    | TV | Tamaño del logo |
+    |---|---|
+    | LG | 1376 × 768 |
+    | Konka | 1366 × 768 |
+    | ATEC | 2167 × 1228 |
+
+  - la guarda en **el mismo formato JPEG que el logo original** (el que el TV ya sabe mostrar);
+  - si no cabe en el hueco, **baja la calidad** lo justo. El informe dice cuánto. Si ni con la calidad mínima
+    cabe (imágenes con muchísimo detalle), se rechaza: usa una imagen más sencilla (logo sobre fondo liso).
+  - Si tu archivo ya es un JPEG con el formato exacto y cabe, se usa **tal cual**, sin tocarlo.
+- La transparencia de un PNG se convierte en **negro**.
+- El informe (`.informe.txt`) explica qué se hizo: tamaño original, si hubo bandas, calidad usada y bytes.
+- Solo el Konka "girado" está probado en el TV. Los logos del LG y del ATEC están **sin probar**.
 
 ---
 
@@ -264,8 +288,10 @@ que cambian aparecen **en rojo**.
 | *Parche 0x…: los bytes originales no coinciden* | El archivo no es el esperado en ese punto. No se toca nada |
 | *Con estas opciones no hay nada que cambiar…* | Las opciones elegidas dejan el firmware igual que el original |
 | *La app recomprimida no cabe…* | El programa modificado no entra en su hueco. No debería pasar con los perfiles incluidos |
-| *Falta el archivo JPEG del logo propio* | Elegiste "Propio" pero no indicaste el archivo |
-| *Logo: …* | El JPEG propio no cumple los requisitos (4.2) |
+| *Falta la imagen del logo propio* | Elegiste "Propio" pero no indicaste el archivo |
+| *Logo: La imagen no cabe en el hueco del logo ni con la calidad mínima…* | La imagen tiene demasiado detalle para el hueco del logo. Usa una más sencilla (4.5) |
+| *Logo: PNG/BMP/JPEG no válido…* | El archivo de imagen está dañado o es de un tipo no admitido (PNG entrelazado, BMP comprimido o de menos de 24 bits, JPEG CMYK). Vuelve a guardarlo con un editor de imágenes |
+| *El logo original no es el esperado…* / *Tras el logo original hay datos…* | El original no tiene el logo donde dice el perfil. No se toca nada |
 | *Tabla del mando no válida: …* | Hay botones repetidos, funciones no permitidas o más de 44 teclas |
 | *El archivo original cambió en disco después de analizarlo…* | Se modificó el `.BIN` mientras usabas el programa. Ábrelo de nuevo |
 | *Ya existe una copia de seguridad con ese nombre y distinto contenido* | En `respaldo_originales` hay un archivo con el mismo nombre pero diferente. Revísalo |
@@ -291,14 +317,15 @@ Desde cmd o PowerShell, en la carpeta de `firmreaper-cli.exe`:
 | `firmreaper-cli verificar A.BIN B.BIN …` | Una línea por archivo (útil para comparar lecturas) |
 | `firmreaper-cli catalogo` | Versiones conocidas |
 | `firmreaper-cli perfiles` | Modificaciones disponibles y sus opciones |
-| `firmreaper-cli generar ORIGINAL.BIN --perfil ID [--opcion clave=valor …] [--logo LOGO.jpg] [--tabla-mando TABLA.json] --salida CARPETA` | Generar |
+| `firmreaper-cli generar ORIGINAL.BIN --perfil ID [--opcion clave=valor …] [--logo IMAGEN] [--tabla-mando TABLA.json] --salida CARPETA` | Generar (`IMAGEN`: JPEG, PNG o BMP) |
 | `firmreaper-cli tabla-mando --perfil lg-42lf652vx-soyea --salida tabla.json` | Exportar la tabla del mando por defecto |
 
 Ejemplos:
 
 ```
 firmreaper-cli generar MST_EXT_SPI_ISP_20220511_165639.BIN --perfil lg-42lf652vx-soyea --opcion espejo=off --salida C:\salida
-firmreaper-cli generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --opcion logo=propio --logo milogo.jpg --salida C:\salida
+firmreaper-cli generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --opcion logo=propio --logo milogo.png --salida C:\salida
+firmreaper-cli generar Atec_32_KPC_Salva.BIN --perfil atec-32l18d-lp141wx1 --opcion logo=girado --salida C:\salida
 firmreaper-cli generar Atec_32_KPC_Salva.BIN --perfil atec-32l18d-lp141wx1 --opcion bits=8 --salida C:\salida
 ```
 
@@ -354,5 +381,5 @@ El programa no guarda ajustes. Solo crea `%LOCALAPPDATA%\FirmReaper\errores.log`
 
 ---
 
-*FirmReaper 1.1.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
+*FirmReaper 1.2.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
 tablas AEON).*

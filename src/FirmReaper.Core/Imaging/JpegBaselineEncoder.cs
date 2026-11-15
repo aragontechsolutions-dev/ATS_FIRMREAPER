@@ -3,7 +3,7 @@ namespace FirmReaper.Core.Imaging;
 /// <summary>
 /// Codificador JPEG baseline (SOF0) que reproduce BYTE A BYTE la salida de libjpeg-turbo con la
 /// configuración que usa Pillow en patch_mirror_menu.py:
-///   RGB → YCbCr (jccolor.c), 4:4:4, DCT entera "islow" (jfdctint.c), cuantización por recíprocos
+///   RGB → YCbCr (jccolor.c), 4:4:4 / 4:2:2 / 4:2:0 (jcsample.c), DCT entera "islow" (jfdctint.c), cuantización por recíprocos
 ///   (jcdctmgr.c), tablas de Huffman estándar (Anexo K, sin optimizar), intervalo de reinicio en MCU,
 ///   cabecera JFIF por defecto (jcmarker.c).
 /// Todo es aritmética entera: el resultado es idéntico en cualquier plataforma.
@@ -76,7 +76,10 @@ public static class JpegBaselineEncoder
     /// <param name="quantLuma">Tabla de cuantización de Y en ORDEN NATURAL (64 valores 1..255).</param>
     /// <param name="quantChroma">Tabla de Cb y Cr en orden natural.</param>
     /// <param name="restartInterval">MCU entre marcadores RST (0 = sin reinicios).</param>
-    public static byte[] Encode(byte[] rgb, int width, int height, int[] quantLuma, int[] quantChroma, int restartInterval)
+    /// <param name="lumaH">Muestreo horizontal de Y: 1 (4:4:4) o 2 (4:2:2 / 4:2:0). Cb y Cr siempre 1x1.</param>
+    /// <param name="lumaV">Muestreo vertical de Y: 1 o 2. Combinaciones admitidas: 1x1, 2x1 y 2x2.</param>
+    public static byte[] Encode(byte[] rgb, int width, int height, int[] quantLuma, int[] quantChroma, int restartInterval,
+        int lumaH = 1, int lumaV = 1)
     {
         ArgumentNullException.ThrowIfNull(rgb);
         if (width < 1 || height < 1 || width > 65535 || height > 65535) throw new ArgumentOutOfRangeException(nameof(width));
@@ -84,49 +87,66 @@ public static class JpegBaselineEncoder
         if (quantLuma.Length != 64 || quantChroma.Length != 64) throw new ArgumentException("Las tablas deben tener 64 valores.");
         if (quantLuma.Concat(quantChroma).Any(q => q is < 1 or > 255)) throw new ArgumentException("Valores de cuantización fuera de 1..255 (baseline).");
         if (restartInterval is < 0 or > 65535) throw new ArgumentOutOfRangeException(nameof(restartInterval));
+        if (!((lumaH, lumaV) is (1, 1) or (2, 1) or (2, 2)))
+            throw new ArgumentException("Submuestreo no admitido (solo 1x1, 2x1 y 2x2).");
 
-        int wBlocks = (width + 7) / 8, hBlocks = (height + 7) / 8;
-        int pw = wBlocks * 8, ph = hBlocks * 8;
+        int hs = lumaH, vs = lumaV;
+        // Bloques por componente (jdiv_round_up de jcmaster.c) y MCU de la imagen.
+        int yWB = (width + 7) / 8, yHB = (height + 7) / 8;
+        int cWB = (width + 8 * hs - 1) / (8 * hs), cHB = (height + 8 * vs - 1) / (8 * vs);
+        int mcuCols = cWB, mcuRows = cHB;
 
-        // 1) Color + bordes replicados (jccolor.c + expand_right_edge / filas finales de jcprepare.c)
-        var planes = new byte[3][];
-        for (int c = 0; c < 3; c++) planes[c] = new byte[pw * ph];
+        // 1) Color (jccolor.c) a planos de tamaño exacto.
         var tab = BuildRgbYccTable();
-        for (int y = 0; y < ph; y++)
+        var yFull = new byte[width * height];
+        var cbFull = new byte[width * height];
+        var crFull = new byte[width * height];
+        for (int p = 0; p < width * height; p++)
         {
-            int sy = Math.Min(y, height - 1);
-            for (int x = 0; x < pw; x++)
-            {
-                int sx = Math.Min(x, width - 1);
-                int p = (sy * width + sx) * 3;
-                int r = rgb[p], g = rgb[p + 1], b = rgb[p + 2];
-                int o = y * pw + x;
-                planes[0][o] = (byte)((tab[r + RY] + tab[g + GY] + tab[b + BY]) >> ScaleBits);
-                planes[1][o] = (byte)((tab[r + RCb] + tab[g + GCb] + tab[b + BCb]) >> ScaleBits);
-                planes[2][o] = (byte)((tab[r + RCr] + tab[g + GCr] + tab[b + BCr]) >> ScaleBits);
-            }
+            int r = rgb[p * 3], g = rgb[p * 3 + 1], b = rgb[p * 3 + 2];
+            yFull[p] = (byte)((tab[r + RY] + tab[g + GY] + tab[b + BY]) >> ScaleBits);
+            cbFull[p] = (byte)((tab[r + RCb] + tab[g + GCb] + tab[b + BCb]) >> ScaleBits);
+            crFull[p] = (byte)((tab[r + RCr] + tab[g + GCr] + tab[b + BCr]) >> ScaleBits);
         }
 
-        // 2) Divisores de cuantización (compute_reciprocal de jcdctmgr.c, DCTELEM de 16 bits)
+        // 2) Planos listos para la DCT, con bordes replicados como libjpeg (jcprepare.c / jcsample.c).
+        int yPW = mcuCols * hs * 8, yPH = mcuRows * vs * 8;
+        var yPlane = Pad(yFull, width, height, yPW, yPH);
+        int cPW = mcuCols * 8, cPH = mcuRows * 8;
+        byte[] cbPlane, crPlane;
+        if (hs == 1 && vs == 1)
+        {
+            cbPlane = Pad(cbFull, width, height, cPW, cPH);
+            crPlane = Pad(crFull, width, height, cPW, cPH);
+        }
+        else
+        {
+            cbPlane = Downsample(cbFull, width, height, hs, vs, cPW, cPH);
+            crPlane = Downsample(crFull, width, height, hs, vs, cPW, cPH);
+        }
+
+        // 3) Divisores de cuantización (compute_reciprocal de jcdctmgr.c, DCTELEM de 16 bits)
         var divL = Divisors(quantLuma);
         var divC = Divisors(quantChroma);
 
-        // 3) Codificación entrópica
+        // 4) Codificación entrópica
         var w = new JpegWriter();
-        w.WriteHeaders(width, height, quantLuma, quantChroma, restartInterval);
+        w.WriteHeaders(width, height, quantLuma, quantChroma, restartInterval, (hs << 4) | vs);
         var huffDcL = new HuffTable(DcLumaBits, DcLumaVals);
         var huffAcL = new HuffTable(AcLumaBits, AcLumaVals);
         var huffDcC = new HuffTable(DcChromaBits, DcChromaVals);
         var huffAcC = new HuffTable(AcChromaBits, AcChromaVals);
 
         var block = new int[64];
+        var mcuY = new int[hs * vs][];
+        for (int k = 0; k < mcuY.Length; k++) mcuY[k] = new int[64];
         var coef = new int[64];
         var lastDc = new int[3];
         int restartsToGo = restartInterval;
         int nextRestart = 0;
-        for (int by = 0; by < hBlocks; by++)
+        for (int my = 0; my < mcuRows; my++)
         {
-            for (int bx = 0; bx < wBlocks; bx++)
+            for (int mx = 0; mx < mcuCols; mx++)
             {
                 if (restartInterval != 0)
                 {
@@ -139,21 +159,95 @@ public static class JpegBaselineEncoder
                     }
                     restartsToGo--;
                 }
-                for (int c = 0; c < 3; c++)
+
+                // Y: hs x vs bloques. Los que caen fuera de la imagen son "ficticios" (jccoefct.c):
+                // coeficientes a cero y la DC del bloque anterior del MCU.
+                int blkn = 0;
+                for (int yy = 0; yy < vs; yy++)
                 {
-                    var plane = planes[c];
-                    for (int yy = 0; yy < 8; yy++)
-                        for (int xx = 0; xx < 8; xx++)
-                            block[yy * 8 + xx] = plane[(by * 8 + yy) * pw + bx * 8 + xx] - 128;
+                    int by = my * vs + yy;
+                    for (int xx = 0; xx < hs; xx++, blkn++)
+                    {
+                        int bx = mx * hs + xx;
+                        var dst = mcuY[blkn];
+                        if (by < yHB && bx < yWB)
+                        {
+                            LoadBlock(yPlane, yPW, bx, by, block);
+                            ForwardDctIslow(block);
+                            Quantize(block, divL, dst);
+                        }
+                        else
+                        {
+                            Array.Clear(dst);
+                            dst[0] = mcuY[blkn - 1][0];
+                        }
+                    }
+                }
+                for (int k = 0; k < blkn; k++) w.EncodeBlock(mcuY[k], ref lastDc[0], huffDcL, huffAcL);
+
+                // Cb y Cr: un bloque por MCU, siempre dentro de su plano.
+                for (int c = 1; c < 3; c++)
+                {
+                    LoadBlock(c == 1 ? cbPlane : crPlane, cPW, mx, my, block);
                     ForwardDctIslow(block);
-                    Quantize(block, c == 0 ? divL : divC, coef);
-                    if (c == 0) w.EncodeBlock(coef, ref lastDc[0], huffDcL, huffAcL);
-                    else w.EncodeBlock(coef, ref lastDc[c], huffDcC, huffAcC);
+                    Quantize(block, divC, coef);
+                    w.EncodeBlock(coef, ref lastDc[c], huffDcC, huffAcC);
                 }
             }
         }
         w.Finish();
         return w.ToArray();
+    }
+
+    private static void LoadBlock(byte[] plane, int stride, int bx, int by, int[] block)
+    {
+        for (int yy = 0; yy < 8; yy++)
+        {
+            int o = (by * 8 + yy) * stride + bx * 8;
+            for (int xx = 0; xx < 8; xx++) block[yy * 8 + xx] = plane[o + xx] - 128;
+        }
+    }
+
+    /// <summary>Copia el plano replicando la última columna y la última fila (expand_right/bottom_edge).</summary>
+    private static byte[] Pad(byte[] src, int w, int h, int pw, int ph)
+    {
+        var dst = new byte[pw * ph];
+        for (int y = 0; y < ph; y++)
+        {
+            int sy = Math.Min(y, h - 1);
+            for (int x = 0; x < pw; x++) dst[y * pw + x] = src[sy * w + Math.Min(x, w - 1)];
+        }
+        return dst;
+    }
+
+    /// <summary>
+    /// Submuestreo de crominancia como libjpeg-turbo (jcsample.c, h2v1_downsample / h2v2_downsample):
+    /// la imagen se amplía replicando bordes hasta múltiplos del MCU, se promedia 2x1 (sesgo 0,1,0,1…)
+    /// o 2x2 (sesgo 1,2,1,2…) y las filas que faltan hasta completar el MCU repiten la última fila.
+    /// </summary>
+    private static byte[] Downsample(byte[] src, int w, int h, int hs, int vs, int outW, int outH)
+    {
+        int inW = outW * hs;
+        int inH = (h + vs - 1) / vs * vs; // jcprepare replica la última fila hasta completar el grupo
+        var full = Pad(src, w, h, inW, inH);
+        int rowsOut = inH / vs;
+        var dst = new byte[outW * outH];
+        for (int y = 0; y < rowsOut; y++)
+        {
+            int bias = vs == 2 ? 1 : 0;
+            int r0 = y * vs * inW, r1 = (y * vs + vs - 1) * inW;
+            for (int x = 0; x < outW; x++)
+            {
+                int v = vs == 2
+                    ? (full[r0 + 2 * x] + full[r0 + 2 * x + 1] + full[r1 + 2 * x] + full[r1 + 2 * x + 1] + bias) >> 2
+                    : (full[r0 + 2 * x] + full[r0 + 2 * x + 1] + bias) >> 1;
+                dst[y * outW + x] = (byte)v;
+                bias ^= vs == 2 ? 3 : 1;
+            }
+        }
+        for (int y = rowsOut; y < outH; y++)
+            Array.Copy(dst, (rowsOut - 1) * outW, dst, y * outW, outW);
+        return dst;
     }
 
     // ---------------------------------------------------------------- color (jccolor.c)
@@ -349,7 +443,7 @@ public static class JpegBaselineEncoder
             Byte(v & 0xFF);
         }
 
-        public void WriteHeaders(int width, int height, int[] ql, int[] qc, int restart)
+        public void WriteHeaders(int width, int height, int[] ql, int[] qc, int restart, int lumaSampling)
         {
             Byte(0xFF); Byte(0xD8);                                   // SOI
             Byte(0xFF); Byte(0xE0); Word(16);                         // APP0 JFIF por defecto
@@ -359,7 +453,7 @@ public static class JpegBaselineEncoder
             Dqt(1, qc);
             Byte(0xFF); Byte(0xC0); Word(8 + 3 * 3);                  // SOF0
             Byte(8); Word(height); Word(width); Byte(3);
-            Byte(1); Byte(0x11); Byte(0);
+            Byte(1); Byte(lumaSampling); Byte(0);
             Byte(2); Byte(0x11); Byte(1);
             Byte(3); Byte(0x11); Byte(1);
             Dht(0x00, DcLumaBits, DcLumaVals);                        // como write_scan_header

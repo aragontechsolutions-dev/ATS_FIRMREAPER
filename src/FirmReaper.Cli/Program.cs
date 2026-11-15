@@ -12,7 +12,7 @@ namespace FirmReaper.Cli;
 ///   firmreaper-cli verificar ARCHIVO.BIN ...                 una línea por archivo
 ///   firmreaper-cli catalogo                                  imágenes conocidas
 ///   firmreaper-cli perfiles                                  perfiles disponibles y sus opciones
-///   firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg]
+///   firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo IMAGEN]
 ///                  [--tabla-mando TABLA.json] --salida CARPETA
 ///   firmreaper-cli tabla-mando --perfil ID [--salida TABLA.json]   tabla del mando por defecto (para editarla)
 /// Códigos de salida: 0 = correcto, 1 = no válido / no reconocido / error, 2 = error de uso.
@@ -67,7 +67,7 @@ internal static class Program
               firmreaper-cli verificar ARCHIVO.BIN [ARCHIVO2.BIN ...]
               firmreaper-cli catalogo
               firmreaper-cli perfiles
-              firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg]
+              firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo IMAGEN]
                              [--tabla-mando TABLA.json] --salida CARPETA
               firmreaper-cli tabla-mando --perfil ID [--salida TABLA.json]
             """);

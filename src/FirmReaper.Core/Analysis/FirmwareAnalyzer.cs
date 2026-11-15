@@ -129,6 +129,15 @@ public static class FirmwareAnalyzer
             $"{tel.Entries.Count} recursos; primero en 0x{tel.FirstResourceOffset:X6}" +
             (tel.HasTerminator ? "" : "; falta el terminador 0xF000")));
 
+        // CRC-16 al final de cada recurso. Solo informativo: el arranque de los firmwares conocidos no lo
+        // comprueba (el logo girado por el script Python del Konka lo dejó mal y el TV funciona).
+        var badCrc = tel.Entries.Where(e => !Crc16Tel.IsValid(fw.AsSpan((int)e.Offset, (int)e.Length)))
+            .Select(e => $"0x{e.Id:X4}").ToList();
+        checks.Add(new Check("tel.crc", "CRC-16 de los recursos", badCrc.Count == 0 ? CheckStatus.Ok : CheckStatus.Advertencia,
+            badCrc.Count == 0
+                ? $"Correcto en los {tel.Entries.Count} recursos"
+                : $"No coincide en {string.Join(", ", badCrc)} (recurso modificado sin actualizar su CRC; los firmwares conocidos no lo comprueban al arrancar)"));
+
         uint limit = tel.FirstResourceOffset;
         if (limit <= MStarLayout.DeflateOffset)
         {

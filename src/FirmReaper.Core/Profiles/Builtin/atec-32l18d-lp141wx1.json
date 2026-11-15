@@ -1,8 +1,8 @@
 {
   "formato": 1,
   "id": "atec-32l18d-lp141wx1",
-  "version": 2,
-  "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800 y mando",
+  "version": 3,
+  "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
   "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV (necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
   "estado": "verificado",
   "original": {
@@ -85,13 +85,46 @@
           ]
         }
       ]
+    },
+    {
+      "id": "logo",
+      "etiqueta": "Logo de arranque",
+      "tipo": "lista",
+      "porDefecto": "original",
+      "valores": [
+        {
+          "id": "original",
+          "etiqueta": "Sin cambios",
+          "parches": []
+        },
+        {
+          "id": "girado",
+          "etiqueta": "Girado 180° — sin probar en el TV",
+          "parches": [],
+          "logo": "girar"
+        },
+        {
+          "id": "propio",
+          "etiqueta": "Propio (imagen; se ajusta a 2167x1228) — sin probar en el TV",
+          "parches": [],
+          "logo": "propio"
+        }
+      ]
     }
   ],
+  "logo": {
+    "idTel": "0x0300",
+    "crc16": true,
+    "longitudJpeg": 49128,
+    "ancho": 2167,
+    "alto": 1228
+  },
   "salidasConocidas": [
     {
       "opciones": {
         "bits": "8",
-        "mando": "atec"
+        "mando": "atec",
+        "logo": "original"
       },
       "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
       "archivo": "Atec32L18D_LP141WX1_8bit.BIN"
@@ -99,7 +132,8 @@
     {
       "opciones": {
         "bits": "6",
-        "mando": "atec"
+        "mando": "atec",
+        "logo": "original"
       },
       "sha256": "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2",
       "archivo": "Atec32L18D_LP141WX1_6bit.BIN"

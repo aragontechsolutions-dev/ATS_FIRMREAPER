@@ -15,8 +15,8 @@ Guía técnica de lo que el motor lee. **V** = verificado en los binarios del pr
 | `0x022080` | Tabla TEL de recursos | V |
 | `0x023880` | Deflate crudo de la app (RFC 1951) + cola de 6 bytes | V |
 | fin app … primer recurso | Zona libre (ceros) | V |
-| primer recurso TEL … | Recursos (logo JPEG, fuentes LZMA, etc.) | V |
-| final de la flash | Bases de datos (ajustes, canales, fábrica, HDCP…) | SDK |
+| primer recurso TEL … | Recursos (logo JPEG, fuentes LZMA, etc.), cada uno con CRC-16 al final | V |
+| fin del área TEL (`0x22088`) … final | Zona escribible por el TV: logo capturado (LG), bases de datos (ajustes, canales, fábrica, HDCP…) | V/SDK |
 
 ## Cabecera en `0x20000`
 
@@ -36,7 +36,8 @@ Cubre también MS_IMG_INFO y la tabla TEL, así que si se tocan hay que recalcul
 ## Cola tras el deflate (6 bytes)
 
 `u32 LE tamaño descomprimido` + 2 bytes de función **desconocida** (?). Se conservan siempre.
-Probado: no son CRC16 0x8005/0x1021 (init 0/FFFF) del comprimido, de la app ni de `0x20080..`.
+Probado: no son CRC16 0x8005/0x1021 (init 0/FFFF) del comprimido, de la app ni de `0x20080..` (el CRC-16 de los
+recursos TEL, en cambio, sí es 0x8005: ver más abajo).
 
 ## MS_IMG_INFO (`0x21180`)
 
@@ -47,12 +48,35 @@ Magic `78 56 AA 55`, textos `DVBT-----`, `PANEL_NAME`, y en `0x211C7` la marca d
 ## Tabla TEL (`0x22080`)
 
 ```
-"TEL\x09" "X3i\0"  u32 BE tamaño reservado  u16 BE nº entradas
+"TEL\x09" "X3i\0"  u32 BE fin del área de recursos  u16 BE nº entradas
 entrada (11 bytes): u16 BE id, u32 BE offset, u32 BE longitud, u8 banderas
 terminador: id 0xF000 (resto CC)
 ```
-Banderas: `0x00` sin comprimir, `0x01` LZSS, `0x04` deflate, `0x08` LZMA. Logo de arranque: id `0x0300`
-(ATEC/Soyea) / `0x0301` (LG), JPEG. El **primer recurso** marca el límite que la app no puede pasar.
+Banderas: `0x00` sin comprimir, `0x01` LZSS, `0x04` deflate, `0x08` LZMA. El **primer recurso** marca el límite
+que la app no puede pasar.
+
+**Fin del área de recursos** (u32 en `0x22088`, antes llamado "tamaño reservado"): `0x3C0000` en ATEC, Soyea y
+Konka; `0x370000` en el LG. En el LG coincide con `s_Flash_u32WriteValidAddr_Start` de `msAPI_Flash_Init`
+(app `0x26FF53`): desde ahí la flash la puede escribir el propio TV. (V)
+
+**CRC-16 de cada recurso** (V en los 41 recursos de los 4 originales): los 2 últimos bytes (big-endian) son el
+CRC-16 de todo lo anterior del recurso; polinomio `0x8005`, valor inicial 0, sin reflejar, sin XOR final
+(CRC-16/UMTS; `CRC("123456789") = 0xFEE8`). Los recursos miden múltiplos de 8: datos + ceros + CRC.
+La búsqueda de recursos del ATEC (`0x322A4A`) **no** lo comprueba, y el `TV4-32K16_MIRROR_MENU.bin` (logo girado
+por el script Python, CRC sin actualizar) funciona en el TV. FirmReaper lo recalcula igualmente cuando cambia un
+recurso con `crc16` en el perfil, y el análisis avisa si no coincide.
+
+### Logo de arranque (V)
+
+| Firmware | De dónde lo carga el programa del TV | JPEG original |
+|---|---|---|
+| ATEC | Siempre el recurso TEL `0x0300` (función `0x2E350F`; copia longitud+7 & ~7 bytes a RAM `0x1F30000`) | 2167x1228, 4:2:0, reinicio 136 |
+| Soyea | Recurso TEL `0x0300` | 720x480, 4:4:4 |
+| Konka | Recurso TEL `0x065E` (función `0x26EC94`) | 1366x768, 4:4:4, reinicio 171 |
+| LG | Función `0x2C238C`: si el ajuste de logo (RAM `0x53F565`) vale 2, lee **0x40000 bytes desde `0x370000`** ("logo capturado": "LG Life's Good"); si no, el recurso TEL `0x0301` (imagen **azul lisa**) | `0x370000`: 1376x768, 4:2:2, sin reinicios, resto de la zona a `FF` hasta `0x3B0000` |
+
+En el LG el desplazamiento dentro de la zona sale de `(ajuste << 14) & 0xC0000`; con el valor del volcado del
+usuario es `0x370000` (en `0x3B0000` empiezan otros datos, no un JPEG).
 
 | Binario | Recursos | Primer recurso | Fin app | Libre |
 |---|---|---|---|---|

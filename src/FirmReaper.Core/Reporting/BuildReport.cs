@@ -52,7 +52,10 @@ public static class BuildReport
             ? $"Programa comprimido: {Fmt.N(r.CompressedSize)} bytes ({r.Profile.Compression}); libres {Fmt.N(r.FreeBytes)} bytes"
             : "Programa: sin cambios (no se recomprime)");
         if (r.Logo != Profiles.LogoAction.Ninguna)
+        {
             sb.AppendLine($"Logo: {(r.Logo == Profiles.LogoAction.Girar ? "girado 180°" : "propio")}, {Fmt.N(r.LogoLength)} bytes, SHA-256 {r.LogoSha256}");
+            sb.AppendLine($"  {r.LogoDetail}");
+        }
         sb.AppendLine();
         sb.AppendLine($"Parches ({r.Patches.Count}; {r.ChangedAppBytes} bytes cambiados en la app):");
         foreach (var p in r.Patches)
@@ -113,7 +116,7 @@ public static class BuildReport
                 crc = new[] { $"0x{r.OldHeader.Crc:X8}", $"0x{r.NewHeader.Crc:X8}" },
             },
             comprimido = r.CompressedSize,
-            logo = r.Logo == Profiles.LogoAction.Ninguna ? null : new { accion = r.Logo.ToString(), longitud = r.LogoLength, sha256 = r.LogoSha256 },
+            logo = r.Logo == Profiles.LogoAction.Ninguna ? null : new { accion = r.Logo.ToString(), longitud = r.LogoLength, sha256 = r.LogoSha256, detalle = r.LogoDetail },
             libres = r.FreeBytes,
             bytesCambiados = r.ChangedAppBytes,
             parches = r.Patches.Select(p => new

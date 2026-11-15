@@ -175,14 +175,15 @@ public partial class MainWindow : Window
         if (CmbProfile.SelectedItem is not Profile p || _lastFile is null || _lastSha is null) return;
         var selection = CurrentSelection();
 
-        // Logo propio: se pide el JPEG antes de la carpeta de salida.
+        // Logo propio: se pide la imagen antes de la carpeta de salida. Puede ser de cualquier tamaño:
+        // el programa la encaja en el tamaño del logo y la codifica en el formato del original.
         byte[]? customLogo = null;
         if (p.LogoActionFor(selection) == LogoAction.Propio)
         {
             var ofd = new OpenFileDialog
             {
-                Title = $"Logo propio (JPEG baseline {p.Logo!.Width}x{p.Logo.Height}, máx. {p.Logo.JpegLength:N0} bytes)",
-                Filter = "Imagen JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg",
+                Title = $"Logo propio: imagen (se ajustará a {p.Logo!.Width}x{p.Logo.Height}; mejor con esa proporción)",
+                Filter = "Imágenes (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp",
                 CheckFileExists = true,
             };
             if (ofd.ShowDialog(this) != true) return;
@@ -301,7 +302,7 @@ public partial class MainWindow : Window
             .ToList();
         LstChanges.ItemsSource = items;
         TxtChangesInfo.Text = $"{r.Patches.Count} parches en la aplicación ({r.ChangedAppBytes} bytes distintos)." +
-            (r.Logo == LogoAction.Ninguna ? "" : $"  Logo: {(r.Logo == LogoAction.Girar ? "girado 180°" : "propio")}, {r.LogoLength:N0} bytes.") +
+            (r.Logo == LogoAction.Ninguna ? "" : $"  Logo: {(r.Logo == LogoAction.Girar ? "girado 180°" : "propio")}, {r.LogoLength:N0} bytes ({r.LogoDetail})") +
             "  Direcciones = RAM de la app.";
         if (items.Count > 0) LstChanges.SelectedIndex = 0;
         else RtbHex.Document = new System.Windows.Documents.FlowDocument();

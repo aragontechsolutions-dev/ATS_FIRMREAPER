@@ -9,12 +9,16 @@ documentación, sin romper lo que ya funciona.
 | 2 | Zopfli en C#, perfiles, generar idéntico a los scripts, escritura segura | ✅ Completada |
 | 3 | Logo del Konka, editor de la tabla del mando del LG, visor hexadecimal | ✅ Completada |
 | 4 | Perfil ATEC (panel 1280x800, 6/8 bits) + port de zlib | ✅ Completada |
-| 5 | Manual de usuario y ejecutable final | Pendiente |
+| 5 | Manual de usuario y ejecutable final | ✅ Completada |
+| 6 | Logo de arranque en ATEC y LG (girado / propio) | ✅ Completada |
+| 7 | Panel: resolución y doble canal (ATEC; localizar en LG y Konka) | Pendiente |
+| 8 | Mando: editor genérico (código de cliente + tabla) en los 3 | Pendiente |
+| 9 | Espejo (mirror): ATEC desde cero; revisar el del OSD del LG | Pendiente |
 
 ## Etapa 1 — completada
 
 - Solución .NET 10: `FirmReaper.Core` (motor), `FirmReaper.App` (WPF), `FirmReaper.Cli`, pruebas.
-- CRC-32 MSB; descompresor deflate propio; cabecera, TEL, MS_IMG_INFO; 11 comprobaciones.
+- CRC-32 MSB; descompresor deflate propio; cabecera, TEL, MS_IMG_INFO; 11 comprobaciones (12 desde la etapa 6).
 - Catálogo incrustado e identificación (original / nuestra / referencia / no reconocido).
 - Hallazgos: MS_IMG_INFO guarda la longitud de la app (no se comprueba al arrancar); el 3.er binario
   recibido es el **Soyea**; los 2 bytes finales de la cola no son un CRC16 conocido.
@@ -137,3 +141,38 @@ documentación, sin romper lo que ya funciona.
 - Icono propio y opción de mando Soyea en el ATEC (ver arriba). La 1.0.0 se publicó al fusionar el PR #1,
   antes de estos dos cambios. Notas: `docs/NOTAS_VERSION_1.1.0.md`.
 - El trabajo `release` usa ahora las notas de la versión (`docs/NOTAS_VERSION_<versión>.md`) y falla si faltan.
+
+## Etapa 6 — completada (logo de arranque en ATEC y LG)
+
+Objetivo: las 5 funciones (mando, espejo, logo, resolución, doble canal) para los 3 firmwares conocidos.
+Esta etapa cubre el **logo**. Análisis: `docs/historial/README_LOGOS_ATEC_LG.md`.
+
+**Hallazgos**
+- Cada recurso TEL termina en un **CRC-16** (0x8005, init 0) — antes se desconocía. El arranque no lo comprueba.
+- El campo `0x22088` de la TEL es el **fin del área de recursos** (no un "tamaño reservado").
+- ATEC: el logo es siempre el recurso `0x0300` (2167x1228, 4:2:0).
+- LG: el logo "LG Life's Good" está **fuera de la TEL**, en `0x370000` (zona del "logo capturado", 1376x768, 4:2:2);
+  se usa si el ajuste de logo vale 2; si no, el TV muestra el recurso `0x0301` (azul liso).
+- LibJpeg.NET **no** decodifica igual que Pillow en 4:2:0/4:2:2 (la afirmación de la etapa 3 solo era cierta en
+  4:4:4). Corregido.
+
+**Hecho**
+- Codificador JPEG con submuestreo 4:2:2 y 4:2:0 idéntico a libjpeg-turbo (24 vectores de Pillow).
+- Decodificación idéntica a libjpeg-turbo (ensanchado y color propios).
+- Perfiles: `logo` con `idTel` (+ `crc16`) o `zonaFlash`. ATEC v3 y LG v6 con opción **Logo de arranque**:
+  sin cambios (por defecto: las versiones conocidas salen idénticas) / girado / propio.
+- Logo propio: **cualquier imagen JPEG, PNG o BMP**; se encaja sin deformar, se codifica en el formato del original
+  y, si no cabe, se baja la calidad por pasos. Un JPEG con el formato exacto se usa tal cual.
+- Nueva comprobación del análisis: "CRC-16 de los recursos" (12 en total).
+- Revisión de seguridad: `docs/ARQUITECTURA.md` (etapa 6).
+
+**Comprobado**
+- Logos del ATEC y del LG girados = Pillow 12.3.0 byte a byte; Konka sigue generando `81bd3c8b…`.
+- ATEC: solo cambia el recurso `0x0300` y su CRC-16 queda bien; LG: solo cambia `0x370000–0x3B0000`.
+- Prueba de extremo a extremo con la línea de comandos (PNG de 800x600 → ATEC y LG) revisada a la vista.
+- 198 pruebas superadas.
+
+**Sin probar en el TV:** logos del ATEC y del LG. En el LG, confirmar que al encender se ve "LG Life's Good".
+
+## Versión 1.2.0
+- Etapa 6. Notas: `docs/NOTAS_VERSION_1.2.0.md`.

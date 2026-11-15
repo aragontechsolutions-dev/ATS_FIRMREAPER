@@ -34,12 +34,33 @@ public enum LogoAction
     Ninguna,
     /// <summary>Girar 180° (re-codificado idéntico a Pillow).</summary>
     Girar,
-    /// <summary>Sustituir por un JPEG del usuario.</summary>
+    /// <summary>Sustituir por una imagen del usuario (JPEG, PNG o BMP; se convierte al formato del original).</summary>
     Propio,
 }
 
-/// <summary>Recurso del logo: id en la tabla TEL, longitud del JPEG original y dimensiones exigidas.</summary>
-public sealed record LogoSpec(ushort TelId, int JpegLength, int Width, int Height);
+/// <summary>
+/// Dónde está el logo de arranque y cómo es el original. Dos ubicaciones posibles:
+/// - recurso de la tabla TEL (<see cref="TelId"/>), opcionalmente con CRC-16 al final (<see cref="Crc16"/>);
+/// - zona fija de la flash [<see cref="FlashFrom"/>, <see cref="FlashTo"/>) rellena con <see cref="Fill"/>.
+/// </summary>
+public sealed record LogoSpec(int JpegLength, int Width, int Height)
+{
+    public ushort? TelId { get; init; }
+    public bool Crc16 { get; init; }
+    public uint FlashFrom { get; init; }
+    public uint FlashTo { get; init; }
+    public byte Fill { get; init; }
+
+    public static LogoSpec Tel(ushort id, int jpegLength, int width, int height, bool crc16 = false) =>
+        new(jpegLength, width, height) { TelId = id, Crc16 = crc16 };
+
+    public static LogoSpec Zone(uint from, uint to, byte fill, int jpegLength, int width, int height) =>
+        new(jpegLength, width, height) { FlashFrom = from, FlashTo = to, Fill = fill };
+
+    public string Location => TelId is { } id
+        ? $"recurso TEL 0x{id:X4}" + (Crc16 ? " (con CRC-16)" : "")
+        : $"zona de flash 0x{FlashFrom:X6}–0x{FlashTo:X6}";
+}
 
 public sealed record OptionValue(string Id, string Label, IReadOnlyList<Patch> Patches, LogoAction Logo = LogoAction.Ninguna);
 
@@ -300,13 +321,31 @@ public static partial class ProfileLoader
         // Logo: si algún valor actúa sobre él, el perfil debe describir el recurso, y solo una opción
         // puede hacerlo (dos acciones sobre el mismo recurso serían contradictorias).
         LogoSpec? logoSpec = null;
-        if (f.Logo is not null)
+        if (f.Logo is { } lg)
         {
-            ushort telId = (ushort)ParseAddr(f.Logo.IdTel, "logo.idTel");
-            if (ParseAddr(f.Logo.IdTel, "logo.idTel") > 0xFFFF) Fail("logo.idTel fuera de rango.");
-            if (f.Logo.LongitudJpeg is < 4 or > 4 * 1024 * 1024) Fail("logo.longitudJpeg fuera de rango.");
-            if (f.Logo.Ancho is < 1 or > 4096 || f.Logo.Alto is < 1 or > 4096) Fail("Dimensiones del logo fuera de rango.");
-            logoSpec = new LogoSpec(telId, f.Logo.LongitudJpeg, f.Logo.Ancho, f.Logo.Alto);
+            if (lg.LongitudJpeg is < 4 or > 4 * 1024 * 1024) Fail("logo.longitudJpeg fuera de rango.");
+            if (lg.Ancho is < 1 or > 4096 || lg.Alto is < 1 or > 4096) Fail("Dimensiones del logo fuera de rango.");
+            if ((lg.IdTel is null) == (lg.ZonaFlash is null)) Fail("logo: indique 'idTel' o 'zonaFlash' (uno y solo uno).");
+            if (lg.IdTel is not null)
+            {
+                uint id = ParseAddr(lg.IdTel, "logo.idTel");
+                if (id > 0xFFFF || id == TelTable.TerminatorId) Fail("logo.idTel fuera de rango.");
+                logoSpec = LogoSpec.Tel((ushort)id, lg.LongitudJpeg, lg.Ancho, lg.Alto, lg.Crc16);
+            }
+            else
+            {
+                if (lg.Crc16) Fail("logo.crc16 solo se aplica a un recurso TEL.");
+                var z = lg.ZonaFlash!;
+                uint from = ParseAddr(z.Desde, "logo.zonaFlash.desde");
+                uint to = ParseAddr(z.Hasta, "logo.zonaFlash.hasta");
+                uint fill = ParseAddr(z.Relleno, "logo.zonaFlash.relleno");
+                if (fill > 0xFF) Fail("logo.zonaFlash.relleno debe ser un byte.");
+                // La zona nunca puede tocar SBOOT/PM, la cabecera ni la tabla TEL; el resto se comprueba al generar.
+                if (from < MStarLayout.TelOffset + 0x1000 || to <= from || to > MStarLayout.FlashSize)
+                    Fail("logo.zonaFlash fuera de rango.");
+                if (lg.LongitudJpeg > to - from) Fail("logo.longitudJpeg no cabe en la zona.");
+                logoSpec = LogoSpec.Zone(from, to, (byte)fill, lg.LongitudJpeg, lg.Ancho, lg.Alto);
+            }
         }
         var logoOptions = options.Where(o => o.Values.Any(v => v.Logo != LogoAction.Ninguna)).ToList();
         if (logoOptions.Count > 0 && logoSpec is null) Fail("Hay acciones sobre el logo pero el perfil no define 'logo'.");

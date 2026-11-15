@@ -1,9 +1,9 @@
 {
   "formato": 1,
   "id": "lg-42lf652vx-soyea",
-  "version": 5,
-  "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB",
-  "descripcion": "Obedecer al mando Soyea LKK32CMB con la misma función por botón que el firmware Soyea; cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica.",
+  "version": 6,
+  "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB y logo",
+  "descripcion": "Obedecer al mando Soyea LKK32CMB con la misma función por botón que el firmware Soyea; cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica. Logo de arranque (zona del logo capturado 0x370000): girado o propio.",
   "estado": "verificado",
   "original": {
     "sha256": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871"
@@ -106,13 +106,49 @@
           ]
         }
       ]
+    },
+    {
+      "id": "logo",
+      "etiqueta": "Logo de arranque (zona 0x370000)",
+      "tipo": "lista",
+      "porDefecto": "original",
+      "valores": [
+        {
+          "id": "original",
+          "etiqueta": "Sin cambios",
+          "parches": []
+        },
+        {
+          "id": "girado",
+          "etiqueta": "Girado 180° — sin probar en el TV",
+          "parches": [],
+          "logo": "girar"
+        },
+        {
+          "id": "propio",
+          "etiqueta": "Propio (imagen; se ajusta a 1376x768) — sin probar en el TV",
+          "parches": [],
+          "logo": "propio"
+        }
+      ]
     }
   ],
+  "logo": {
+    "zonaFlash": {
+      "desde": "0x370000",
+      "hasta": "0x3B0000",
+      "relleno": "0xFF"
+    },
+    "longitudJpeg": 27753,
+    "ancho": 1376,
+    "alto": 768
+  },
   "salidasConocidas": [
     {
       "opciones": {
         "mando": "si",
-        "espejo": "original"
+        "espejo": "original",
+        "logo": "original"
       },
       "sha256": "17918f8fa6607bb802fdf6c2e71f554b547a390201eb65b9e704494b9fd9b002",
       "archivo": "LG_42LF652VX_MANDO_SOYEA_v5.BIN"
@@ -120,7 +156,8 @@
     {
       "opciones": {
         "mando": "si",
-        "espejo": "off"
+        "espejo": "off",
+        "logo": "original"
       },
       "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
       "archivo": "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN"
