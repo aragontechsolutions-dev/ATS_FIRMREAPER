@@ -1,0 +1,76 @@
+{
+  "formato": 1,
+  "id": "atec-32l18d-lp141wx1",
+  "version": 1,
+  "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LG.Philips LP141WX1 1280x800",
+  "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV (necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
+  "estado": "verificado",
+  "original": {
+    "sha256": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b"
+  },
+  "app": {
+    "baseRam": "0x243800"
+  },
+  "compresion": {
+    "metodo": "zlib",
+    "nivel": 9
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x4E3A78",
+      "hasta": "0x4E3AD4",
+      "motivo": "entrada #1 de la tabla de paneles (la que usa este TV)"
+    }
+  ],
+  "parchesFijos": [],
+  "opciones": [
+    {
+      "id": "bits",
+      "etiqueta": "Salida LVDS",
+      "tipo": "lista",
+      "porDefecto": "8",
+      "valores": [
+        {
+          "id": "8",
+          "etiqueta": "8 bits (probado: FUNCIONÓ)",
+          "parches": [
+            {
+              "direccion": "0x4E3A78",
+              "original": "bcc5420002600000010101011e00900150001e00142804223c00260056050003ba0618068605360326031503584c3c001900c000a0ff500001000000000000000200000000000000000000000eea2000097116000200000001000000",
+              "nuevo": "bcc5420002600000010101011e00900150001e002050060f7000150000052003c805a00558055003370329034b4742001900c000a0ff500001000000000000000200000000000000000000000cec1d00d8541a000200000001000000",
+              "descripcion": "Entrada del panel 'WXGA_AU20_T200XW02' → LP141WX1 1280x800 (porches, totales, DCLK 66–75 MHz, límites del PLL), 8 bits"
+            }
+          ]
+        },
+        {
+          "id": "6",
+          "etiqueta": "6 bits + dither (probado: NO funcionó)",
+          "parches": [
+            {
+              "direccion": "0x4E3A78",
+              "original": "bcc5420002600000010101011e00900150001e00142804223c00260056050003ba0618068605360326031503584c3c001900c000a0ff500001000000000000000200000000000000000000000eea2000097116000200000001000000",
+              "nuevo": "bcc5420003600000010101011e00900150001e002050060f7000150000052003c805a00558055003370329034b4742001900c000a0ff500001000000000000000300000001000000000000000cec1d00d8541a000200000001000000",
+              "descripcion": "Entrada del panel 'WXGA_AU20_T200XW02' → LP141WX1 1280x800 (porches, totales, DCLK 66–75 MHz, límites del PLL), 6 bits (TiBitMode 3, OutputFormat 1, dither)"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "salidasConocidas": [
+    {
+      "opciones": {
+        "bits": "8"
+      },
+      "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
+      "archivo": "Atec32L18D_LP141WX1_8bit.BIN"
+    },
+    {
+      "opciones": {
+        "bits": "6"
+      },
+      "sha256": "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2",
+      "archivo": "Atec32L18D_LP141WX1_6bit.BIN"
+    }
+  ]
+}

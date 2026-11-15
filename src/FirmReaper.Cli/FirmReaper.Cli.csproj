@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Nombre distinto del de la ventana (FirmReaper.exe): en Windows los nombres no distinguen mayúsculas. -->
+    <AssemblyName>firmreaper-cli</AssemblyName>
+    <RootNamespace>FirmReaper.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FirmReaper.Core\FirmReaper.Core.csproj" />
+  </ItemGroup>
+
+</Project>

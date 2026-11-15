@@ -1,0 +1,544 @@
+{
+  "formato": 1,
+  "id": "lg-42lf652vx-soyea",
+  "version": 5,
+  "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB",
+  "descripcion": "Obedecer al mando Soyea LKK32CMB con la misma función por botón que el firmware Soyea; cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica.",
+  "estado": "verificado",
+  "original": {
+    "sha256": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871"
+  },
+  "app": {
+    "baseRam": "0x243800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x25E644",
+      "hasta": "0x25E648",
+      "motivo": "instrucción que fija XC_INITDATA.bMirror"
+    },
+    {
+      "desde": "0x2B4A60",
+      "hasta": "0x2B4A64",
+      "motivo": "llamada a 0x303D2E en la rutina de teclas (gancho)"
+    },
+    {
+      "desde": "0x39DD94",
+      "hasta": "0x39DF00",
+      "motivo": "tabla código→índice del mando 1 y códigos de cliente"
+    },
+    {
+      "desde": "0x3BB400",
+      "hasta": "0x3BB480",
+      "motivo": "textos de depuración ASF-MJPEG sin referencias (rutina nueva)"
+    }
+  ],
+  "parchesFijos": [],
+  "opciones": [
+    {
+      "id": "mando",
+      "etiqueta": "Mando Soyea LKK32CMB",
+      "tipo": "lista",
+      "porDefecto": "si",
+      "valores": [
+        {
+          "id": "si",
+          "etiqueta": "Sí (v5)",
+          "parches": [
+            {
+              "direccion": "0x39DEFE",
+              "original": "bf00",
+              "nuevo": "7837",
+              "descripcion": "cliente del mando 1: 00 BF -> 37 78 (Soyea)"
+            },
+            {
+              "direccion": "0x39DD94",
+              "original": "000100000100000001010000220000000201000003000000030100000400000004010000050000000501000006000000060100000700000007010000080000000801000009000000090100000a0000000a0100000b000000610100000c0000000c010000020000000d0100001d000000480100001200000049010000130000004a010000140000004b0100001500000016010000210000000f0100001700000044010000240000006001000025000000620100001e00000041010000260000004201000023000000130100000d000000140100000e000000110100000f00000012010000100000001001000011000000400100001c000000150100001a0000004c010000290000004d0100002a0000004e0100002b0000004f0100002c000000510100005600000052010000570000005a010000540000005c0100005500000056010000500000005401000053000000550100003f0000005701000027000000ffff0000ff000000",
+              "nuevo": "00010000020000000101000003000000020100000400000003010000050000000401000006000000050100000700000006010000080000000701000009000000080100000a000000090100000b0000000a0100000c0000000b0100001d0000000c010000010000000d010000220000000e010000210000000f0100001c0000001401000011000000150100001200000016010000130000001701000014000000180100001500000019010000240000001a0100001f0000001c0100001e0000001d0100001a00000020010000170000002101000029000000220100002a000000230100002b000000240100002c000000280100004c000000290100004d00000045010000260000004601000043000000470100004900000049010000160000004b010000510000004c010000530000004e0100005600000053010000570000005401000054000000550100005500000056010000190000005701000018000000ffff0000ff000000",
+              "descripcion": "tabla código->índice del mando 1 con los códigos Soyea"
+            },
+            {
+              "direccion": "0x2B4A60",
+              "original": "e409e59c",
+              "nuevo": "e420d340",
+              "descripcion": "gancho: jal 0x303D2E -> jal 0x3BB400"
+            },
+            {
+              "direccion": "0x3BB400",
+              "original": "005b4153465f4d4a5045475d4669727374207061636b657420696e206672616d65284c2921212121212121212121212121212121005b4153465f4d4a5045475d6d6964646c65207061636b657420696e206672616d65284c2921212121212121212121212121212121005b4153465f4d4a5045475d6d6964646c652070",
+              "nuevo": "1c21f80d21040d41008943e7e9124610ea0054e718d0e802ce08ea051ce7eed0e3027de7e54cb6d06701a25c6201200097e7d7b320d0600132c8600129e7e13a2ad06000d608ea051ce7eed0e10119e4000019e7e90eaad06000ba08ea05c0c00781fcc6b4678cc710e6000cea050d41020d21061c21088529100f0d0e",
+              "descripcion": "rutina de la cruceta (125 bytes)"
+            }
+          ]
+        },
+        {
+          "id": "no",
+          "etiqueta": "No (mando LG original)",
+          "parches": []
+        }
+      ]
+    },
+    {
+      "id": "espejo",
+      "etiqueta": "Espejo de imagen",
+      "tipo": "lista",
+      "porDefecto": "original",
+      "valores": [
+        {
+          "id": "original",
+          "etiqueta": "Como el original (activado)",
+          "parches": []
+        },
+        {
+          "id": "off",
+          "etiqueta": "Desactivado",
+          "parches": [
+            {
+              "direccion": "0x25E644",
+              "original": "f8a10163",
+              "nuevo": "f8010163",
+              "descripcion": "XC_INITDATA.bMirror: sb 0x163(r1),r5 (=1) -> sb 0x163(r1),r0 (=0)"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "salidasConocidas": [
+    {
+      "opciones": {
+        "mando": "si",
+        "espejo": "original"
+      },
+      "sha256": "17918f8fa6607bb802fdf6c2e71f554b547a390201eb65b9e704494b9fd9b002",
+      "archivo": "LG_42LF652VX_MANDO_SOYEA_v5.BIN"
+    },
+    {
+      "opciones": {
+        "mando": "si",
+        "espejo": "off"
+      },
+      "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
+      "archivo": "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN"
+    }
+  ],
+  "tablaMando": {
+    "direccion": "0x39DD94",
+    "entradas": 45,
+    "prefijoCodigo": "0x0100",
+    "opcion": "mando",
+    "valor": "si",
+    "funciones": [
+      {
+        "indice": "0x01",
+        "nombre": "POWER (encender/apagar)"
+      },
+      {
+        "indice": "0x02",
+        "nombre": "KEY_0"
+      },
+      {
+        "indice": "0x03",
+        "nombre": "KEY_1"
+      },
+      {
+        "indice": "0x04",
+        "nombre": "KEY_2"
+      },
+      {
+        "indice": "0x05",
+        "nombre": "KEY_3"
+      },
+      {
+        "indice": "0x06",
+        "nombre": "KEY_4"
+      },
+      {
+        "indice": "0x07",
+        "nombre": "KEY_5"
+      },
+      {
+        "indice": "0x08",
+        "nombre": "KEY_6"
+      },
+      {
+        "indice": "0x09",
+        "nombre": "KEY_7"
+      },
+      {
+        "indice": "0x0A",
+        "nombre": "KEY_8"
+      },
+      {
+        "indice": "0x0B",
+        "nombre": "KEY_9"
+      },
+      {
+        "indice": "0x0C",
+        "nombre": "DASH (-/--)"
+      },
+      {
+        "indice": "0x0D",
+        "nombre": "ARRIBA"
+      },
+      {
+        "indice": "0x0E",
+        "nombre": "ABAJO"
+      },
+      {
+        "indice": "0x0F",
+        "nombre": "IZQUIERDA"
+      },
+      {
+        "indice": "0x10",
+        "nombre": "DERECHA"
+      },
+      {
+        "indice": "0x11",
+        "nombre": "SELECT (OK)"
+      },
+      {
+        "indice": "0x12",
+        "nombre": "VOLUME_PLUS (en menús: DERECHA)"
+      },
+      {
+        "indice": "0x13",
+        "nombre": "VOLUME_MINUS (en menús: IZQUIERDA)"
+      },
+      {
+        "indice": "0x14",
+        "nombre": "CHANNEL_PLUS (en menús: ARRIBA)"
+      },
+      {
+        "indice": "0x15",
+        "nombre": "CHANNEL_MINUS (en menús: ABAJO)"
+      },
+      {
+        "indice": "0x16",
+        "nombre": "CHANNEL_LIST (lista de canales)"
+      },
+      {
+        "indice": "0x17",
+        "nombre": "CHANNEL_FAV_LIST (favoritos)"
+      },
+      {
+        "indice": "0x18",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      },
+      {
+        "indice": "0x19",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      },
+      {
+        "indice": "0x1A",
+        "nombre": "EXIT"
+      },
+      {
+        "indice": "0x1C",
+        "nombre": "MENU"
+      },
+      {
+        "indice": "0x1D",
+        "nombre": "CHANNEL_RETURN (canal anterior)"
+      },
+      {
+        "indice": "0x1E",
+        "nombre": "INFO"
+      },
+      {
+        "indice": "0x1F",
+        "nombre": "AUDIO"
+      },
+      {
+        "indice": "0x21",
+        "nombre": "MUTE"
+      },
+      {
+        "indice": "0x22",
+        "nombre": "INPUT_SOURCE (fuente)"
+      },
+      {
+        "indice": "0x24",
+        "nombre": "PICTURE (modo de imagen)"
+      },
+      {
+        "indice": "0x26",
+        "nombre": "SLEEP"
+      },
+      {
+        "indice": "0x29",
+        "nombre": "ROJO"
+      },
+      {
+        "indice": "0x2A",
+        "nombre": "VERDE"
+      },
+      {
+        "indice": "0x2B",
+        "nombre": "AMARILLO"
+      },
+      {
+        "indice": "0x2C",
+        "nombre": "AZUL"
+      },
+      {
+        "indice": "0x43",
+        "nombre": "CC"
+      },
+      {
+        "indice": "0x49",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "indice": "0x4C",
+        "nombre": "PAGE_UP"
+      },
+      {
+        "indice": "0x4D",
+        "nombre": "PAGE_DOWN"
+      },
+      {
+        "indice": "0x51",
+        "nombre": "PLAY"
+      },
+      {
+        "indice": "0x53",
+        "nombre": "STOP"
+      },
+      {
+        "indice": "0x54",
+        "nombre": "REWIND"
+      },
+      {
+        "indice": "0x55",
+        "nombre": "FF"
+      },
+      {
+        "indice": "0x56",
+        "nombre": "PREVIOUS"
+      },
+      {
+        "indice": "0x57",
+        "nombre": "NEXT"
+      },
+      {
+        "indice": "0x23",
+        "nombre": "función LG 0x23 (sin identificar)"
+      },
+      {
+        "indice": "0x25",
+        "nombre": "función LG 0x25 (sin identificar)"
+      },
+      {
+        "indice": "0x27",
+        "nombre": "función LG 0x27 (sin identificar)"
+      },
+      {
+        "indice": "0x3F",
+        "nombre": "función LG 0x3F (sin identificar)"
+      },
+      {
+        "indice": "0x50",
+        "nombre": "función LG 0x50 (sin identificar)"
+      }
+    ],
+    "botones": [
+      {
+        "codigo": "0x00",
+        "nombre": "0"
+      },
+      {
+        "codigo": "0x01",
+        "nombre": "1"
+      },
+      {
+        "codigo": "0x02",
+        "nombre": "2"
+      },
+      {
+        "codigo": "0x03",
+        "nombre": "3"
+      },
+      {
+        "codigo": "0x04",
+        "nombre": "4"
+      },
+      {
+        "codigo": "0x05",
+        "nombre": "5"
+      },
+      {
+        "codigo": "0x06",
+        "nombre": "6"
+      },
+      {
+        "codigo": "0x07",
+        "nombre": "7"
+      },
+      {
+        "codigo": "0x08",
+        "nombre": "8"
+      },
+      {
+        "codigo": "0x09",
+        "nombre": "9"
+      },
+      {
+        "codigo": "0x0A",
+        "nombre": "-/-- (DASH)"
+      },
+      {
+        "codigo": "0x0B",
+        "nombre": "RETURN (canal anterior)"
+      },
+      {
+        "codigo": "0x0C",
+        "nombre": "POWER"
+      },
+      {
+        "codigo": "0x0D",
+        "nombre": "SOURCE (fuente)"
+      },
+      {
+        "codigo": "0x0E",
+        "nombre": "MUTE"
+      },
+      {
+        "codigo": "0x0F",
+        "nombre": "MENU"
+      },
+      {
+        "codigo": "0x14",
+        "nombre": "OK (SELECT)"
+      },
+      {
+        "codigo": "0x15",
+        "nombre": "VOL+ / DERECHA en menús"
+      },
+      {
+        "codigo": "0x16",
+        "nombre": "VOL- / IZQUIERDA en menús"
+      },
+      {
+        "codigo": "0x17",
+        "nombre": "CH+ / ARRIBA en menús"
+      },
+      {
+        "codigo": "0x18",
+        "nombre": "CH- / ABAJO en menús"
+      },
+      {
+        "codigo": "0x19",
+        "nombre": "PICTURE (modo imagen)"
+      },
+      {
+        "codigo": "0x1A",
+        "nombre": "AUDIO"
+      },
+      {
+        "codigo": "0x1C",
+        "nombre": "INFO"
+      },
+      {
+        "codigo": "0x1D",
+        "nombre": "EXIT"
+      },
+      {
+        "codigo": "0x20",
+        "nombre": "FAV"
+      },
+      {
+        "codigo": "0x21",
+        "nombre": "ROJO"
+      },
+      {
+        "codigo": "0x22",
+        "nombre": "VERDE"
+      },
+      {
+        "codigo": "0x23",
+        "nombre": "AMARILLO"
+      },
+      {
+        "codigo": "0x24",
+        "nombre": "AZUL"
+      },
+      {
+        "codigo": "0x28",
+        "nombre": "PAGE UP"
+      },
+      {
+        "codigo": "0x29",
+        "nombre": "PAGE DOWN"
+      },
+      {
+        "codigo": "0x45",
+        "nombre": "SLEEP"
+      },
+      {
+        "codigo": "0x46",
+        "nombre": "CC"
+      },
+      {
+        "codigo": "0x47",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "codigo": "0x49",
+        "nombre": "CH.LIST (lista de canales)"
+      },
+      {
+        "codigo": "0x4B",
+        "nombre": "PLAY"
+      },
+      {
+        "codigo": "0x4C",
+        "nombre": "STOP"
+      },
+      {
+        "codigo": "0x4E",
+        "nombre": "PREV"
+      },
+      {
+        "codigo": "0x53",
+        "nombre": "NEXT"
+      },
+      {
+        "codigo": "0x54",
+        "nombre": "REW"
+      },
+      {
+        "codigo": "0x55",
+        "nombre": "FF"
+      },
+      {
+        "codigo": "0x56",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      },
+      {
+        "codigo": "0x57",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      },
+      {
+        "codigo": "0x25",
+        "nombre": "TV/RADIO"
+      },
+      {
+        "codigo": "0x40",
+        "nombre": "MTS"
+      },
+      {
+        "codigo": "0x4F",
+        "nombre": "TEMP_DET"
+      },
+      {
+        "codigo": "0x51",
+        "nombre": "EPG"
+      }
+    ]
+  }
+}

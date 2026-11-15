@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "imagenes": [
+    {
+      "sha256": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
+      "tipo": "original",
+      "modelo": "ATEC 32L18D",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "ATEC 32L18D — firmware original (Atec_32_KPC_Salva.BIN)",
+      "notas": "Panel original WXGA_AU20_T200XW02 1366x768."
+    },
+    {
+      "sha256": "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2",
+      "tipo": "generado",
+      "origen": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
+      "modelo": "ATEC 32L18D",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "ATEC 32L18D + panel LP141WX1 1280x800, salida 6 bits",
+      "variante": "6bit",
+      "estadoPrueba": "no-funciono",
+      "notas": "Regenerado con patch_panel.py (zlib 1.3, nivel 9). Según el usuario, la variante de 6 bits NO funcionó en el TV. Sin confirmar que el archivo grabado tuviera esta misma huella."
+    },
+    {
+      "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
+      "tipo": "generado",
+      "origen": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
+      "modelo": "ATEC 32L18D",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "ATEC 32L18D + panel LP141WX1 1280x800, salida 8 bits",
+      "variante": "8bit",
+      "estadoPrueba": "funciono",
+      "notas": "Regenerado con patch_panel.py (zlib 1.3, nivel 9). Según el usuario, la variante de 8 bits funcionó en el TV. Sin confirmar que el archivo grabado tuviera esta misma huella."
+    },
+    {
+      "sha256": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871",
+      "tipo": "original",
+      "modelo": "LG 42LF652VX",
+      "placa": "TP.VST56.PB801",
+      "nombre": "LG 42LF652VX — firmware original (MST_EXT_SPI_ISP_20220511_165639.BIN)",
+      "notas": "Arranca con espejo (bMirror = 1) de fábrica."
+    },
+    {
+      "sha256": "17918f8fa6607bb802fdf6c2e71f554b547a390201eb65b9e704494b9fd9b002",
+      "tipo": "generado",
+      "origen": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871",
+      "modelo": "LG 42LF652VX",
+      "placa": "TP.VST56.PB801",
+      "nombre": "LG 42LF652VX + mando Soyea LKK32CMB v5 (espejo como el original)",
+      "variante": "soyea-v5",
+      "estadoPrueba": "pendiente",
+      "notas": "Generado con patch_ir_lg.py v5 (zopfli, 5 iteraciones)."
+    },
+    {
+      "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
+      "tipo": "generado",
+      "origen": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871",
+      "modelo": "LG 42LF652VX",
+      "placa": "TP.VST56.PB801",
+      "nombre": "LG 42LF652VX + mando Soyea LKK32CMB v5 + espejo desactivado",
+      "variante": "soyea-v5-espejo-off",
+      "estadoPrueba": "pendiente",
+      "notas": "Generado con patch_ir_lg.py v5 --espejo-off (zopfli, 5 iteraciones)."
+    },
+    {
+      "sha256": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "tipo": "original",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 — firmware original",
+      "notas": "TV4-32K16.bin. Huella comprobada con el binario recibido (= la de patch_mirror_menu.py)."
+    },
+    {
+      "sha256": "81bd3c8b643745d321a99f3a6479dee8dc97b464d55bbb3be006fb6160b93570",
+      "tipo": "generado",
+      "origen": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 + MIRROR en menú de fábrica + logo girado 180°",
+      "variante": "mirror-menu-logo",
+      "estadoPrueba": "funciono",
+      "notas": "TV4-32K16_MIRROR_MENU.bin de patch_mirror_menu.py (zopfli 5 it.; logo con Pillow 12.3.0 / libjpeg-turbo 3.1.4.1). Funcionó en el TV según el resumen del proyecto."
+    },
+    {
+      "sha256": "98a919fbef5f848147272fe37a6ccd51bbd0166c0eb22ae8a75125ef211e5fe0",
+      "tipo": "generado",
+      "origen": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 + espejo fijo (logo sin girar)",
+      "variante": "mirror-fijo",
+      "estadoPrueba": "funciono",
+      "notas": "TV4-32K16_MIRROR.bin: primera versión, probada en el TV (funcionó). bMirror=1 + 14 lecturas del GOP fijas. Zopfli 5 it."
+    },
+    {
+      "sha256": "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59",
+      "tipo": "generado",
+      "origen": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 + MIRROR en menú de fábrica (logo sin girar)",
+      "variante": "mirror-menu",
+      "estadoPrueba": "pendiente",
+      "notas": "patch_mirror_menu.py --sin-logo. Con MIRROR en ON el logo de arranque saldrá al revés."
+    },
+    {
+      "sha256": "fc9fed8fef551b17c7a2da420a212cd52ba5eb075e670e7f3389c123b600a21e",
+      "tipo": "referencia",
+      "modelo": "Soyea (mando LKK32CMB)",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "Soyea — firmware de referencia (MST_EXT_SPI_ISP_20230301_153737.BIN)",
+      "notas": "Firmware del que se obtuvo la tabla del mando Soyea. No se parchea."
+    }
+  ]
+}

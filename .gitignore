@@ -1,0 +1,17 @@
+# Compilación .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+publish/
+
+# Firmwares: NUNCA se suben al repositorio (son binarios del fabricante).
+# Se guardan solo en local; las pruebas los buscan aquí o en FIRMREAPER_FW_DIR.
+firmware_local/
+*.BIN
+*.bin
+
+# Python
+__pycache__/
+*.pyc

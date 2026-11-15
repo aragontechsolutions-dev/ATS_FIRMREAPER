@@ -1,0 +1,135 @@
+# Compila, prueba y publica FirmReaper en Windows.
+# Los firmwares NO están en el repositorio: las pruebas con .BIN reales se omiten aquí
+# (se ejecutan en local). Los .exe se descargan desde la pestaña "Actions" (artefacto).
+name: build
+
+on:
+  push:
+    branches: [ main, "claude/**" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Compilar
+        run: dotnet build FirmReaper.sln -c Release
+
+      - name: Pruebas
+        run: dotnet test --project tests/FirmReaper.Core.Tests -c Release
+
+      # Cada ejecutable en su carpeta: en Windows "FirmReaper.exe" y "firmreaper.exe" serían el MISMO archivo.
+      - name: Publicar la ventana (FirmReaper.exe)
+        run: dotnet publish src/FirmReaper.App -c Release -r win-x64 -o publish/app
+
+      - name: Publicar la línea de comandos (firmreaper-cli.exe)
+        run: dotnet publish src/FirmReaper.Cli -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/cli
+
+      - name: Comprobar que FirmReaper.exe es una aplicación de ventana
+        shell: pwsh
+        run: |
+          $exe = "publish/app/FirmReaper.exe"
+          if (-not (Test-Path $exe)) { throw "No se generó $exe" }
+          $b = [IO.File]::ReadAllBytes($exe)
+          $pe = [BitConverter]::ToInt32($b, 0x3C)
+          $subsystem = [BitConverter]::ToUInt16($b, $pe + 0x5C)
+          Write-Host "Subsistema PE de FirmReaper.exe: $subsystem (2 = ventana, 3 = consola)"
+          if ($subsystem -ne 2) { throw "FirmReaper.exe NO es una aplicación de ventana" }
+
+      - name: Arrancar FirmReaper.exe (prueba de humo)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "publish/app/FirmReaper.exe" -PassThru
+          Start-Sleep -Seconds 20
+          $p.Refresh()
+          if ($p.HasExited) {
+            $log = Join-Path $env:LOCALAPPDATA "FirmReaper/errores.log"
+            if (Test-Path $log) { Get-Content $log }
+            throw "FirmReaper.exe se cerró al arrancar (código $($p.ExitCode))"
+          }
+          Write-Host "FirmReaper.exe sigue abierto tras 20 s. Ventana: '$($p.MainWindowTitle)'"
+          Stop-Process -Id $p.Id -Force
+
+      - name: Reunir archivos y huellas SHA-256
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item publish/app/FirmReaper.exe dist/
+          Copy-Item publish/cli/firmreaper-cli.exe dist/
+          Copy-Item docs/MANUAL_USUARIO.pdf dist/
+          Get-FileHash dist\*.exe -Algorithm SHA256 | Format-Table -AutoSize | Out-String -Width 200 | Tee-Object dist\SHA256.txt
+          @"
+          FirmReaper.exe       -> la VENTANA (doble clic).
+          firmreaper-cli.exe   -> la LÍNEA DE COMANDOS (usar desde cmd/PowerShell).
+          MANUAL_USUARIO.pdf   -> manual de usuario.
+          "@ | Set-Content -Encoding UTF8 dist\LEEME.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FirmReaper-win-x64
+          path: dist/
+          retention-days: 30
+
+  # Al llegar a main (p. ej. al fusionar un Pull Request): si aún no existe la Release de la versión de
+  # Directory.Build.props, la crea (con su etiqueta vX.Y.Z) y adjunta el paquete ya compilado y probado arriba.
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versión y si ya está publicada
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(grep -oP '(?<=<Version>)[0-9]+\.[0-9]+\.[0-9]+(?=</Version>)' Directory.Build.props)
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          if gh release view "v$v" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "existe=si" >> "$GITHUB_OUTPUT"; echo "La Release v$v ya existe: no se publica nada."
+          else
+            echo "existe=no" >> "$GITHUB_OUTPUT"; echo "Se publicará la Release v$v."
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.ver.outputs.existe == 'no'
+        with:
+          name: FirmReaper-win-x64
+          path: dist
+
+      - name: Empaquetar
+        if: steps.ver.outputs.existe == 'no'
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          (cd dist && zip -9 "../FirmReaper-$TAG-win-x64.zip" *)
+          sha256sum "FirmReaper-$TAG-win-x64.zip" > "FirmReaper-$TAG-win-x64.zip.sha256"
+          ls -la dist FirmReaper-*
+
+      - uses: softprops/action-gh-release@v2
+        if: steps.ver.outputs.existe == 'no'
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: FirmReaper ${{ steps.ver.outputs.tag }}
+          body_path: docs/NOTAS_VERSION_1.0.0.md
+          files: |
+            FirmReaper-${{ steps.ver.outputs.tag }}-win-x64.zip
+            FirmReaper-${{ steps.ver.outputs.tag }}-win-x64.zip.sha256
+            dist/FirmReaper.exe
+            dist/firmreaper-cli.exe
+            dist/MANUAL_USUARIO.pdf
+            dist/SHA256.txt

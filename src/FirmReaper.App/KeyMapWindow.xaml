@@ -1,0 +1,32 @@
+<Window x:Class="FirmReaper.App.KeyMapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tabla del mando — botón → función"
+        Height="720" Width="760" MinHeight="420" MinWidth="560"
+        WindowStartupLocation="CenterOwner" FontFamily="Segoe UI" FontSize="13">
+    <DockPanel Margin="10">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#444">
+            Elige qué función del TV ejecuta cada botón del mando. "(sin función)" = el botón no hace nada.
+            Los botones con función VOLUME_± o CHANNEL_± hacen además de flechas dentro de los menús y del USB
+            (lo decide la rutina de la cruceta según la función, no según el botón).
+        </TextBlock>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <TextBlock x:Name="TxtCount" VerticalAlignment="Center" Margin="0,0,16,0" />
+            <Button Content="Restaurar la del perfil" Padding="12,5" Click="OnRestore" />
+            <Button Content="Importar…" Padding="12,5" Margin="8,0,0,0" Click="OnImport" />
+            <Button Content="Exportar…" Padding="12,5" Margin="8,0,0,0" Click="OnExport" />
+            <Button Content="Aceptar" Padding="18,5" Margin="16,0,0,0" IsDefault="True" FontWeight="SemiBold" Click="OnAccept" />
+            <Button Content="Cancelar" Padding="12,5" Margin="8,0,0,0" IsCancel="True" />
+        </StackPanel>
+        <DataGrid x:Name="Grid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal" SelectionMode="Single">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Código" Binding="{Binding CodeText}" IsReadOnly="True" Width="70" />
+                <DataGridTextColumn Header="Botón del mando" Binding="{Binding ButtonName}" IsReadOnly="True" Width="220" />
+                <DataGridComboBoxColumn x:Name="ColFunction" Header="Función en el TV" Width="*"
+                                        SelectedValueBinding="{Binding FunctionIndex, UpdateSourceTrigger=PropertyChanged}"
+                                        SelectedValuePath="Index" DisplayMemberPath="Label" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>
