@@ -37,7 +37,7 @@ public class ProfileTests
     {
         var list = ProfileLoader.LoadBuiltin();
         Assert.Contains(list, p => p.Id == "lg-42lf652vx-soyea" && p.Verified);
-        Assert.Contains(list, p => p.Id == "konka-tv4-32k16-mirror" && !p.Verified);
+        Assert.Contains(list, p => p.Id == "konka-tv4-32k16-mirror" && p.Verified);
     }
 
     [Fact]

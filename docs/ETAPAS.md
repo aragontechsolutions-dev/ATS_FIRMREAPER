@@ -28,7 +28,7 @@ documentación, sin romper lo que ya funciona.
 - **Generación** (`Patching/FirmwareBuilder.cs`) con 7 comprobaciones; **escritura atómica** sin sobrescribir,
   **copia de seguridad** de solo lectura del original e **informe** (texto + JSON) por cada archivo.
 - CLI: `firmreaper perfiles` y `firmreaper generar`. Ventana: pestaña **Generar** (opciones, progreso, cancelar).
-- Perfil **LG** (mando Soyea sí/no × espejo original/desactivado) y perfil **Konka** (MIRROR en menú, sin verificar).
+- Perfil **LG** (mando Soyea sí/no × espejo original/desactivado) y perfil **Konka** (MIRROR en menú, logo sin girar).
 - Herramientas AEON en `tools/aeon` (ensamblador/desensamblador Python de referencia).
 
 **Comprobado**
@@ -36,7 +36,11 @@ documentación, sin romper lo que ya funciona.
   (`17918f8f…`, `3a836aee…`), en ~10 s.
 - Zopfli C#: 7 vectores de Python idénticos + la app real del LG.
 - `aeon_isa.json` idéntico al de eb4x/ghidra-plugin-aeon@788cf8a; `build_cave_v2.py` reproduce la rutina del LG.
-- 101 pruebas superadas.
+- El perfil Konka genera un archivo **idéntico** al de `patch_mirror_menu.py --sin-logo` (`3bffdfd0…`).
+- Original Konka recibido: `TV4-32K16.bin` = `32c52965…` (el esperado). Regenerando con el script la versión
+  con logo sale `81bd3c8b…160b93570`, la misma del README del proyecto (Pillow 12.3.0, libjpeg-turbo 3.1.4.1).
+- GitHub Actions (Windows): compilación y pruebas superadas, incluida la del logaritmo.
+- 105 pruebas superadas (Linux, con firmwares).
 
 **Problema encontrado y resuelto: el logaritmo de Windows**
 - GitHub Actions mostró que `Math.Log` en Windows da distinto último bit que Linux en algunos enteros →
@@ -47,8 +51,7 @@ documentación, sin romper lo que ya funciona.
   Resultado: igual a glibc bit a bit en todo el rango que usa Zopfli.
 
 **No comprobado / pendiente**
-- **Konka:** falta el binario original (`TV4-32K16.bin`, `32c52965…`). El perfil se generó desde el script
-  pero no se ha podido probar (estado `sin-verificar`). La variante "espejo fijo" (`TV4-32K16_MIRROR.bin`):
-  **no tengo** sus parches (no están en los scripts recibidos).
-- El logo girado del Konka y el editor del mando del LG → etapa 3.
+- **Konka "espejo fijo"** (`TV4-32K16_MIRROR.bin`, la versión anterior): **no tengo** sus parches (no están en
+  los scripts recibidos); no está en el programa.
+- El logo girado del Konka (versión `81bd3c8b…`, la probada) y el editor del mando del LG → etapa 3.
 - La ventana no se ha abierto en un Windows real desde aquí (solo se compila).

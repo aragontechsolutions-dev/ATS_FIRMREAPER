@@ -3,8 +3,8 @@
   "id": "konka-tv4-32k16-mirror",
   "version": 1,
   "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — MIRROR en el menú de fábrica",
-  "descripcion": "Espejo H+V de imagen y menús, activable en el menú de fábrica (opción 'Logo' → 'MIRROR'). El logo girado 180° se añade en la etapa 3.",
-  "estado": "sin-verificar",
+  "descripcion": "Espejo H+V de imagen y menús, activable en el menú de fábrica (opción 'Logo' → 'MIRROR'). Sin girar el logo (el logo girado 180° se añade en la etapa 3).",
+  "estado": "verificado",
   "original": {
     "sha256": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e"
   },
@@ -75,5 +75,11 @@
     }
   ],
   "opciones": [],
-  "salidasConocidas": []
+  "salidasConocidas": [
+    {
+      "opciones": {},
+      "sha256": "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59",
+      "archivo": "TV4-32K16_MIRROR_MENU_SIN_LOGO.bin"
+    }
+  ]
 }

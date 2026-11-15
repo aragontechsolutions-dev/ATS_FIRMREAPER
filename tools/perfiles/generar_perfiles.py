@@ -92,8 +92,8 @@ guardar("konka-tv4-32k16-mirror.json", {
     "version": 1,
     "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — MIRROR en el menú de fábrica",
     "descripcion": "Espejo H+V de imagen y menús, activable en el menú de fábrica (opción 'Logo' → 'MIRROR'). "
-                   "El logo girado 180° se añade en la etapa 3.",
-    "estado": "sin-verificar",
+                   "Sin girar el logo (el logo girado 180° se añade en la etapa 3).",
+    "estado": "verificado",
     "original": {"sha256": kk.ORIG_SHA256},
     "app": {"baseRam": "0x%06X" % kk.APP_BASE},
     "compresion": {"metodo": "zopfli", "iteraciones": 5},
@@ -106,5 +106,9 @@ guardar("konka-tv4-32k16-mirror.json", {
     ],
     "parchesFijos": [parche(*x) for x in kk.PATCHES],
     "opciones": [],
-    "salidasConocidas": [],
+    "salidasConocidas": [
+        {"opciones": {},
+         "sha256": "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59",
+         "archivo": "TV4-32K16_MIRROR_MENU_SIN_LOGO.bin"},
+    ],
 })

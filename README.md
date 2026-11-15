@@ -4,7 +4,8 @@ Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 **MStar** (CPU AEON R2, memoria SPI de 4 MB) mediante **perfiles** de parches verificados.
 
 > **Estado: etapas 1 y 2 de 5 completadas.** Analiza, identifica y verifica volcados `.BIN`, y genera
-> las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX con mando Soyea / espejo).
+> las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX mando Soyea / espejo; Konka TV4-32K16
+> MIRROR en el menú de fábrica, todavía sin el logo girado).
 > Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
 
 ## Qué hace hoy
@@ -13,7 +14,7 @@ Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 
 - Abre un volcado SPI de 4 MB (botón o arrastrar a la ventana).
 - **Identifica** el archivo por su huella SHA-256 frente al catálogo interno:
-  - original conocido (ATEC 32L18D, LG 42LF652VX, Konka TV4-32K16*),
+  - original conocido (ATEC 32L18D, LG 42LF652VX, Konka TV4-32K16),
   - versión generada por nosotros (y si se probó en el TV y funcionó),
   - firmware de referencia (Soyea),
   - **no reconocido**: con contenedor válido (modificado por otro / no analizado) o dañado.
@@ -31,8 +32,6 @@ Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 - Guarda el firmware **sin sobrescribir nunca**, una **copia de solo lectura** del original
   (`respaldo_originales\`) y un **informe** con huellas, cambios y procedimiento de grabación.
 - Perfiles nuevos sin recompilar: carpeta `perfiles\` junto al `.exe` ([guía](docs/PERFILES.md)).
-
-\* El binario original del Konka no está en el proyecto; su huella se tomó del script.
 
 ## Uso
 

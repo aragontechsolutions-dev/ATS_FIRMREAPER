@@ -63,8 +63,8 @@ public static class OutputWriter
 
     private static string DefaultName(BuildResult r)
     {
-        var parts = r.Profile.Options.Select(o => $"{o.Id}-{r.Selection[o.Id]}");
-        return $"{r.Profile.Id}_{string.Join("_", parts)}.BIN".Replace("__", "_", StringComparison.Ordinal);
+        var parts = r.Profile.Options.Select(o => $"{o.Id}-{r.Selection[o.Id]}").Prepend(r.Profile.Id);
+        return string.Join("_", parts) + ".BIN";
     }
 
     private static string UniquePath(string dir, string fileName)

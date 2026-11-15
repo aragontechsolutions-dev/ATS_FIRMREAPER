@@ -33,6 +33,9 @@ No se suben a git. Las pruebas los buscan en `FIRMREAPER_FW_DIR` o en `firmware_
 | `LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN` | `3a836aee…36fed599` | `patch_ir_lg.py --espejo-off` |
 | `Atec32L18D_LP141WX1_6bit.BIN` | `7bd55c39…89976d65e2` | `patch_panel.py` |
 | `Atec32L18D_LP141WX1_8bit.BIN` | `ab3d3485…dc727c918c` | `patch_panel.py` |
+| `TV4-32K16.bin` | `32c52965…dcadaad9e` | original Konka |
+| `TV4-32K16_MIRROR_MENU.bin` | `81bd3c8b…160b93570` | `patch_mirror_menu.py` (con logo) |
+| `TV4-32K16_MIRROR_MENU_SIN_LOGO.bin` | `3bffdfd0…d76750e59` | `patch_mirror_menu.py --sin-logo` |
 
 Las salidas se regeneran con los scripts de `tools/referencia_python` (Python 3, `pip install zopfli`;
 zlib 1.3, zopfli 0.4.3):
@@ -49,11 +52,16 @@ python3 ../../tools/referencia_python/patch_ir_lg.py ../originales/MST_EXT_SPI_I
 ```bash
 python3 ../../tools/referencia_python/patch_panel.py ../originales/Atec_32_KPC_Salva.BIN
 ```
+```bash
+python3 ../../tools/referencia_python/patch_mirror_menu.py ../originales/TV4-32K16.bin --sin-logo
+```
+(renombrar la salida a `TV4-32K16_MIRROR_MENU_SIN_LOGO.bin`; después, sin `--sin-logo`, sale la versión con logo.
+El logo depende de Pillow: se generó con Pillow 12.3.0 / libjpeg-turbo 3.1.4.1.)
 
 Vectores de Zopfli (Python, `pip install zopfli==0.4.3`): ver el generador en el comentario de
 `ZopfliTests.Gen`; huella del logaritmo: `math.log(i)` empaquetado `'<d'` para i = 1..2 100 000.
 
 ## Resultado actual
 
-101 pruebas, 101 superadas (con firmwares, Linux). En GitHub Actions (Windows, sin firmwares) se omiten las
+105 pruebas, 105 superadas (con firmwares, Linux). En GitHub Actions (Windows, sin firmwares) se omiten las
 que necesitan los `.BIN`.

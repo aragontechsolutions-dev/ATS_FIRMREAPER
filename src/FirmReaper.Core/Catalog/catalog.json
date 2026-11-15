@@ -67,7 +67,29 @@
       "modelo": "Konka TV4-32K16",
       "placa": "TP.VST59S.PB813",
       "nombre": "Konka TV4-32K16 — firmware original",
-      "notas": "Huella tomada de patch_mirror_menu.py. El binario NO está disponible en este proyecto: no verificada aquí."
+      "notas": "TV4-32K16.bin. Huella comprobada con el binario recibido (= la de patch_mirror_menu.py)."
+    },
+    {
+      "sha256": "81bd3c8b643745d321a99f3a6479dee8dc97b464d55bbb3be006fb6160b93570",
+      "tipo": "generado",
+      "origen": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 + MIRROR en menú de fábrica + logo girado 180°",
+      "variante": "mirror-menu-logo",
+      "estadoPrueba": "funciono",
+      "notas": "TV4-32K16_MIRROR_MENU.bin de patch_mirror_menu.py (zopfli 5 it.; logo con Pillow 12.3.0 / libjpeg-turbo 3.1.4.1). Funcionó en el TV según el resumen del proyecto."
+    },
+    {
+      "sha256": "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59",
+      "tipo": "generado",
+      "origen": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 + MIRROR en menú de fábrica (logo sin girar)",
+      "variante": "mirror-menu",
+      "estadoPrueba": "pendiente",
+      "notas": "patch_mirror_menu.py --sin-logo. Con MIRROR en ON el logo de arranque saldrá al revés."
     },
     {
       "sha256": "fc9fed8fef551b17c7a2da420a212cd52ba5eb075e670e7f3389c123b600a21e",

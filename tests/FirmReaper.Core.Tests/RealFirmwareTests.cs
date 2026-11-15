@@ -44,6 +44,9 @@ public class RealFirmwareTests
         { "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN", "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599", 0x17D6B3, 0xD38845E4, 0x2D47B8, IdentificationKind.Conocido },
         { "Atec32L18D_LP141WX1_6bit.BIN", "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2", 0x1E8B76, 0x79B20851, 3_706_784, IdentificationKind.Conocido },
         { "Atec32L18D_LP141WX1_8bit.BIN", "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c", 0x1E8B6D, 0xA118D9F1, 3_706_784, IdentificationKind.Conocido },
+        { "TV4-32K16.bin", "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e", 0x0F9021, 0x02393624, 1_866_152, IdentificationKind.Conocido },
+        { "TV4-32K16_MIRROR_MENU.bin", "81bd3c8b643745d321a99f3a6479dee8dc97b464d55bbb3be006fb6160b93570", 0x0F498B, 0xC6BE5147, 1_866_152, IdentificationKind.Conocido },
+        { "TV4-32K16_MIRROR_MENU_SIN_LOGO.bin", "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59", 0x0F498B, 0xC6BE5147, 1_866_152, IdentificationKind.Conocido },
     };
 
     [Theory]
@@ -135,5 +138,19 @@ public class RealFirmwareTests
         Assert.Equal(1, r.ChangedAppBytes); // f8a10163 -> f8010163: un solo byte distinto
         Assert.Null(r.Known);
         Assert.True(FirmwareAnalyzer.Analyze(r.Output).ContainerValid);
+    }
+
+    [Fact]
+    public void PerfilKonkaGeneraLoMismoQuePatchMirrorMenuSinLogo()
+    {
+        var path = FindFirmware("TV4-32K16.bin");
+        if (path is null)
+            Assert.Skip("No está el original del Konka.");
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "konka-tv4-32k16-mirror");
+        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile, new Dictionary<string, string>(),
+            cancel: TestContext.Current.CancellationToken);
+        Assert.Equal("3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59", r.OutputSha256);
+        Assert.True(r.MatchesKnown);
+        Assert.Equal(137, r.ChangedAppBytes);
     }
 }
