@@ -1,5 +1,7 @@
 using FirmReaper.Core.Analysis;
 using FirmReaper.Core.Catalog;
+using FirmReaper.Core.Compression.Zopfli;
+using FirmReaper.Core.MStar;
 
 namespace FirmReaper.Core.Tests;
 
@@ -85,5 +87,22 @@ public class RealFirmwareTests
         var a = FirmwareAnalyzer.Analyze(fw);
         Assert.True(a.ContainerValid);
         Assert.Equal(IdentificationKind.DesconocidoValido, Identifier.Identify(a, FirmwareCatalog.LoadEmbedded()).Kind);
+    }
+
+    [Fact]
+    public void ZopfliRecomprimeLaAppDelLgV5IgualQuePython()
+    {
+        // La app del LG v5 la comprimió patch_ir_lg.py con zopfli (5 iteraciones).
+        // Recomprimirla con el port debe dar exactamente el mismo deflate que hay en el .BIN.
+        var path = FindFirmware("LG_42LF652VX_MANDO_SOYEA_v5.BIN");
+        if (path is null)
+            Assert.Skip("No está LG_42LF652VX_MANDO_SOYEA_v5.BIN.");
+        var fw = File.ReadAllBytes(path);
+        var a = FirmwareAnalyzer.Analyze(fw);
+        Assert.True(a.ContainerValid);
+        var comp = ZopfliDeflater.Compress(a.App, new ZopfliOptions(NumIterations: 5));
+        var expected = fw.AsSpan(MStarLayout.DeflateOffset, a.DeflateEnd!.Value - MStarLayout.DeflateOffset).ToArray();
+        Assert.Equal(expected.Length, comp.Length);
+        Assert.Equal(expected, comp);
     }
 }
