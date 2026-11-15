@@ -1,12 +1,15 @@
 # ATS_FIRMREAPER — FirmReaper
 
-Programa para Windows 10/11 que **analiza y (en etapas siguientes) modifica** firmwares de placas de TV
+Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 **MStar** (CPU AEON R2, memoria SPI de 4 MB) mediante **perfiles** de parches verificados.
 
-> **Estado: etapa 1 de 5 completada — solo lectura.** El programa abre, identifica y verifica
-> volcados `.BIN`; **todavía no modifica nada**. Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
+> **Estado: etapas 1 y 2 de 5 completadas.** Analiza, identifica y verifica volcados `.BIN`, y genera
+> las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX con mando Soyea / espejo).
+> Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
 
-## Qué hace hoy (etapa 1)
+## Qué hace hoy
+
+### Analizar (no modifica nada)
 
 - Abre un volcado SPI de 4 MB (botón o arrastrar a la ventana).
 - **Identifica** el archivo por su huella SHA-256 frente al catálogo interno:
@@ -20,6 +23,14 @@ Programa para Windows 10/11 que **analiza y (en etapas siguientes) modifica** fi
 - Muestra cabecera, tamaño comprimido/descomprimido, **espacio libre**, ID de placa, SBOOT y recursos TEL
   (detecta el logo JPEG).
 - Guarda el informe en texto o JSON.
+
+### Generar (pestaña "Generar")
+- Si el archivo es un **original con perfil**, muestra sus opciones (p. ej. LG: mando Soyea sí/no, espejo).
+- Aplica los parches, recomprime con **Zopfli** (idéntico a los scripts Python), recalcula cabecera y CRC,
+  y **verifica** que solo cambió lo previsto. Si algo falla, no escribe nada.
+- Guarda el firmware **sin sobrescribir nunca**, una **copia de solo lectura** del original
+  (`respaldo_originales\`) y un **informe** con huellas, cambios y procedimiento de grabación.
+- Perfiles nuevos sin recompilar: carpeta `perfiles\` junto al `.exe` ([guía](docs/PERFILES.md)).
 
 \* El binario original del Konka no está en el proyecto; su huella se tomó del script.
 
@@ -40,6 +51,12 @@ firmreaper verificar A.BIN B.BIN ...   # una línea por archivo
 ```
 ```bash
 firmreaper catalogo                    # imágenes conocidas
+```
+```bash
+firmreaper perfiles                    # perfiles y sus opciones
+```
+```bash
+firmreaper generar ORIGINAL.BIN --perfil lg-42lf652vx-soyea --opcion espejo=off --salida CARPETA
 ```
 Código de salida: `0` válido y reconocido · `1` no válido o no reconocido · `2` error de uso.
 
@@ -65,11 +82,14 @@ el `.exe` en Windows en cada push; se descarga como artefacto desde la pestaña 
 
 | Carpeta | Contenido |
 |---|---|
-| `src/FirmReaper.Core` | Motor: CRC, descompresor deflate, formato MStar, catálogo, informes |
+| `src/FirmReaper.Core` | Motor: CRC, deflate, Zopfli, formato MStar, catálogo, perfiles, generación, informes |
 | `src/FirmReaper.App` | Interfaz WPF |
 | `src/FirmReaper.Cli` | Línea de comandos |
 | `tests/FirmReaper.Core.Tests` | Pruebas automáticas (xUnit v3) |
 | `tools/referencia_python` | Scripts Python originales (referencia para comparar resultados) |
+| `tools/aeon` | Ensamblador/desensamblador AEON R2 (Python) y tablas de la ISA |
+| `tools/perfiles` | Generador de los perfiles integrados a partir de los scripts |
+| `licenses/`, `THIRD_PARTY_NOTICES.md` | Licencias de terceros (Zopfli, tablas AEON: Apache 2.0) |
 | `docs/` | Documentación técnica ([índice](docs/ETAPAS.md)) |
 | `docs/historial` | Guías de los 3 proyectos hechos con los scripts |
 | `research_notes/`, `reports/` | Investigación previa (herramientas, formato, librerías, legal) |
@@ -80,6 +100,7 @@ el `.exe` en Windows en cada push; se descarga como artefacto desde la pestaña 
 - [docs/ETAPAS.md](docs/ETAPAS.md) — plan por etapas y estado.
 - [docs/FORMATO_MSTAR.md](docs/FORMATO_MSTAR.md) — formato del firmware (verificado vs. no verificado).
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — diseño del programa y **seguridad**.
+- [docs/PERFILES.md](docs/PERFILES.md) — **cómo crear un perfil** para otro modelo.
 - [docs/PRUEBAS.md](docs/PRUEBAS.md) — cómo se prueba y con qué archivos.
 - [reports/Software parcheo firmware TV MStar.md](reports/Software%20parcheo%20firmware%20TV%20MStar.md) — investigación.
 

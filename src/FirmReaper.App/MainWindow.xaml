@@ -1,8 +1,8 @@
 ﻿<Window x:Class="FirmReaper.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FirmReaper — firmware MStar (etapa 1: solo lectura)"
-        Height="760" Width="1100" MinHeight="500" MinWidth="760"
+        Title="FirmReaper — firmware MStar"
+        Height="780" Width="1120" MinHeight="520" MinWidth="780"
         AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver"
         FontFamily="Segoe UI" FontSize="13">
     <DockPanel Margin="10">
@@ -18,12 +18,12 @@
         <Border x:Name="Banner" DockPanel.Dock="Top" Padding="10" CornerRadius="4" Margin="0,0,0,8" Background="#EEEEEE">
             <StackPanel>
                 <TextBlock x:Name="TxtIdent" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="14"
-                           Text="Abre un volcado .BIN de 4 MB (o arrástralo a la ventana). No se modifica nada." />
+                           Text="Abre un volcado .BIN de 4 MB (o arrástralo a la ventana)." />
                 <TextBlock x:Name="TxtFile" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="#444" />
             </StackPanel>
         </Border>
 
-        <TabControl>
+        <TabControl x:Name="Tabs">
             <TabItem Header="Comprobaciones">
                 <DataGrid x:Name="GridChecks" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
                           CanUserAddRows="False" GridLinesVisibility="Horizontal">
@@ -52,6 +52,32 @@
                     </DataGrid.RowStyle>
                 </DataGrid>
             </TabItem>
+
+            <TabItem x:Name="TabGenerate" Header="Generar">
+                <DockPanel Margin="8">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock x:Name="TxtNoProfile" TextWrapping="Wrap" Foreground="#666"
+                                   Text="Abre un firmware ORIGINAL reconocido para ver las modificaciones disponibles." />
+                        <StackPanel x:Name="PanelProfile" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Perfil:" VerticalAlignment="Center" Width="120" />
+                                <ComboBox x:Name="CmbProfile" MinWidth="520" DisplayMemberPath="Name" SelectionChanged="OnProfileChanged" />
+                            </StackPanel>
+                            <TextBlock x:Name="TxtProfileDesc" TextWrapping="Wrap" Margin="120,0,0,4" Foreground="#444" />
+                            <TextBlock x:Name="TxtProfileWarn" TextWrapping="Wrap" Margin="120,0,0,8" Foreground="#B00020" FontWeight="SemiBold" />
+                            <!-- Una fila por opción del perfil (se rellena desde el código) -->
+                            <StackPanel x:Name="PanelOptions" />
+                            <StackPanel Orientation="Horizontal" Margin="120,10,0,0">
+                                <Button x:Name="BtnGenerate" Content="Generar…" Padding="18,6" FontWeight="SemiBold" Click="OnGenerate" />
+                                <Button x:Name="BtnCancel" Content="Cancelar" Padding="14,6" Margin="8,0,0,0" Click="OnCancel" IsEnabled="False" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBox x:Name="TxtLog" Margin="0,12,0,0" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                             VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" />
+                </DockPanel>
+            </TabItem>
+
             <TabItem Header="Recursos (TEL)">
                 <DataGrid x:Name="GridTel" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
                           CanUserAddRows="False">

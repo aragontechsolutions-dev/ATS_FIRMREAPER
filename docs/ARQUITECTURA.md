@@ -11,7 +11,7 @@ FirmReaper.Core.Tests (xUnit v3) ──────┘
 El motor (`Core`) no depende de Windows: se prueba en Linux y en Windows con el mismo código.
 No usa paquetes NuGet de terceros (solo la biblioteca estándar de .NET).
 
-## Componentes de `FirmReaper.Core` (etapa 1)
+## Componentes de `FirmReaper.Core`
 
 | Archivo | Responsabilidad |
 |---|---|
@@ -27,6 +27,14 @@ No usa paquetes NuGet de terceros (solo la biblioteca estándar de .NET).
 | `Catalog/Identification.cs` | Original / nuestra / referencia / no reconocido |
 | `Reporting/AnalysisReport.cs` | Informe en texto y JSON |
 | `Fmt.cs` | Números en formato español fijo |
+| `Compression/Zopfli/*.cs` | Port de Zopfli (idéntico a py-zopfli 0.4.3) |
+| `Compression/Zopfli/ExactLog.cs` | Logaritmo determinista = glibc (evita diferencias Windows/Linux) |
+| `Profiles/Profile.cs`, `ProfileLoader.cs` | Formato JSON de perfiles y su validación |
+| `Profiles/ProfileRegistry.cs` | Perfiles integrados + carpeta externa `perfiles\` |
+| `Profiles/Builtin/*.json` | Perfiles integrados (LG, Konka) |
+| `Patching/FirmwareBuilder.cs` | Aplica parches, recomprime, recalcula cabecera/CRC y verifica |
+| `Patching/OutputWriter.cs` | Escritura atómica, sin sobrescribir, con copia de seguridad |
+| `Reporting/BuildReport.cs` | Informe de cada firmware generado |
 
 ### ¿Por qué un descompresor propio?
 `DeflateStream` de .NET no informa del byte en que termina el flujo; ese dato es necesario para
@@ -51,5 +59,20 @@ comprobarlo** en un Windows 10 real.
 | Permisos | Manifiesto `asInvoker`: nunca pide administrador. Sin acceso a red |
 | Firmwares del fabricante en git | `.gitignore` excluye `firmware_local/` y `*.bin` |
 
-Pendiente para etapas con escritura: zonas permitidas por perfil, verificación de bytes originales,
-diff final, escritura atómica (temporal + renombrado), copia de seguridad y perfiles externos firmados.
+## Seguridad (revisión de la etapa 2: escritura)
+
+| Riesgo | Medida |
+|---|---|
+| Grabar un firmware equivocado | Huella SHA-256 del original obligatoria; base de la app comprobada; bytes originales de cada parche comprobados |
+| Perfil dañado o manipulado | JSON estricto; cada parche dentro de una zona permitida; sin solapes entre parches combinables; límites de tamaño (perfil 512 KB, parche 4 KB, zona 64 KB, 256 parches) |
+| Perfil externo que suplanta a uno integrado | Rechazado si usa un `id` integrado; el informe indica si es externo y su SHA-256 |
+| Escribir fuera de lo previsto | Tras generar se analiza la salida y se compara byte a byte: solo cambian los bytes de los parches; fuera de la app, idéntico |
+| Que no quepa | Se comprueba contra el primer recurso TEL antes de escribir |
+| Compresión no reversible | Se descomprime y compara antes de escribir |
+| Sobrescribir archivos | Nunca: `FileMode.CreateNew` + renombrado sin sobrescribir; si el nombre existe → `_2`, `_3`… |
+| Archivo a medio escribir | Temporal en la misma carpeta → volcado a disco → relectura y comparación → renombrado |
+| Perder el original | Copia de solo lectura en `respaldo_originales\` (se comprueba su huella; si ya existe con otro contenido, se detiene) |
+| Original cambiado entre análisis y guardado | Se vuelve a calcular su huella antes de guardar |
+| Resultado distinto en Windows | `ExactLog` hace la compresión independiente de la biblioteca matemática del sistema |
+
+Perfiles firmados: no se implementan (uso por una sola persona); se registra la huella de cada perfil.

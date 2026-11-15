@@ -2,6 +2,8 @@ using FirmReaper.Core.Analysis;
 using FirmReaper.Core.Catalog;
 using FirmReaper.Core.Compression.Zopfli;
 using FirmReaper.Core.MStar;
+using FirmReaper.Core.Patching;
+using FirmReaper.Core.Profiles;
 
 namespace FirmReaper.Core.Tests;
 
@@ -104,5 +106,34 @@ public class RealFirmwareTests
         var expected = fw.AsSpan(MStarLayout.DeflateOffset, a.DeflateEnd!.Value - MStarLayout.DeflateOffset).ToArray();
         Assert.Equal(expected.Length, comp.Length);
         Assert.Equal(expected, comp);
+    }
+
+    [Theory]
+    [InlineData("original", "17918f8fa6607bb802fdf6c2e71f554b547a390201eb65b9e704494b9fd9b002")]
+    [InlineData("off", "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599")]
+    public void PerfilLgGeneraLoMismoQuePatchIrLgV5(string espejo, string expectedSha)
+    {
+        var path = FindFirmware("MST_EXT_SPI_ISP_20220511_165639.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del LG.");
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "lg-42lf652vx-soyea");
+        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile,
+            new Dictionary<string, string> { ["mando"] = "si", ["espejo"] = espejo }, cancel: TestContext.Current.CancellationToken);
+        Assert.Equal(expectedSha, r.OutputSha256);
+        Assert.True(r.MatchesKnown);
+    }
+
+    [Fact]
+    public void PerfilLgSoloEspejo()
+    {
+        var path = FindFirmware("MST_EXT_SPI_ISP_20220511_165639.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del LG.");
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "lg-42lf652vx-soyea");
+        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile,
+            new Dictionary<string, string> { ["mando"] = "no", ["espejo"] = "off" }, cancel: TestContext.Current.CancellationToken);
+        Assert.Equal(1, r.ChangedAppBytes); // f8a10163 -> f8010163: un solo byte distinto
+        Assert.Null(r.Known);
+        Assert.True(FirmwareAnalyzer.Analyze(r.Output).ContainerValid);
     }
 }

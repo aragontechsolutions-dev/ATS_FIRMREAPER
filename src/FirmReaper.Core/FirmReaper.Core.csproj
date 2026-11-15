@@ -8,6 +8,8 @@
   <ItemGroup>
     <!-- Catálogo de imágenes conocidas: va DENTRO del ensamblado (no se puede manipular desde fuera). -->
     <EmbeddedResource Include="Catalog\catalog.json" LogicalName="FirmReaper.Core.catalog.json" />
+    <!-- Perfiles integrados: van dentro del ensamblado (no se pueden manipular desde fuera). -->
+    <EmbeddedResource Include="Profiles\Builtin\*.json" LogicalName="FirmReaper.Core.Profiles.%(Filename).json" />
   </ItemGroup>
 
   <ItemGroup>

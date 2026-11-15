@@ -14,7 +14,8 @@ internal static class SyntheticImage
     public const uint RamDest = 0x240000;
     public const uint FirstResource = 0x200000;
 
-    public static byte[] Build(int appSize = 300_000, int seed = 1)
+    /// <param name="firstResource">Offset del primer recurso TEL (límite de la app). Por defecto 0x200000.</param>
+    public static byte[] Build(int appSize = 300_000, int seed = 1, uint firstResource = FirstResource)
     {
         var fw = new byte[MStarLayout.FlashSize];
         var rnd = new Random(seed);
@@ -51,11 +52,13 @@ internal static class SyntheticImage
         MStarLayout.TelMagic.CopyTo(fw.AsSpan(t));
         BinaryPrimitives.WriteUInt32BigEndian(fw.AsSpan(t + 8), 0x3C0000);
         BinaryPrimitives.WriteUInt16BigEndian(fw.AsSpan(t + 12), 2);
-        WriteTel(fw, t + 14, 0x0061, FirstResource, 0x1000, 0x04);
-        WriteTel(fw, t + 25, 0x0300, FirstResource + 0x1000, 0x100, 0x00);
+        WriteTel(fw, t + 14, 0x0061, firstResource, 0x1000, 0x04);
+        WriteTel(fw, t + 25, 0x0300, firstResource + 0x1000, 0x100, 0x00);
         WriteTel(fw, t + 36, 0xF000, 0xCCCCCCCC, 0xCCCCCCCC, 0xCC);
-        fw[FirstResource + 0x1000] = 0xFF; fw[FirstResource + 0x1001] = 0xD8; fw[FirstResource + 0x1002] = 0xFF;
+        fw[firstResource + 0x1000] = 0xFF; fw[firstResource + 0x1001] = 0xD8; fw[firstResource + 0x1002] = 0xFF;
 
+        if (flashEnd > firstResource)
+            throw new ArgumentException("la app sintética no cabe antes del primer recurso");
         WriteHeader(fw, flashEnd);
         return fw;
     }

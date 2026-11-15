@@ -78,21 +78,28 @@ public class ZopfliTests
     }
 
     [Fact]
-    public void LogaritmoIgualAlDeCEnLosValoresQueUsaZopfli()
+    public void LogaritmoExactoIgualAlDeCEnLosValoresQueUsaZopfli()
     {
         // Zopfli solo calcula log() de enteros: frecuencias y sumas de un bloque de 1 MB (< 1 000 001),
-        // que al mezclar estadísticas (×1,5) quedan por debajo de 2 000 000.
-        // Si Math.Log coincide bit a bit con log() de C (glibc, usado por Python) en todo ese rango,
-        // la salida es idéntica a la de los scripts también en esta plataforma.
-        // Huella generada con: math.log(i) empaquetado '<d' para i = 1..2 000 000.
+        // que al mezclar estadísticas (x + 0,5·anterior) quedan por debajo de 2 100 000.
+        // ExactLog debe dar EXACTAMENTE el log() de C (glibc) que usó Python, en cualquier plataforma.
+        // Huella generada con: math.log(i) empaquetado '<d' para i = 1..2 100 000 (Python en Linux).
+        // (Math.Log de Windows NO coincide: por eso existe ExactLog.)
         using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         Span<byte> b = stackalloc byte[8];
-        for (int i = 1; i <= 2_000_000; i++)
+        for (ulong i = 1; i <= ExactLog.GlibcCheckedLimit; i++)
         {
-            System.Buffers.Binary.BinaryPrimitives.WriteDoubleLittleEndian(b, Math.Log(i));
+            System.Buffers.Binary.BinaryPrimitives.WriteDoubleLittleEndian(b, ExactLog.Log(i));
             sha.AppendData(b);
         }
-        Assert.Equal("33d18859b2d7172c50ebc434ebb644b006ec6accf65c456e4ec34c1f79089a7b",
+        Assert.Equal("6e5f0bc503fd4ac14b3c2549db0d5e81a642abe97edff35d3eb91912768b7630",
             Convert.ToHexStringLower(sha.GetHashAndReset()));
+    }
+
+    [Fact]
+    public void ConstantesDeLn2()
+    {
+        Assert.Equal(0x3FE62E42FEFA39EFUL, (ulong)BitConverter.DoubleToInt64Bits(6.93147180559945286227e-01));
+        Assert.Equal(0x3C7ABC9E3B39803FUL, (ulong)BitConverter.DoubleToInt64Bits(2.31904681384629955842e-17));
     }
 }

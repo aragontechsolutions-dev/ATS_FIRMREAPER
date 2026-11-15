@@ -32,18 +32,18 @@ internal static class Tree
     }
 
     /// <summary>
-    /// Entropía en bits por símbolo. Usa <see cref="Math.Log"/>: el resultado debe coincidir con el
-    /// log() de C para que la salida sea idéntica (lo comprueba una prueba en cada plataforma).
+    /// Entropía en bits por símbolo. Usa <see cref="ExactLog"/> (no Math.Log) para que el resultado sea
+    /// idéntico al log() de C de los scripts en cualquier plataforma.
     /// </summary>
     public static void CalculateEntropy(long[] count, int n, double[] bitlengths)
     {
         uint sum = 0;
         for (int i = 0; i < n; i++) sum = unchecked(sum + (uint)count[i]);
-        double log2sum = (sum == 0 ? Math.Log(n) : Math.Log(sum)) * InvLog2;
+        double log2sum = (sum == 0 ? ExactLog.Log((ulong)n) : ExactLog.Log(sum)) * InvLog2;
         for (int i = 0; i < n; i++)
         {
             if (count[i] == 0) bitlengths[i] = log2sum;
-            else bitlengths[i] = log2sum - Math.Log(count[i]) * InvLog2;
+            else bitlengths[i] = log2sum - ExactLog.Log((ulong)count[i]) * InvLog2;
             // Corrige pequeños negativos por redondeo.
             if (bitlengths[i] < 0 && bitlengths[i] > -1e-5) bitlengths[i] = 0;
         }

@@ -1,0 +1,79 @@
+{
+  "formato": 1,
+  "id": "konka-tv4-32k16-mirror",
+  "version": 1,
+  "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — MIRROR en el menú de fábrica",
+  "descripcion": "Espejo H+V de imagen y menús, activable en el menú de fábrica (opción 'Logo' → 'MIRROR'). El logo girado 180° se añade en la etapa 3.",
+  "estado": "sin-verificar",
+  "original": {
+    "sha256": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e"
+  },
+  "app": {
+    "baseRam": "0x203800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x21DA41",
+      "hasta": "0x21DA45",
+      "motivo": "XC init: bMirror"
+    },
+    {
+      "desde": "0x25E965",
+      "hasta": "0x25E969",
+      "motivo": "gancho 1 (tras cargar la base de datos)"
+    },
+    {
+      "desde": "0x2B29A7",
+      "hasta": "0x2B29AB",
+      "motivo": "gancho 2 (creación del contexto GOP)"
+    },
+    {
+      "desde": "0x32A0B4",
+      "hasta": "0x32A0B8",
+      "motivo": "puntero de la etiqueta del menú"
+    },
+    {
+      "desde": "0x33AB66",
+      "hasta": "0x33B9A2",
+      "motivo": "textos de depuración JPEG sin referencias"
+    }
+  ],
+  "parchesFijos": [
+    {
+      "direccion": "0x21DA41",
+      "original": "f801042b",
+      "nuevo": "f9c1042b",
+      "descripcion": "XC_INITDATA.bMirror = 1 al iniciar (r14 = 1)"
+    },
+    {
+      "direccion": "0x25E965",
+      "original": "e7ffe1da",
+      "nuevo": "e41b915e",
+      "descripcion": "gancho 1: jal 0x25DA52 -> jal rutina 1"
+    },
+    {
+      "direccion": "0x2B29A7",
+      "original": "e7ff7e48",
+      "nuevo": "e411116a",
+      "descripcion": "gancho 2: jal 0x2AE8CB -> jal rutina 2"
+    },
+    {
+      "direccion": "0x32A0B4",
+      "original": "16713300",
+      "nuevo": "0cb23300",
+      "descripcion": "etiqueta del menú: 'Logo' -> 'MIRROR'"
+    },
+    {
+      "direccion": "0x33B20C",
+      "original": "7533324d524342756641646472203d203078256c582c207533324d524342756653697a65203d203078256c582c207533324d52434275664f6666736574203d203078256c580a007533324d574342756641646472203d203078256c582c207531364d57434275664c696e654e756d203d2025640a005363616c65446f77",
+      "nuevo": "4d4952524f520000c0e007e1f0e7a57fd0e001e6c0c007e1f806779bc0c007c1ecc684b6d0c0007a0cc60ed0c00042ec0600b8c0c007a1ecc65aaad0c0008a0cc602d0c0005218060e18060fe7e44ff51c21fc0d2100e7ee6cd2c0c007a1ecc65aaad0c0009a0cc602d0c0006298a118a60e18a60f0d21021c21048529",
+      "descripcion": "texto MIRROR + rutinas 1 y 2"
+    }
+  ],
+  "opciones": [],
+  "salidasConocidas": []
+}

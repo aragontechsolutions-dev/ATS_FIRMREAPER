@@ -1,15 +1,19 @@
 ﻿using FirmReaper.Core.Analysis;
 using FirmReaper.Core.Catalog;
+using FirmReaper.Core.Patching;
+using FirmReaper.Core.Profiles;
 using FirmReaper.Core.Reporting;
 
 namespace FirmReaper.Cli;
 
 /// <summary>
-/// Línea de comandos de FirmReaper (etapa 1: solo lectura).
-///   firmreaper info ARCHIVO.BIN [--json]   análisis completo
-///   firmreaper verificar ARCHIVO.BIN ...   una línea por archivo: identificación + validez
-///   firmreaper catalogo                    lista las imágenes conocidas
-/// Códigos de salida: 0 = válido/reconocido, 1 = no válido o no reconocido, 2 = error de uso.
+/// Línea de comandos de FirmReaper.
+///   firmreaper info ARCHIVO.BIN [--json]                 análisis completo (solo lectura)
+///   firmreaper verificar ARCHIVO.BIN ...                 una línea por archivo
+///   firmreaper catalogo                                  imágenes conocidas
+///   firmreaper perfiles                                  perfiles disponibles y sus opciones
+///   firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] --salida CARPETA
+/// Códigos de salida: 0 = correcto, 1 = no válido / no reconocido / error, 2 = error de uso.
 /// </summary>
 internal static class Program
 {
@@ -26,10 +30,12 @@ internal static class Program
                 "info" when args.Length >= 2 => Info(args[1], args.Contains("--json"), catalog),
                 "verificar" when args.Length >= 2 => Verify(args.Skip(1).Where(a => !a.StartsWith("--", StringComparison.Ordinal)), catalog),
                 "catalogo" => ListCatalog(catalog),
+                "perfiles" => ListProfiles(LoadRegistry()),
+                "generar" when args.Length >= 2 => Generate(args, LoadRegistry()),
                 _ => Usage(),
             };
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or BuildException or ArgumentException)
         {
             Console.Error.WriteLine("ERROR: " + ex.Message);
             return 1;
@@ -39,12 +45,22 @@ internal static class Program
     private static int Usage()
     {
         Console.Error.WriteLine("""
-            FirmReaper — firmware MStar (etapa 1: solo lectura)
+            FirmReaper — firmware MStar
               firmreaper info ARCHIVO.BIN [--json]
               firmreaper verificar ARCHIVO.BIN [ARCHIVO2.BIN ...]
               firmreaper catalogo
+              firmreaper perfiles
+              firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] --salida CARPETA
             """);
         return 2;
+    }
+
+    private static ProfileRegistry LoadRegistry()
+    {
+        var reg = ProfileRegistry.Load(ProfileRegistry.DefaultExternalFolder());
+        foreach (var e in reg.Errors)
+            Console.Error.WriteLine("AVISO: perfil externo rechazado: " + e);
+        return reg;
     }
 
     private static int Info(string path, bool json, FirmwareCatalog catalog)
@@ -74,5 +90,61 @@ internal static class Program
         foreach (var i in catalog.Images)
             Console.WriteLine($"{i.Sha256[..16]}…  {i.Tipo,-10} {i.Nombre}");
         return 0;
+    }
+
+    private static int ListProfiles(ProfileRegistry reg)
+    {
+        foreach (var p in reg.Profiles)
+        {
+            Console.WriteLine($"{p.Id}  (v{p.Version}, {(p.Verified ? "verificado" : "SIN VERIFICAR")}, {p.Source.ToString().ToLowerInvariant()})");
+            Console.WriteLine($"  {p.Name}");
+            Console.WriteLine($"  original: {p.OriginalSha256}");
+            foreach (var o in p.Options)
+                Console.WriteLine($"  --opcion {o.Id}={string.Join("|", o.Values.Select(v => v.Id))}   ({o.Label}; por defecto {o.Default})");
+            if (p.Options.Count == 0)
+                Console.WriteLine("  (sin opciones)");
+        }
+        return 0;
+    }
+
+    private static int Generate(string[] args, ProfileRegistry reg)
+    {
+        string input = args[1];
+        string? profileId = null, outDir = null;
+        var selection = new Dictionary<string, string>();
+        for (int i = 2; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--perfil" when i + 1 < args.Length: profileId = args[++i]; break;
+                case "--salida" when i + 1 < args.Length: outDir = args[++i]; break;
+                case "--opcion" when i + 1 < args.Length:
+                    var kv = args[++i].Split('=', 2);
+                    if (kv.Length != 2) return Usage();
+                    selection[kv[0]] = kv[1];
+                    break;
+                default: return Usage();
+            }
+        }
+        if (profileId is null || outDir is null)
+            return Usage();
+        var profile = reg.ById(profileId) ?? throw new ArgumentException($"No existe el perfil '{profileId}'.");
+
+        var fw = File.ReadAllBytes(input);
+        var r = FirmwareBuilder.Build(fw, profile, selection, new SyncProgress(Console.Error));
+        var saved = OutputWriter.Save(r, input, outDir, DateTimeOffset.Now);
+        Console.WriteLine($"Generado: {saved.Firmware}");
+        Console.WriteLine($"SHA-256:  {r.OutputSha256}");
+        if (r.Known is not null)
+            Console.WriteLine(r.MatchesKnown ? $"Idéntico a {r.Known.FileName}." : $"AVISO: distinto de {r.Known.FileName}.");
+        Console.WriteLine($"Informe:  {saved.ReportText}");
+        Console.WriteLine($"Copia del original: {saved.Backup}");
+        return 0;
+    }
+
+    /// <summary>Progreso escrito al instante (Progress&lt;T&gt; usaría otro hilo).</summary>
+    private sealed class SyncProgress(TextWriter w) : IProgress<string>
+    {
+        public void Report(string value) => w.WriteLine("  " + value);
     }
 }
