@@ -7,6 +7,8 @@
     <AssemblyName>FirmReaper</AssemblyName>
     <RootNamespace>FirmReaper.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Icono del .exe (Explorador, barra de tareas). Se genera con tools/icono/generar_icono.py -->
+    <ApplicationIcon>Assets\FirmReaper.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- Publicación en un solo .exe autocontenido (no necesita instalar .NET ni permisos de administrador).
@@ -19,6 +21,11 @@
     <!-- Sin compresión del bundle: reduce falsos positivos de antivirus y acelera el arranque. -->
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- El mismo icono para las ventanas -->
+    <Resource Include="Assets\FirmReaper.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FirmReaper.Core\FirmReaper.Core.csproj" />

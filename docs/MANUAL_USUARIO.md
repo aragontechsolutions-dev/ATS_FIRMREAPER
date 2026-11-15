@@ -1,4 +1,4 @@
-# FirmReaper 1.0 — Manual de usuario
+# FirmReaper 1.1 — Manual de usuario
 
 Programa para Windows que **analiza** volcados de firmware de placas de TV MStar (memoria SPI de 4 MB) y
 **genera versiones modificadas** de los firmwares que conoce, verificando todo antes de escribir.
@@ -23,7 +23,7 @@ Programa para Windows que **analiza** volcados de firmware de placas de TV MStar
 |---|---|---|
 | LG 42LF652VX | TP.VST56.PB801 | Mando Soyea LKK32CMB (sí/no), espejo de imagen (original/desactivado), tabla del mando editable |
 | Konka TV4-32K16 | TP.VST59S.PB813 | Espejo (opción MIRROR en el menú de fábrica / fijo), logo de arranque (girado 180° / propio / sin cambios) |
-| ATEC 32L18D | BD_MST061B_10AZU_14014 | Panel LG.Philips LP141WX1 1280x800, salida LVDS de 8 o 6 bits |
+| ATEC 32L18D | BD_MST061B_10AZU_14014 | Panel LG.Philips LP141WX1 1280x800 (salida LVDS de 8 o 6 bits); mando Soyea LKK32CMB (opcional) |
 
 **No hace:**
 
@@ -186,11 +186,15 @@ Truco: en cualquier editor de imágenes, "Guardar como JPEG" con calidad 80–90
 | Opción | Valores |
 |---|---|
 | Salida LVDS | **8 bits (probado: FUNCIONÓ)** / 6 bits + dither (probado: NO funcionó) |
+| Mando | **ATEC original** / Soyea LKK32CMB (sin probar en el TV) |
 
 - Cambia la entrada del panel a 1280x800 (LP141WX1). La salida de 8 bits necesita **mapeo JEIDA**; el par 3
   de datos queda sin conectar.
 - Tras grabarlo: menú de fábrica → *Restore/Reset factory*, por si la base de datos guarda valores del
   panel anterior.
+- **Mando Soyea:** el firmware del ATEC es el mismo que el del Soyea (misma placa) y su tabla de botones es
+  idéntica; solo cambia el código del mando. Con esta opción el TV obedece al mando Soyea **y deja de obedecer
+  al mando original del ATEC**. Encender desde reposo con el mando Soyea no está comprobado.
 
 ### 4.4 Editor de la tabla del mando (LG)
 
@@ -350,5 +354,5 @@ El programa no guarda ajustes. Solo crea `%LOCALAPPDATA%\FirmReaper\errores.log`
 
 ---
 
-*FirmReaper 1.0.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
+*FirmReaper 1.1.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
 tablas AEON).*

@@ -22,7 +22,7 @@ todas formas**. Comprueba la huella con `certutil -hashfile FirmReaper.exe SHA25
 |---|---|---|
 | LG 42LF652VX (TP.VST56.PB801) | Mando Soyea LKK32CMB, espejo, tabla del mando editable | `patch_ir_lg.py` v5 |
 | Konka TV4-32K16 (TP.VST59S.PB813) | Espejo en el menú de fábrica / fijo; logo girado / propio / sin cambios | `patch_mirror_menu.py` y `TV4-32K16_MIRROR.bin` |
-| ATEC 32L18D | Panel LP141WX1 1280x800, 8 bits (funcionó) / 6 bits (no funcionó) | `patch_panel.py` |
+| ATEC 32L18D | Panel LP141WX1 1280x800, 8 bits (funcionó) / 6 bits (no funcionó); mando Soyea (opcional, sin probar) | `patch_panel.py` |
 
 ## Seguridad
 
@@ -34,6 +34,6 @@ archivos y guarda una copia de solo lectura del original.
 
 - LG v5 (mando Soyea) y encender desde reposo con el mando Soyea (no implementado).
 - Konka con el logo sin girar.
-- ATEC: que el archivo de 8 bits grabado tenga la huella `ab3d3485…`.
+- ATEC: que el archivo de 8 bits grabado tenga la huella `ab3d3485…`; la opción de mando Soyea.
 
 Detalle técnico: `docs/ETAPAS.md`. Componentes de terceros: `THIRD_PARTY_NOTICES.md`.

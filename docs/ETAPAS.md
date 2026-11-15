@@ -121,3 +121,19 @@ documentación, sin romper lo que ya funciona.
 - Al fusionar en `main`, GitHub Actions publica la Release `vX.Y.Z` (versión de `Directory.Build.props`) si no
   existe, con `FirmReaper.exe`, `firmreaper-cli.exe`, `MANUAL_USUARIO.pdf`, `SHA256.txt` y un `.zip` con todo.
   Para una versión nueva: cambiar `<Version>`, añadir sus notas y fusionar.
+
+### Icono (2026-11-15)
+- `src/FirmReaper.App/Assets/FirmReaper.ico` (16–256 px): chip de memoria con marca de verificación. Se usa en el
+  `.exe` de la ventana, en sus ventanas y en `firmreaper-cli.exe`. Se regenera con `tools/icono/generar_icono.py`.
+
+### ATEC: mando Soyea (2026-11-15)
+- El ATEC y el Soyea comparten SBOOT/PM (idénticos), rutina del mando y tabla código→función (idéntica). Solo
+  cambia el código de cliente (`0x7736` → `0x7837`), en una instrucción (`0x3233D5`). Detalle:
+  `docs/historial/README_ATEC_MANDO_SOYEA.md`.
+- Perfil ATEC v2: opción **Mando** (ATEC original por defecto / Soyea). Sin probar en el TV.
+- 152 pruebas superadas.
+
+## Versión 1.1.0
+- Icono propio y opción de mando Soyea en el ATEC (ver arriba). La 1.0.0 se publicó al fusionar el PR #1,
+  antes de estos dos cambios. Notas: `docs/NOTAS_VERSION_1.1.0.md`.
+- El trabajo `release` usa ahora las notas de la versión (`docs/NOTAS_VERSION_<versión>.md`) y falla si faltan.

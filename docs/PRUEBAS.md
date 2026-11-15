@@ -14,7 +14,7 @@ Usa xUnit v3 con Microsoft Testing Platform (activado en `global.json`).
 | `RawInflaterTests` | Igual que `DeflateStream` en varios tamaños/niveles; posición final con datos detrás; truncado; límite de salida; bloque inválido; 2 000 entradas aleatorias |
 | `AnalyzerSyntheticTests` | Imagen MStar **sintética** (sin datos del fabricante): válida; CRC, cola, fin en flash, TEL, solapamiento y offsets corruptos; no modifica la entrada |
 | `CatalogTests` | Catálogo incrustado válido; 10 tipos de catálogo malicioso rechazados |
-| `RealFirmwareTests` | 11 firmwares reales: huella, fin de flash, CRC y tamaño de app iguales a Python; 1 bit cambiado → inválido; cambio fuera del CRC → "desconocido válido"; Zopfli recomprime la app del LG v5 igual; el perfil LG genera las 2 versiones v5 idénticas; solo espejo = 1 byte; Konka: menú+logo girado = `81bd3c8b…`, menú sin logo, fijo; girar el logo = JPEG de Pillow; logo propio demasiado grande; LG con tabla editada (solo cambia 1 byte frente a la v5); zlib recomprime la app del ATEC igual; perfil ATEC 8/6 bits idéntico a `patch_panel.py` |
+| `RealFirmwareTests` | 11 firmwares reales: huella, fin de flash, CRC y tamaño de app iguales a Python; 1 bit cambiado → inválido; cambio fuera del CRC → "desconocido válido"; Zopfli recomprime la app del LG v5 igual; el perfil LG genera las 2 versiones v5 idénticas; solo espejo = 1 byte; Konka: menú+logo girado = `81bd3c8b…`, menú sin logo, fijo; girar el logo = JPEG de Pillow; logo propio demasiado grande; LG con tabla editada (solo cambia 1 byte frente a la v5); zlib recomprime la app del ATEC igual; perfil ATEC 8/6 bits idéntico a `patch_panel.py`; ATEC con mando Soyea (solo cambia la comparación del cliente); tabla del mando ATEC = Soyea |
 | `ZopfliTests` | 7 vectores de py-zopfli idénticos; símbolos de distancia; `ExactLog` = glibc en 1..2 100 000; constantes de ln 2 |
 | `ZlibTests` | 9 vectores de zlib 1.3 (Python) idénticos, incluida entrada vacía, aleatoria y > 1 MB |
 | `ProfileTests` | Perfiles integrados válidos y coherentes con el catálogo; 22 perfiles manipulados rechazados; carpeta externa |
@@ -67,5 +67,5 @@ Vectores de Zopfli (Python, `pip install zopfli==0.4.3`): ver el generador en el
 
 ## Resultado actual
 
-150 pruebas, 150 superadas (con firmwares, Linux). En GitHub Actions (Windows, sin firmwares) se omiten las
+152 pruebas, 152 superadas (con firmwares, Linux). En GitHub Actions (Windows, sin firmwares) se omiten las
 que necesitan los `.BIN`.
