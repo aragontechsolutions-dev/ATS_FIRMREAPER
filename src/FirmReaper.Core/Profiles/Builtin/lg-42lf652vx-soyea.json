@@ -125,5 +125,420 @@
       "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
       "archivo": "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN"
     }
-  ]
+  ],
+  "tablaMando": {
+    "direccion": "0x39DD94",
+    "entradas": 45,
+    "prefijoCodigo": "0x0100",
+    "opcion": "mando",
+    "valor": "si",
+    "funciones": [
+      {
+        "indice": "0x01",
+        "nombre": "POWER (encender/apagar)"
+      },
+      {
+        "indice": "0x02",
+        "nombre": "KEY_0"
+      },
+      {
+        "indice": "0x03",
+        "nombre": "KEY_1"
+      },
+      {
+        "indice": "0x04",
+        "nombre": "KEY_2"
+      },
+      {
+        "indice": "0x05",
+        "nombre": "KEY_3"
+      },
+      {
+        "indice": "0x06",
+        "nombre": "KEY_4"
+      },
+      {
+        "indice": "0x07",
+        "nombre": "KEY_5"
+      },
+      {
+        "indice": "0x08",
+        "nombre": "KEY_6"
+      },
+      {
+        "indice": "0x09",
+        "nombre": "KEY_7"
+      },
+      {
+        "indice": "0x0A",
+        "nombre": "KEY_8"
+      },
+      {
+        "indice": "0x0B",
+        "nombre": "KEY_9"
+      },
+      {
+        "indice": "0x0C",
+        "nombre": "DASH (-/--)"
+      },
+      {
+        "indice": "0x0D",
+        "nombre": "ARRIBA"
+      },
+      {
+        "indice": "0x0E",
+        "nombre": "ABAJO"
+      },
+      {
+        "indice": "0x0F",
+        "nombre": "IZQUIERDA"
+      },
+      {
+        "indice": "0x10",
+        "nombre": "DERECHA"
+      },
+      {
+        "indice": "0x11",
+        "nombre": "SELECT (OK)"
+      },
+      {
+        "indice": "0x12",
+        "nombre": "VOLUME_PLUS (en menús: DERECHA)"
+      },
+      {
+        "indice": "0x13",
+        "nombre": "VOLUME_MINUS (en menús: IZQUIERDA)"
+      },
+      {
+        "indice": "0x14",
+        "nombre": "CHANNEL_PLUS (en menús: ARRIBA)"
+      },
+      {
+        "indice": "0x15",
+        "nombre": "CHANNEL_MINUS (en menús: ABAJO)"
+      },
+      {
+        "indice": "0x16",
+        "nombre": "CHANNEL_LIST (lista de canales)"
+      },
+      {
+        "indice": "0x17",
+        "nombre": "CHANNEL_FAV_LIST (favoritos)"
+      },
+      {
+        "indice": "0x18",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      },
+      {
+        "indice": "0x19",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      },
+      {
+        "indice": "0x1A",
+        "nombre": "EXIT"
+      },
+      {
+        "indice": "0x1C",
+        "nombre": "MENU"
+      },
+      {
+        "indice": "0x1D",
+        "nombre": "CHANNEL_RETURN (canal anterior)"
+      },
+      {
+        "indice": "0x1E",
+        "nombre": "INFO"
+      },
+      {
+        "indice": "0x1F",
+        "nombre": "AUDIO"
+      },
+      {
+        "indice": "0x21",
+        "nombre": "MUTE"
+      },
+      {
+        "indice": "0x22",
+        "nombre": "INPUT_SOURCE (fuente)"
+      },
+      {
+        "indice": "0x24",
+        "nombre": "PICTURE (modo de imagen)"
+      },
+      {
+        "indice": "0x26",
+        "nombre": "SLEEP"
+      },
+      {
+        "indice": "0x29",
+        "nombre": "ROJO"
+      },
+      {
+        "indice": "0x2A",
+        "nombre": "VERDE"
+      },
+      {
+        "indice": "0x2B",
+        "nombre": "AMARILLO"
+      },
+      {
+        "indice": "0x2C",
+        "nombre": "AZUL"
+      },
+      {
+        "indice": "0x43",
+        "nombre": "CC"
+      },
+      {
+        "indice": "0x49",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "indice": "0x4C",
+        "nombre": "PAGE_UP"
+      },
+      {
+        "indice": "0x4D",
+        "nombre": "PAGE_DOWN"
+      },
+      {
+        "indice": "0x51",
+        "nombre": "PLAY"
+      },
+      {
+        "indice": "0x53",
+        "nombre": "STOP"
+      },
+      {
+        "indice": "0x54",
+        "nombre": "REWIND"
+      },
+      {
+        "indice": "0x55",
+        "nombre": "FF"
+      },
+      {
+        "indice": "0x56",
+        "nombre": "PREVIOUS"
+      },
+      {
+        "indice": "0x57",
+        "nombre": "NEXT"
+      },
+      {
+        "indice": "0x23",
+        "nombre": "función LG 0x23 (sin identificar)"
+      },
+      {
+        "indice": "0x25",
+        "nombre": "función LG 0x25 (sin identificar)"
+      },
+      {
+        "indice": "0x27",
+        "nombre": "función LG 0x27 (sin identificar)"
+      },
+      {
+        "indice": "0x3F",
+        "nombre": "función LG 0x3F (sin identificar)"
+      },
+      {
+        "indice": "0x50",
+        "nombre": "función LG 0x50 (sin identificar)"
+      }
+    ],
+    "botones": [
+      {
+        "codigo": "0x00",
+        "nombre": "0"
+      },
+      {
+        "codigo": "0x01",
+        "nombre": "1"
+      },
+      {
+        "codigo": "0x02",
+        "nombre": "2"
+      },
+      {
+        "codigo": "0x03",
+        "nombre": "3"
+      },
+      {
+        "codigo": "0x04",
+        "nombre": "4"
+      },
+      {
+        "codigo": "0x05",
+        "nombre": "5"
+      },
+      {
+        "codigo": "0x06",
+        "nombre": "6"
+      },
+      {
+        "codigo": "0x07",
+        "nombre": "7"
+      },
+      {
+        "codigo": "0x08",
+        "nombre": "8"
+      },
+      {
+        "codigo": "0x09",
+        "nombre": "9"
+      },
+      {
+        "codigo": "0x0A",
+        "nombre": "-/-- (DASH)"
+      },
+      {
+        "codigo": "0x0B",
+        "nombre": "RETURN (canal anterior)"
+      },
+      {
+        "codigo": "0x0C",
+        "nombre": "POWER"
+      },
+      {
+        "codigo": "0x0D",
+        "nombre": "SOURCE (fuente)"
+      },
+      {
+        "codigo": "0x0E",
+        "nombre": "MUTE"
+      },
+      {
+        "codigo": "0x0F",
+        "nombre": "MENU"
+      },
+      {
+        "codigo": "0x14",
+        "nombre": "OK (SELECT)"
+      },
+      {
+        "codigo": "0x15",
+        "nombre": "VOL+ / DERECHA en menús"
+      },
+      {
+        "codigo": "0x16",
+        "nombre": "VOL- / IZQUIERDA en menús"
+      },
+      {
+        "codigo": "0x17",
+        "nombre": "CH+ / ARRIBA en menús"
+      },
+      {
+        "codigo": "0x18",
+        "nombre": "CH- / ABAJO en menús"
+      },
+      {
+        "codigo": "0x19",
+        "nombre": "PICTURE (modo imagen)"
+      },
+      {
+        "codigo": "0x1A",
+        "nombre": "AUDIO"
+      },
+      {
+        "codigo": "0x1C",
+        "nombre": "INFO"
+      },
+      {
+        "codigo": "0x1D",
+        "nombre": "EXIT"
+      },
+      {
+        "codigo": "0x20",
+        "nombre": "FAV"
+      },
+      {
+        "codigo": "0x21",
+        "nombre": "ROJO"
+      },
+      {
+        "codigo": "0x22",
+        "nombre": "VERDE"
+      },
+      {
+        "codigo": "0x23",
+        "nombre": "AMARILLO"
+      },
+      {
+        "codigo": "0x24",
+        "nombre": "AZUL"
+      },
+      {
+        "codigo": "0x28",
+        "nombre": "PAGE UP"
+      },
+      {
+        "codigo": "0x29",
+        "nombre": "PAGE DOWN"
+      },
+      {
+        "codigo": "0x45",
+        "nombre": "SLEEP"
+      },
+      {
+        "codigo": "0x46",
+        "nombre": "CC"
+      },
+      {
+        "codigo": "0x47",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "codigo": "0x49",
+        "nombre": "CH.LIST (lista de canales)"
+      },
+      {
+        "codigo": "0x4B",
+        "nombre": "PLAY"
+      },
+      {
+        "codigo": "0x4C",
+        "nombre": "STOP"
+      },
+      {
+        "codigo": "0x4E",
+        "nombre": "PREV"
+      },
+      {
+        "codigo": "0x53",
+        "nombre": "NEXT"
+      },
+      {
+        "codigo": "0x54",
+        "nombre": "REW"
+      },
+      {
+        "codigo": "0x55",
+        "nombre": "FF"
+      },
+      {
+        "codigo": "0x56",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      },
+      {
+        "codigo": "0x57",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      },
+      {
+        "codigo": "0x25",
+        "nombre": "TV/RADIO"
+      },
+      {
+        "codigo": "0x40",
+        "nombre": "MTS"
+      },
+      {
+        "codigo": "0x4F",
+        "nombre": "TEMP_DET"
+      },
+      {
+        "codigo": "0x51",
+        "nombre": "EPG"
+      }
+    ]
+  }
 }

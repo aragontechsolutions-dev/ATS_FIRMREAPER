@@ -7,7 +7,7 @@ documentación, sin romper lo que ya funciona.
 |---|---|---|
 | 1 | Motor de lectura y verificación (sin modificar nada) | ✅ Completada |
 | 2 | Zopfli en C#, perfiles, generar idéntico a los scripts, escritura segura | ✅ Completada |
-| 3 | Logo del Konka (girar / propio / ninguno) ✅ · editor de la tabla del mando del LG · visor hexadecimal | En curso |
+| 3 | Logo del Konka, editor de la tabla del mando del LG, visor hexadecimal | ✅ Completada |
 | 4 | Perfil ATEC (panel 1280x800, 6/8 bits) | Pendiente |
 | 5 | Manual de usuario y ejecutable final | Pendiente |
 
@@ -57,7 +57,7 @@ documentación, sin romper lo que ya funciona.
 - El editor del mando del LG → etapa 3.
 - La ventana no se ha abierto en un Windows real desde aquí (solo se compila).
 
-## Etapa 3 — en curso
+## Etapa 3 — completada
 
 ### 3a. Logo del Konka — completada
 - Perfil Konka v3: opción **Logo de arranque**: girado 180° (por defecto) / sin cambios / propio.
@@ -70,9 +70,18 @@ documentación, sin romper lo que ya funciona.
   ventana: se pide el JPEG al generar.
 - 122 pruebas superadas.
 
-### 3b. Pendiente
-- Editor de la tabla del mando del LG (botón → función).
-- Visor hexadecimal de los cambios.
+### 3b. Editor del mando del LG y visor hexadecimal — completada
+- Perfil LG: `tablaMando` con los 48 botones del Soyea y 53 funciones del LG. Nombres: los documentados en
+  `README_LG_MANDO_SOYEA.md` + las 4 flechas de la rutina de la cruceta; 5 índices del mando LG original
+  sin nombre documentado aparecen como "función LG 0xNN (sin identificar)" (no se inventan nombres).
+- Ventana: pestaña Generar → "Tabla del mando: Editar…" (restaurar, importar, exportar). CLI:
+  `firmreaper-cli tabla-mando --perfil … --salida tabla.json` y `generar … --tabla-mando tabla.json`.
+- Seguridad: la tabla editada solo sustituye los bytes nuevos del parche de la tabla (misma dirección y
+  longitud, dentro de su zona); se rechazan botones repetidos, funciones o botones no permitidos y más de 44 teclas.
+- Comprobado: cambiar SLEEP → INPUT_SOURCE cambia 1 solo byte respecto a la v5 (`0x39DE98`).
+- Pestaña **Cambios (hex)**: tras generar, cada parche en hexadecimal (original | nuevo) con los bytes
+  cambiados en rojo. (No incluye desensamblado: posible mejora futura con las tablas de `tools/aeon`.)
+- 133 pruebas superadas.
 
 ### Corrección: el .exe descargado abría una consola y se cerraba (2026-11-15)
 - **Causa:** el workflow publicaba `FirmReaper.exe` (ventana) y `firmreaper.exe` (consola) en la MISMA carpeta;

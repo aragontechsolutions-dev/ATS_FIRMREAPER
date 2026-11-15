@@ -60,6 +60,8 @@ public sealed class Profile
     public required IReadOnlyList<ProfileOptionDef> Options { get; init; }
     public required IReadOnlyList<KnownOutput> KnownOutputs { get; init; }
     public LogoSpec? Logo { get; init; }
+    /// <summary>Tabla del mando editable (null si el perfil no la tiene).</summary>
+    public KeyTableSpec? KeyTable { get; init; }
     public required ProfileSource Source { get; init; }
     /// <summary>Ruta del archivo (externo) o nombre del recurso (integrado).</summary>
     public required string Location { get; init; }
@@ -280,6 +282,70 @@ public static partial class ProfileLoader
         if (logoOptions.Count > 0 && logoSpec is null) Fail("Hay acciones sobre el logo pero el perfil no define 'logo'.");
         if (logoOptions.Count > 1) Fail("Solo una opción puede actuar sobre el logo.");
 
+        // Tabla del mando editable: debe corresponder EXACTAMENTE a un parche existente (misma dirección y
+        // longitud) de la opción indicada; así el editor nunca escribe fuera de lo que el perfil ya autoriza.
+        KeyTableSpec? keyTable = null;
+        if (f.TablaMando is { } tm)
+        {
+            uint addr = ParseAddr(tm.Direccion, "tablaMando.direccion");
+            if (tm.Entradas is < 2 or > 512) Fail("tablaMando.entradas fuera de rango (2–512).");
+            uint prefix = ParseAddr(tm.PrefijoCodigo, "tablaMando.prefijoCodigo");
+            if ((prefix & 0xFF) != 0) Fail("tablaMando.prefijoCodigo debe tener a 0 el byte bajo.");
+            var opt = options.FirstOrDefault(o => o.Id == tm.Opcion) ?? throw new InvalidDataException($"tablaMando: no existe la opción '{tm.Opcion}'.");
+            var val = opt.Values.FirstOrDefault(v => v.Id == tm.Valor) ?? throw new InvalidDataException($"tablaMando: la opción '{tm.Opcion}' no tiene el valor '{tm.Valor}'.");
+            var tablePatch = val.Patches.FirstOrDefault(p => p.Address == addr);
+            if (tablePatch is null || tablePatch.New.Length != tm.Entradas * KeyTableSpec.EntrySize)
+                Fail("tablaMando: no hay un parche con esa dirección y longitud en la opción indicada.");
+            var functions = new Dictionary<byte, string>();
+            foreach (var fn in tm.Funciones)
+            {
+                byte idx = KeyTableSpec.ParseByte(fn.Indice);
+                if (string.IsNullOrWhiteSpace(fn.Nombre)) Fail($"tablaMando: función 0x{idx:X2} sin nombre.");
+                if (!functions.TryAdd(idx, fn.Nombre)) Fail($"tablaMando: función 0x{idx:X2} repetida.");
+            }
+            var buttons = new List<(byte, string)>();
+            foreach (var bt in tm.Botones)
+            {
+                byte code = KeyTableSpec.ParseByte(bt.Codigo);
+                if (string.IsNullOrWhiteSpace(bt.Nombre)) Fail($"tablaMando: botón 0x{code:X2} sin nombre.");
+                if (buttons.Any(x => x.Item1 == code)) Fail($"tablaMando: botón 0x{code:X2} repetido.");
+                buttons.Add((code, bt.Nombre));
+            }
+            var spec = new KeyTableSpec
+            {
+                Address = addr,
+                Entries = tm.Entradas,
+                CodePrefix = prefix,
+                OptionId = tm.Opcion,
+                ValueId = tm.Valor,
+                Functions = functions,
+                Buttons = buttons,
+                Default = [],
+            };
+            List<KeyAssignment> def;
+            try
+            {
+                def = spec.Decode(tablePatch!.New);
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new InvalidDataException("tablaMando: la tabla por defecto no es válida: " + ex.Message);
+            }
+            var errs = spec.Validate(def);
+            if (errs.Count > 0) Fail("tablaMando: la tabla por defecto no es válida: " + string.Join(" ", errs));
+            keyTable = new KeyTableSpec
+            {
+                Address = addr,
+                Entries = tm.Entradas,
+                CodePrefix = prefix,
+                OptionId = tm.Opcion,
+                ValueId = tm.Valor,
+                Functions = functions,
+                Buttons = buttons,
+                Default = def,
+            };
+        }
+
         // Ninguna combinación de opciones puede producir parches solapados: se comprueba
         // cada parche contra los fijos y contra los de las OTRAS opciones (los valores de una misma
         // opción son excluyentes entre sí).
@@ -327,6 +393,7 @@ public static partial class ProfileLoader
             Options = options,
             KnownOutputs = known,
             Logo = logoSpec,
+            KeyTable = keyTable,
             Source = source,
             Location = location,
             FileSha256 = Convert.ToHexStringLower(SHA256.HashData(json)),

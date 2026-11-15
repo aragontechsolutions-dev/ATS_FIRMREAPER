@@ -44,6 +44,30 @@ def guardar(nombre, perfil):
 lg = cargar("patch_ir_lg.py")
 p_cliente, p_tabla, p_gancho, p_rutina = [parche(*x) for x in lg.PATCHES]
 p_espejo = parche(*lg.PATCH_ESPEJO_OFF)
+# Funciones (índice del switch 0x2B4D48 del LG) con nombre documentado en README_LG_MANDO_SOYEA.md:
+# las KEY que producen las teclas Soyea, las flechas de la rutina de la cruceta ({10,0F,0D,0E}) y, sin nombre
+# identificado, los índices que usa el mando LG original.
+FUNCIONES_LG = [
+    (0x01, "POWER (encender/apagar)"), (0x02, "KEY_0"), (0x03, "KEY_1"), (0x04, "KEY_2"), (0x05, "KEY_3"),
+    (0x06, "KEY_4"), (0x07, "KEY_5"), (0x08, "KEY_6"), (0x09, "KEY_7"), (0x0A, "KEY_8"), (0x0B, "KEY_9"),
+    (0x0C, "DASH (-/--)"), (0x0D, "ARRIBA"), (0x0E, "ABAJO"), (0x0F, "IZQUIERDA"), (0x10, "DERECHA"),
+    (0x11, "SELECT (OK)"), (0x12, "VOLUME_PLUS (en menús: DERECHA)"), (0x13, "VOLUME_MINUS (en menús: IZQUIERDA)"),
+    (0x14, "CHANNEL_PLUS (en menús: ARRIBA)"), (0x15, "CHANNEL_MINUS (en menús: ABAJO)"),
+    (0x16, "CHANNEL_LIST (lista de canales)"), (0x17, "CHANNEL_FAV_LIST (favoritos)"),
+    (0x18, "KEY 0x81 (función del fabricante)"), (0x19, "KEY 0x82 (función del fabricante)"),
+    (0x1A, "EXIT"), (0x1C, "MENU"), (0x1D, "CHANNEL_RETURN (canal anterior)"), (0x1E, "INFO"), (0x1F, "AUDIO"),
+    (0x21, "MUTE"), (0x22, "INPUT_SOURCE (fuente)"), (0x24, "PICTURE (modo de imagen)"), (0x26, "SLEEP"),
+    (0x29, "ROJO"), (0x2A, "VERDE"), (0x2B, "AMARILLO"), (0x2C, "AZUL"), (0x43, "CC"), (0x49, "SUBTITLE"),
+    (0x4C, "PAGE_UP"), (0x4D, "PAGE_DOWN"), (0x51, "PLAY"), (0x53, "STOP"), (0x54, "REWIND"), (0x55, "FF"),
+    (0x56, "PREVIOUS"), (0x57, "NEXT"),
+    (0x23, "función LG 0x23 (sin identificar)"), (0x25, "función LG 0x25 (sin identificar)"),
+    (0x27, "función LG 0x27 (sin identificar)"), (0x3F, "función LG 0x3F (sin identificar)"),
+    (0x50, "función LG 0x50 (sin identificar)"),
+]
+# Botones del mando Soyea LKK32CMB (código NEC del botón, cliente 37 78) y su rótulo.
+BOTONES_SOYEA = [(c, n) for c, _, n in lg.SOYEA_MAP] + [
+    (0x25, "TV/RADIO"), (0x40, "MTS"), (0x4F, "TEMP_DET"), (0x51, "EPG")]
+
 guardar("lg-42lf652vx-soyea.json", {
     "formato": 1,
     "id": "lg-42lf652vx-soyea",
@@ -82,6 +106,15 @@ guardar("lg-42lf652vx-soyea.json", {
          "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
          "archivo": "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN"},
     ],
+    "tablaMando": {
+        "direccion": "0x%06X" % lg.KEYTAB,
+        "entradas": lg.KEYTAB_N,
+        "prefijoCodigo": "0x0100",
+        "opcion": "mando",
+        "valor": "si",
+        "funciones": [{"indice": "0x%02X" % i, "nombre": n} for i, n in FUNCIONES_LG],
+        "botones": [{"codigo": "0x%02X" % c, "nombre": n} for c, n in BOTONES_SOYEA],
+    },
 })
 
 # ------------------------------------------------------------------ Konka TV4-32K16

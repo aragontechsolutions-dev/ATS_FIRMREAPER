@@ -21,6 +21,34 @@ public sealed class ProfileFile
     public required List<ProfileKnownOutput> SalidasConocidas { get; init; }
     /// <summary>Opcional: recurso del logo de arranque (necesario si algún valor actúa sobre el logo).</summary>
     public ProfileLogo? Logo { get; init; }
+    /// <summary>Opcional: tabla código → función del mando, editable por el usuario.</summary>
+    public ProfileKeyTable? TablaMando { get; init; }
+}
+
+public sealed class ProfileKeyTable
+{
+    /// <summary>Dirección (RAM) de la tabla; debe coincidir con un parche del valor <see cref="Opcion"/>=<see cref="Valor"/>.</summary>
+    public required string Direccion { get; init; }
+    /// <summary>Número de entradas de 8 bytes (incluido el terminador).</summary>
+    public required int Entradas { get; init; }
+    /// <summary>Valor que se suma al código del botón en cada entrada (u32), p. ej. "0x0100".</summary>
+    public required string PrefijoCodigo { get; init; }
+    public required string Opcion { get; init; }
+    public required string Valor { get; init; }
+    public required List<ProfileKeyFunction> Funciones { get; init; }
+    public required List<ProfileKeyButton> Botones { get; init; }
+}
+
+public sealed class ProfileKeyFunction
+{
+    public required string Indice { get; init; }
+    public required string Nombre { get; init; }
+}
+
+public sealed class ProfileKeyButton
+{
+    public required string Codigo { get; init; }
+    public required string Nombre { get; init; }
 }
 
 public sealed class ProfileLogo

@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
 using FirmReaper.Core.Patching;
+using FirmReaper.Core.Profiles;
 
 namespace FirmReaper.Core.Reporting;
 
@@ -60,6 +61,13 @@ public static class BuildReport
             if (p.Original.Length <= 16)
                 sb.AppendLine($"            {Convert.ToHexStringLower(p.Original)} → {Convert.ToHexStringLower(p.New)}");
         }
+        if (r.KeyMap is not null && r.Profile.KeyTable is { } kt)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Tabla del mando ({r.KeyMap.Count} teclas{(r.KeyMapEdited ? ", EDITADA" : ", la del perfil")}):");
+            foreach (var k in r.KeyMap)
+                sb.AppendLine($"  0x{k.Code:X2} {kt.ButtonName(k.Code),-28} → 0x{k.Index:X2} {kt.Functions.GetValueOrDefault(k.Index)}");
+        }
         sb.AppendLine();
         sb.AppendLine("Comprobaciones superadas:");
         foreach (var v in r.Verifications) sb.AppendLine("  [OK] " + v);
@@ -116,6 +124,11 @@ public static class BuildReport
                 nuevo = Convert.ToHexStringLower(p.New),
                 descripcion = p.Description,
             }),
+            tablaMando = r.KeyMap is null ? null : new
+            {
+                editada = r.KeyMapEdited,
+                teclas = r.KeyMap.Select(k => new { codigo = $"0x{k.Code:X2}", indice = $"0x{k.Index:X2}" }),
+            },
             comprobaciones = r.Verifications,
             procedimiento = Procedure,
         };

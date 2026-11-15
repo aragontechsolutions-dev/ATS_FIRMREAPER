@@ -61,6 +61,21 @@ leen de los scripts de referencia; no se copian a mano).
 | `logo` (opcional) | Recurso del logo: `idTel` (id en la tabla TEL, `0x…`), `longitudJpeg` (bytes del JPEG original hasta FFD9), `ancho`, `alto`. |
 | valor `.logo` (opcional) | `"girar"` (180°, re-codificado idéntico a Pillow) o `"propio"` (JPEG del usuario). Sin el campo, el logo no cambia. Solo UNA opción puede actuar sobre el logo. |
 
+| `tablaMando` (opcional) | Tabla botón → función editable: `direccion`, `entradas`, `prefijoCodigo`, `opcion`/`valor` (el valor de opción que la aplica), `funciones` (`indice` + `nombre`, las únicas permitidas) y `botones` (`codigo` + `nombre`). |
+
+### La tabla del mando
+
+- Debe coincidir EXACTAMENTE (dirección y longitud) con un parche del valor `opcion`=`valor`. El editor solo
+  cambia los bytes "nuevos" de ese parche: la zona permitida y los bytes originales se siguen comprobando.
+- Formato en el firmware (LG TP.V56): `entradas` × 8 bytes: u32 LE `prefijoCodigo | código`, u8 índice, 3 bytes a 0;
+  el resto, terminador `FFFF0000 FF000000`. El firmware usa la PRIMERA coincidencia: no se admiten botones repetidos.
+- Una entrada queda siempre para el terminador (LG: máximo 44 teclas).
+- La tabla por defecto es la del parche (la v5 probada). Con una tabla editada el resultado ya no es la versión
+  documentada (el informe lo indica y lista la tabla).
+- Archivo de tabla (importar/exportar, `firmreaper-cli tabla-mando` / `--tabla-mando`):
+  `{"formato":1,"perfil":"<id>","asignaciones":[{"codigo":"0x45","indice":"0x26","boton":"SLEEP","funcion":"SLEEP"}]}`
+  (`boton` y `funcion` son informativos).
+
 ### El logo
 
 - El hueco del logo es el recurso TEL indicado: se escribe el JPEG nuevo, se rellena con ceros hasta

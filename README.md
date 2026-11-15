@@ -3,7 +3,7 @@
 Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 **MStar** (CPU AEON R2, memoria SPI de 4 MB) mediante **perfiles** de parches verificados.
 
-> **Estado: etapas 1 y 2 completadas; etapa 3 en curso (logo hecho).** Analiza, identifica y verifica volcados `.BIN`, y genera
+> **Estado: etapas 1, 2 y 3 completadas.** Analiza, identifica y verifica volcados `.BIN`, y genera
 > las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX mando Soyea / espejo; Konka TV4-32K16
 > espejo en el menú de fábrica o fijo, y logo girado / propio / sin cambios).
 > Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
@@ -32,6 +32,8 @@ Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 - Guarda el firmware **sin sobrescribir nunca**, una **copia de solo lectura** del original
   (`respaldo_originales\`) y un **informe** con huellas, cambios y procedimiento de grabación.
 - Perfiles nuevos sin recompilar: carpeta `perfiles\` junto al `.exe` ([guía](docs/PERFILES.md)).
+- LG: **editor de la tabla del mando** (botón → función; importar/exportar).
+- Pestaña **Cambios (hex)**: los bytes modificados de cada parche, original frente a nuevo.
 
 ## Uso
 
@@ -60,6 +62,12 @@ firmreaper-cli perfiles                    # perfiles y sus opciones
 ```
 ```bash
 firmreaper-cli generar ORIGINAL.BIN --perfil lg-42lf652vx-soyea --opcion espejo=off --salida CARPETA
+```
+```bash
+firmreaper-cli tabla-mando --perfil lg-42lf652vx-soyea --salida tabla.json
+```
+```bash
+firmreaper-cli generar ORIGINAL.BIN --perfil lg-42lf652vx-soyea --tabla-mando tabla.json --salida CARPETA
 ```
 ```bash
 firmreaper-cli generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --opcion logo=propio --logo MI_LOGO.jpg --salida CARPETA

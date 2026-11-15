@@ -26,6 +26,8 @@ public partial class MainWindow : Window
     private string? _lastSha;
     private readonly Dictionary<string, ComboBox> _optionBoxes = [];
     private CancellationTokenSource? _cts;
+    /// <summary>Tabla del mando editada (null = la del perfil).</summary>
+    private List<KeyAssignment>? _keyMap;
 
     public MainWindow()
     {
@@ -114,6 +116,8 @@ public partial class MainWindow : Window
         // Perfiles aplicables: solo a un ORIGINAL con contenedor válido.
         var list = a.ContainerValid ? _profiles.ForOriginal(a.Sha256) : [];
         TxtLog.Clear();
+        LstChanges.ItemsSource = null;
+        RtbHex.Document = new System.Windows.Documents.FlowDocument();
         if (list.Count == 0)
         {
             PanelProfile.Visibility = Visibility.Collapsed;
@@ -137,6 +141,7 @@ public partial class MainWindow : Window
     {
         PanelOptions.Children.Clear();
         _optionBoxes.Clear();
+        _keyMap = null;
         if (CmbProfile.SelectedItem is not Profile p) return;
 
         TxtProfileDesc.Text = p.Description + $"  (v{p.Version}, {(p.Source == ProfileSource.Integrado ? "integrado" : "externo")})";
@@ -151,7 +156,9 @@ public partial class MainWindow : Window
             row.Children.Add(cmb);
             PanelOptions.Children.Add(row);
             _optionBoxes[o.Id] = cmb;
+            cmb.SelectionChanged += (_, _) => UpdateKeyMapPanel();
         }
+        UpdateKeyMapPanel();
         if (p.Options.Count == 0)
             PanelOptions.Children.Add(new TextBlock { Text = "Este perfil no tiene opciones.", Margin = new Thickness(120, 0, 0, 6), Foreground = Brushes.Gray });
     }
@@ -161,7 +168,7 @@ public partial class MainWindow : Window
     private async void OnGenerate(object sender, RoutedEventArgs e)
     {
         if (CmbProfile.SelectedItem is not Profile p || _lastFile is null || _lastSha is null) return;
-        var selection = _optionBoxes.ToDictionary(kv => kv.Key, kv => ((OptionValue)kv.Value.SelectedItem).Id);
+        var selection = CurrentSelection();
 
         // Logo propio: se pide el JPEG antes de la carpeta de salida.
         byte[]? customLogo = null;
@@ -182,6 +189,9 @@ public partial class MainWindow : Window
             customLogo = File.ReadAllBytes(ofd.FileName);
         }
 
+        // Tabla del mando editada: solo si la opción que la contiene está elegida.
+        var keyMapToUse = KeyMapApplies(p, selection) ? _keyMap : null;
+
         var dlg = new OpenFolderDialog
         {
             Title = "Carpeta donde guardar el firmware generado",
@@ -201,11 +211,12 @@ public partial class MainWindow : Window
             var saved = await Task.Run(() =>
             {
                 var fw = File.ReadAllBytes(input);
-                var r = FirmwareBuilder.Build(fw, p, selection, customLogo, progress, token);
+                var r = FirmwareBuilder.Build(fw, p, selection, customLogo, progress, token, keyMapToUse);
                 token.ThrowIfCancellationRequested();
                 return (r, OutputWriter.Save(r, input, outDir, DateTimeOffset.Now));
             }, token);
             var (result, files) = saved;
+            ShowChanges(result);
             Log("");
             Log("LISTO.");
             Log("Firmware: " + files.Firmware);
@@ -237,6 +248,92 @@ public partial class MainWindow : Window
 
     private void OnCancel(object sender, RoutedEventArgs e) => _cts?.Cancel();
 
+    // ------------------------------------------------------------------ Tabla del mando
+
+    private static bool KeyMapApplies(Profile p, IReadOnlyDictionary<string, string> selection) =>
+        p.KeyTable is { } kt && selection.TryGetValue(kt.OptionId, out var v) && v == kt.ValueId;
+
+    private Dictionary<string, string> CurrentSelection() =>
+        _optionBoxes.ToDictionary(kv => kv.Key, kv => ((OptionValue)kv.Value.SelectedItem).Id);
+
+    private void UpdateKeyMapPanel()
+    {
+        if (CmbProfile.SelectedItem is not Profile p || p.KeyTable is not { } kt)
+        {
+            PanelKeyMap.Visibility = Visibility.Collapsed;
+            return;
+        }
+        PanelKeyMap.Visibility = Visibility.Visible;
+        bool applies = KeyMapApplies(p, CurrentSelection());
+        BtnKeyMap.IsEnabled = applies;
+        var map = _keyMap ?? kt.Default;
+        TxtKeyMap.Text = !applies
+            ? "(no se aplica con estas opciones)"
+            : _keyMap is null || kt.IsDefault(_keyMap)
+                ? $"la del perfil ({map.Count} teclas)"
+                : $"EDITADA ({map.Count} teclas)";
+    }
+
+    private void OnEditKeyMap(object sender, RoutedEventArgs e)
+    {
+        if (CmbProfile.SelectedItem is not Profile p || p.KeyTable is not { } kt) return;
+        var w = new KeyMapWindow(p, _keyMap ?? kt.Default) { Owner = this };
+        if (w.ShowDialog() == true && w.Result is not null)
+        {
+            _keyMap = kt.IsDefault(w.Result) ? null : w.Result;
+            UpdateKeyMapPanel();
+        }
+    }
+
+    // ------------------------------------------------------------------ Visor hexadecimal de cambios
+
+    private sealed record ChangeItem(string Label, uint Address, byte[] Original, byte[] New);
+
+    private void ShowChanges(BuildResult r)
+    {
+        var items = r.Patches
+            .Select(p => new ChangeItem($"0x{p.Address:X6}  {p.Original.Length,4} B  {p.Description}", p.Address, p.Original, p.New))
+            .ToList();
+        LstChanges.ItemsSource = items;
+        TxtChangesInfo.Text = $"{r.Patches.Count} parches en la aplicación ({r.ChangedAppBytes} bytes distintos)." +
+            (r.Logo == LogoAction.Ninguna ? "" : $"  Logo: {(r.Logo == LogoAction.Girar ? "girado 180°" : "propio")}, {r.LogoLength:N0} bytes.") +
+            "  Direcciones = RAM de la app.";
+        if (items.Count > 0) LstChanges.SelectedIndex = 0;
+        else RtbHex.Document = new System.Windows.Documents.FlowDocument();
+    }
+
+    private void OnChangeSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (LstChanges.SelectedItem is not ChangeItem c) return;
+        var doc = new System.Windows.Documents.FlowDocument { PageWidth = 1200 };
+        var para = new System.Windows.Documents.Paragraph { Margin = new Thickness(0) };
+        var red = new SolidColorBrush(Color.FromRgb(0xC0, 0x00, 0x00));
+        void Add(string text, bool changed = false)
+        {
+            var run = new System.Windows.Documents.Run(text);
+            if (changed)
+            {
+                run.Foreground = red;
+                run.FontWeight = FontWeights.Bold;
+            }
+            para.Inlines.Add(run);
+        }
+        Add("Dirección   Original                                          Nuevo\n");
+        for (int off = 0; off < c.Original.Length; off += 16)
+        {
+            int n = Math.Min(16, c.Original.Length - off);
+            Add($"0x{c.Address + off:X6}  ");
+            for (int k = 0; k < 16; k++)
+                Add(k < n ? $"{c.Original[off + k]:X2} " : "   ", k < n && c.Original[off + k] != c.New[off + k]);
+            Add(" ");
+            for (int k = 0; k < n; k++)
+                Add($"{c.New[off + k]:X2} ", c.Original[off + k] != c.New[off + k]);
+            Add("\n");
+        }
+        doc.Blocks.Add(para);
+        RtbHex.Document = doc;
+    }
+
     private void Log(string line) => TxtLog.AppendText(line + Environment.NewLine);
 
     private void SetBusy(bool busy, string text)
@@ -245,6 +342,7 @@ public partial class MainWindow : Window
         BtnGenerate.IsEnabled = !busy;
         CmbProfile.IsEnabled = !busy;
         PanelOptions.IsEnabled = !busy;
+        PanelKeyMap.IsEnabled = !busy;
         BtnCancel.IsEnabled = busy && _cts is not null;
         TxtBusy.Text = text;
         Cursor = busy ? System.Windows.Input.Cursors.Wait : null;

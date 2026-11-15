@@ -27,6 +27,10 @@ public sealed class BuildResult
     /// <summary>SHA-256 y tamaño del JPEG escrito en el hueco del logo (null si el logo no cambia).</summary>
     public string? LogoSha256 { get; init; }
     public int LogoLength { get; init; }
+    /// <summary>Tabla del mando escrita (null si el perfil no tiene tabla o la opción no la aplica).</summary>
+    public IReadOnlyList<KeyAssignment>? KeyMap { get; init; }
+    /// <summary>True si la tabla del mando es distinta de la del perfil.</summary>
+    public bool KeyMapEdited { get; init; }
     /// <summary>Salida conocida del perfil para esta selección (null si no hay).</summary>
     public KnownOutput? Known { get; init; }
     /// <summary>True si la huella coincide con la salida conocida (archivo idéntico al ya generado/probado).</summary>
@@ -49,7 +53,8 @@ public static class FirmwareBuilder
     public const int MaxCustomLogoBytes = 4 * 1024 * 1024;
 
     public static BuildResult Build(byte[] fw, Profile profile, IReadOnlyDictionary<string, string> selection,
-        byte[]? customLogo = null, IProgress<string>? progress = null, CancellationToken cancel = default)
+        byte[]? customLogo = null, IProgress<string>? progress = null, CancellationToken cancel = default,
+        IReadOnlyList<KeyAssignment>? keyMap = null)
     {
         ArgumentNullException.ThrowIfNull(fw);
         ArgumentNullException.ThrowIfNull(profile);
@@ -73,6 +78,30 @@ public static class FirmwareBuilder
 
         var patches = profile.PatchesFor(selection);
         var logoAction = profile.LogoActionFor(selection);
+
+        // Tabla del mando: si se aplica la opción que la contiene, se puede sustituir por una editada.
+        IReadOnlyList<KeyAssignment>? appliedKeyMap = null;
+        bool keyMapEdited = false;
+        var kt = profile.KeyTable;
+        bool tableApplies = kt is not null &&
+            (selection.TryGetValue(kt.OptionId, out var tv) ? tv : profile.Options.First(o => o.Id == kt.OptionId).Default) == kt.ValueId;
+        if (keyMap is not null && !tableApplies)
+            throw new BuildException("Se indicó una tabla del mando, pero la opción elegida no la aplica.");
+        if (tableApplies)
+        {
+            appliedKeyMap = keyMap ?? kt!.Default;
+            var errs = kt!.Validate(appliedKeyMap);
+            if (errs.Count > 0)
+                throw new BuildException("Tabla del mando no válida: " + string.Join(" ", errs));
+            keyMapEdited = !kt.IsDefault(appliedKeyMap);
+            if (keyMapEdited)
+            {
+                int i = patches.FindIndex(p => p.Address == kt.Address);
+                var old = patches[i];
+                patches[i] = old with { New = kt.Encode(appliedKeyMap), Description = old.Description + " [EDITADA]" };
+                Ok($"Tabla del mando editada: {appliedKeyMap.Count} teclas (máximo {kt.MaxAssignments}).");
+            }
+        }
         if (patches.Count == 0 && logoAction == LogoAction.Ninguna)
             throw new BuildException("Con estas opciones no hay nada que cambiar: el resultado sería el original.");
         if (logoAction != LogoAction.Propio && customLogo is not null)
@@ -252,7 +281,8 @@ public static class FirmwareBuilder
             : "Fuera de la aplicación y del hueco del logo el archivo es idéntico al original.");
 
         string outSha = Convert.ToHexStringLower(SHA256.HashData(outFw));
-        var known = profile.KnownOutputFor(selection);
+        // Con una tabla editada no hay versión documentada con la que comparar.
+        var known = keyMapEdited ? null : profile.KnownOutputFor(selection);
         if (known is not null)
             Ok(known.Sha256 == outSha
                 ? $"Idéntico a la versión ya generada y documentada ({known.FileName})."
@@ -274,6 +304,8 @@ public static class FirmwareBuilder
             Logo = logoAction,
             LogoSha256 = newLogo is null ? null : Convert.ToHexStringLower(SHA256.HashData(newLogo)),
             LogoLength = newLogo?.Length ?? 0,
+            KeyMap = appliedKeyMap,
+            KeyMapEdited = keyMapEdited,
             Known = known,
             Verifications = verifications,
         };

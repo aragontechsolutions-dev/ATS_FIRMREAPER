@@ -189,4 +189,30 @@ public class RealFirmwareTests
             new Dictionary<string, string> { ["logo"] = "propio" }, big, cancel: TestContext.Current.CancellationToken));
         Assert.Contains("máximo", ex.Message);
     }
+
+    [Fact]
+    public void LgConTablaEditadaSoloCambiaLaTabla()
+    {
+        var path = FindFirmware("MST_EXT_SPI_ISP_20220511_165639.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del LG.");
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "lg-42lf652vx-soyea");
+        var kt = profile.KeyTable!;
+        // Ejemplo: el botón SLEEP (0x45) pasa a ser INPUT_SOURCE (0x22).
+        var map = kt.Default.Select(k => k.Code == 0x45 ? k with { Index = 0x22 } : k).ToList();
+        var fw = File.ReadAllBytes(path);
+        var r = FirmwareBuilder.Build(fw, profile, new Dictionary<string, string> { ["mando"] = "si", ["espejo"] = "original" },
+            cancel: TestContext.Current.CancellationToken, keyMap: map);
+        Assert.True(r.KeyMapEdited);
+        Assert.Null(r.Known); // ya no es la versión documentada
+        var a = FirmwareAnalyzer.Analyze(r.Output);
+        Assert.True(a.ContainerValid);
+        // La tabla escrita en la app es la editada.
+        Assert.Equal(map, kt.Decode(a.App!.AsSpan((int)(kt.Address - profile.AppBaseRam), kt.ByteLength)));
+        // Y respecto a la v5 documentada solo cambia 1 byte (el índice de SLEEP).
+        var v5 = FirmwareBuilder.Build(fw, profile, new Dictionary<string, string> { ["mando"] = "si", ["espejo"] = "original" },
+            cancel: TestContext.Current.CancellationToken);
+        var b = FirmwareAnalyzer.Analyze(v5.Output);
+        Assert.Equal(1, a.App!.Zip(b.App!).Count(t => t.First != t.Second));
+    }
 }

@@ -38,6 +38,10 @@ El motor (`Core`) no depende de Windows: se prueba en Linux y en Windows con el 
 | `Imaging/JpegInfo.cs` | Lectura validada de la estructura de un JPEG (sin decodificar) |
 | `Imaging/JpegBaselineEncoder.cs` | Codificador JPEG que reproduce byte a byte a libjpeg-turbo (configuración de Pillow) |
 | `Imaging/LogoImage.cs` | Decodificar (LibJpeg.NET) y girar 180° el logo |
+| `Profiles/KeyTable.cs` | Tabla botón → función del mando: codificar, decodificar, validar, importar/exportar JSON |
+
+Interfaz (`FirmReaper.App`): `MainWindow` (analizar, generar, cambios en hexadecimal), `KeyMapWindow`
+(editor de la tabla del mando).
 
 ### ¿Por qué un descompresor propio?
 `DeflateStream` de .NET no informa del byte en que termina el flujo; ese dato es necesario para
@@ -79,6 +83,7 @@ comprobarlo** en un Windows 10 real.
 | Resultado distinto en Windows | `ExactLog` hace la compresión independiente de la biblioteca matemática del sistema |
 
 | Logo propio manipulado | Parser de marcadores con límites; baseline, dimensiones exactas, tamaño máximo, sin basura tras FFD9, decodificación completa, máximo 4096×4096 píxeles y 4 MB de archivo |
+| Tabla del mando manipulada | Solo sustituye los bytes nuevos de un parche ya autorizado (misma dirección y longitud); botones y funciones de listas cerradas; sin repetidos; máximo de entradas; archivo JSON estricto y del mismo perfil |
 | Escribir fuera del hueco del logo | La verificación final solo admite cambios en el hueco del recurso TEL del logo (JPEG + ceros); el resto del recurso y de la flash, idénticos |
 
 ### ¿Por qué un codificador JPEG propio?
