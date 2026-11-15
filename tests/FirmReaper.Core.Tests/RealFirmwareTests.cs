@@ -215,4 +215,38 @@ public class RealFirmwareTests
         var b = FirmwareAnalyzer.Analyze(v5.Output);
         Assert.Equal(1, a.App!.Zip(b.App!).Count(t => t.First != t.Second));
     }
+
+    [Theory]
+    [InlineData("Atec32L18D_LP141WX1_8bit.BIN")]
+    [InlineData("Atec32L18D_LP141WX1_6bit.BIN")]
+    public void ZlibRecomprimeLaAppDelAtecIgualQuePython(string file)
+    {
+        // patch_panel.py comprimió con zlib -9 (zlib 1.3).
+        var path = FindFirmware(file);
+        if (path is null)
+            Assert.Skip($"No está {file}.");
+        var fw = File.ReadAllBytes(path);
+        var a = FirmwareAnalyzer.Analyze(fw);
+        Assert.True(a.ContainerValid);
+        var comp = FirmReaper.Core.Compression.ZlibDeflater.Compress(a.App, 9);
+        var expected = fw.AsSpan(MStarLayout.DeflateOffset, a.DeflateEnd!.Value - MStarLayout.DeflateOffset).ToArray();
+        Assert.Equal(expected.Length, comp.Length);
+        Assert.Equal(expected, comp);
+    }
+
+    [Theory]
+    [InlineData("8", "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c", 25)]
+    [InlineData("6", "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2", 28)]
+    public void PerfilAtecGeneraLoMismoQuePatchPanel(string bits, string expectedSha, int changedBytes)
+    {
+        var path = FindFirmware("Atec_32_KPC_Salva.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del ATEC.");
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "atec-32l18d-lp141wx1");
+        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile, new Dictionary<string, string> { ["bits"] = bits },
+            cancel: TestContext.Current.CancellationToken);
+        Assert.Equal(expectedSha, r.OutputSha256);
+        Assert.True(r.MatchesKnown);
+        Assert.Equal(changedBytes, r.ChangedAppBytes);
+    }
 }

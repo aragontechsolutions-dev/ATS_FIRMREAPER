@@ -74,9 +74,10 @@ public sealed class ProfileApp
 
 public sealed class ProfileCompression
 {
-    /// <summary>Solo "zopfli" en el formato 1.</summary>
+    /// <summary>"zopfli" (con "iteraciones") o "zlib" (con "nivel" 4–9; idéntico a zlib 1.3).</summary>
     public required string Metodo { get; init; }
-    public required int Iteraciones { get; init; }
+    public int? Iteraciones { get; init; }
+    public int? Nivel { get; init; }
 }
 
 public sealed class ProfileZone

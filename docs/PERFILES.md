@@ -52,7 +52,7 @@ leen de los scripts de referencia; no se copian a mano).
 | `estado` | `verificado` (comprobado con el binario real) o `sin-verificar` (se avisa en pantalla y en el informe). |
 | `original.sha256` | Huella del volcado ORIGINAL al que se aplica. Con otro archivo, el programa se niega. |
 | `app.baseRam` | Dirección de RAM del primer byte de la app descomprimida = destino RAM (cabecera +0x04) + `0x3800`. Se comprueba contra el firmware. |
-| `compresion` | Solo `zopfli`; `iteraciones` como en los scripts (5). |
+| `compresion` | `{"metodo":"zopfli","iteraciones":5}` (LG, Konka) o `{"metodo":"zlib","nivel":9}` (ATEC; idéntico a zlib 1.3). Debe ser el mismo compresor que usó el script para que el resultado coincida con la versión probada. |
 | `zonasPermitidas` | Rangos `[desde, hasta)` en RAM donde se permite escribir, con su `motivo`. Máx. 64 KB cada una, sin solaparse, dentro de la app. |
 | `parchesFijos` | Se aplican siempre. |
 | `opciones` | Tipo `lista`: el usuario elige un valor; cada valor trae sus parches (puede no traer ninguno). |

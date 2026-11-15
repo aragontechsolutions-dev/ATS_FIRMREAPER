@@ -38,6 +38,7 @@ public class ProfileTests
         var list = ProfileLoader.LoadBuiltin();
         Assert.Contains(list, p => p.Id == "lg-42lf652vx-soyea" && p.Verified);
         Assert.Contains(list, p => p.Id == "konka-tv4-32k16-mirror" && p.Verified);
+        Assert.Contains(list, p => p.Id == "atec-32l18d-lp141wx1" && p.Compression.Method == CompressionMethod.Zlib && p.Compression.Value == 9);
     }
 
     [Fact]
@@ -74,7 +75,8 @@ public class ProfileTests
         "zona enorme", "sin zonas", "no cambia", "longitudes distintas", "hex mayúsculas", "hex impar",
         "campo desconocido", "formato 2", "por defecto inexistente", "valor repetido", "dirección sin 0x",
         "compresión desconocida", "salida conocida incompleta", "id con espacios", "sha mal formada",
-        "estado desconocido", "opción con un solo valor",
+        "estado desconocido", "opción con un solo valor", "zlib sin nivel", "zlib con iteraciones", "zlib nivel 3",
+        "zopfli con nivel",
     ];
 
     [Theory]
@@ -108,6 +110,10 @@ public class ProfileTests
             case "sha mal formada": j["original"]!["sha256"] = "abc"; break;
             case "estado desconocido": j["estado"] = "probado"; break;
             case "opción con un solo valor": op["valores"]!.AsArray().RemoveAt(1); break;
+            case "zlib sin nivel": j["compresion"] = JsonNode.Parse("""{"metodo":"zlib"}"""); break;
+            case "zlib con iteraciones": j["compresion"] = JsonNode.Parse("""{"metodo":"zlib","nivel":9,"iteraciones":5}"""); break;
+            case "zlib nivel 3": j["compresion"] = JsonNode.Parse("""{"metodo":"zlib","nivel":3}"""); break;
+            case "zopfli con nivel": j["compresion"] = JsonNode.Parse("""{"metodo":"zopfli","iteraciones":5,"nivel":9}"""); break;
             default: throw new ArgumentOutOfRangeException(nameof(caso));
         }
         Assert.Throws<InvalidDataException>(() => Parse(j));

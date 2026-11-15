@@ -28,10 +28,11 @@ El motor (`Core`) no depende de Windows: se prueba en Linux y en Windows con el 
 | `Reporting/AnalysisReport.cs` | Informe en texto y JSON |
 | `Fmt.cs` | Números en formato español fijo |
 | `Compression/Zopfli/*.cs` | Port de Zopfli (idéntico a py-zopfli 0.4.3) |
+| `Compression/ZlibDeflater.cs` | Port de zlib 1.3 (nivel 4–9), idéntico a Python `zlib.compressobj(9, …, -15, 8)` |
 | `Compression/Zopfli/ExactLog.cs` | Logaritmo determinista = glibc (evita diferencias Windows/Linux) |
 | `Profiles/Profile.cs`, `ProfileLoader.cs` | Formato JSON de perfiles y su validación |
 | `Profiles/ProfileRegistry.cs` | Perfiles integrados + carpeta externa `perfiles\` |
-| `Profiles/Builtin/*.json` | Perfiles integrados (LG, Konka) |
+| `Profiles/Builtin/*.json` | Perfiles integrados (LG, Konka, ATEC) |
 | `Patching/FirmwareBuilder.cs` | Aplica parches, recomprime, recalcula cabecera/CRC y verifica |
 | `Patching/OutputWriter.cs` | Escritura atómica, sin sobrescribir, con copia de seguridad |
 | `Reporting/BuildReport.cs` | Informe de cada firmware generado |

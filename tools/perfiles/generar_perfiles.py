@@ -4,6 +4,8 @@
 
 Uso:  python3 tools/perfiles/generar_perfiles.py
 Salida: src/FirmReaper.Core/Profiles/Builtin/*.json
+El perfil ATEC necesita además el original firmware_local/originales/Atec_32_KPC_Salva.BIN (los bytes de
+la entrada del panel se calculan con patch_entry() de patch_panel.py sobre la app descomprimida).
 """
 import json
 import os
@@ -182,3 +184,58 @@ guardar("konka-tv4-32k16-mirror.json", {
          "archivo": "TV4-32K16_MIRROR.bin"},
     ],
 })
+
+# ------------------------------------------------------------------ ATEC 32L18D
+at = cargar("patch_panel.py")
+atec_bin = os.path.join(RAIZ, "firmware_local", "originales", "Atec_32_KPC_Salva.BIN")
+if not os.path.exists(atec_bin):
+    print("AVISO: falta", atec_bin, "— no se genera el perfil ATEC")
+else:
+    fw = open(atec_bin, "rb").read()
+    import hashlib
+    assert hashlib.sha256(fw).hexdigest() == at.ORIG_SHA256
+    app, _, _ = at.extract_app(fw)
+    base = at.APP_RAM_DEST + 0x3800
+    o = at.PANEL_ENTRY
+    orig_entry = bytes(app[o:o + at.ENTRY_SIZE])
+    variantes = {}
+    for six in (False, True):
+        a = bytearray(app)
+        at.patch_entry(a, six)
+        variantes[six] = bytes(a[o:o + at.ENTRY_SIZE])
+    desc = ("Entrada del panel 'WXGA_AU20_T200XW02' → LP141WX1 1280x800 (porches, totales, DCLK %d–%d MHz, "
+            "límites del PLL)" % (at.LP141["dclk_min"], at.LP141["dclk_max"]))
+    guardar("atec-32l18d-lp141wx1.json", {
+        "formato": 1,
+        "id": "atec-32l18d-lp141wx1",
+        "version": 1,
+        "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LG.Philips LP141WX1 1280x800",
+        "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV "
+                       "(necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
+        "estado": "verificado",
+        "original": {"sha256": at.ORIG_SHA256},
+        "app": {"baseRam": "0x%06X" % base},
+        "compresion": {"metodo": "zlib", "nivel": 9},
+        "zonasPermitidas": [
+            zona(base + o, base + o + at.ENTRY_SIZE, "entrada #1 de la tabla de paneles (la que usa este TV)"),
+        ],
+        "parchesFijos": [],
+        "opciones": [
+            {"id": "bits", "etiqueta": "Salida LVDS", "tipo": "lista", "porDefecto": "8",
+             "valores": [
+                 {"id": "8", "etiqueta": "8 bits (probado: FUNCIONÓ)",
+                  "parches": [parche(base + o, orig_entry.hex(), variantes[False].hex(), desc + ", 8 bits")]},
+                 {"id": "6", "etiqueta": "6 bits + dither (probado: NO funcionó)",
+                  "parches": [parche(base + o, orig_entry.hex(), variantes[True].hex(),
+                                     desc + ", 6 bits (TiBitMode 3, OutputFormat 1, dither)")]},
+             ]},
+        ],
+        "salidasConocidas": [
+            {"opciones": {"bits": "8"},
+             "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
+             "archivo": "Atec32L18D_LP141WX1_8bit.BIN"},
+            {"opciones": {"bits": "6"},
+             "sha256": "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2",
+             "archivo": "Atec32L18D_LP141WX1_6bit.BIN"},
+        ],
+    })

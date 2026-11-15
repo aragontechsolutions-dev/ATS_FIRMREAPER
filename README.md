@@ -3,9 +3,10 @@
 Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 **MStar** (CPU AEON R2, memoria SPI de 4 MB) mediante **perfiles** de parches verificados.
 
-> **Estado: etapas 1, 2 y 3 completadas.** Analiza, identifica y verifica volcados `.BIN`, y genera
+> **Estado: etapas 1–4 completadas** (falta la 5: manual de usuario y versión final). Analiza, identifica y verifica volcados `.BIN`, y genera
 > las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX mando Soyea / espejo; Konka TV4-32K16
-> espejo en el menú de fábrica o fijo, y logo girado / propio / sin cambios).
+> espejo en el menú de fábrica o fijo, y logo girado / propio / sin cambios; ATEC 32L18D panel LP141WX1
+> 1280x800, 8 o 6 bits).
 > Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
 
 ## Qué hace hoy
@@ -103,7 +104,7 @@ el `.exe` en Windows en cada push; se descarga como artefacto desde la pestaña 
 | `tools/referencia_python` | Scripts Python originales (referencia para comparar resultados) |
 | `tools/aeon` | Ensamblador/desensamblador AEON R2 (Python) y tablas de la ISA |
 | `tools/perfiles` | Generador de los perfiles integrados a partir de los scripts |
-| `licenses/`, `THIRD_PARTY_NOTICES.md` | Licencias de terceros (Zopfli y tablas AEON: Apache 2.0; LibJpeg.NET: BSD) |
+| `licenses/`, `THIRD_PARTY_NOTICES.md` | Licencias de terceros (Zopfli y tablas AEON: Apache 2.0; LibJpeg.NET: BSD; zlib) |
 | `docs/` | Documentación técnica ([índice](docs/ETAPAS.md)) |
 | `docs/historial` | Guías de los 3 proyectos hechos con los scripts |
 | `research_notes/`, `reports/` | Investigación previa (herramientas, formato, librerías, legal) |

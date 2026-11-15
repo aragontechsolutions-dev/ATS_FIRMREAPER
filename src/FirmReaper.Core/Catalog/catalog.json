@@ -18,7 +18,7 @@
       "nombre": "ATEC 32L18D + panel LP141WX1 1280x800, salida 6 bits",
       "variante": "6bit",
       "estadoPrueba": "no-funciono",
-      "notas": "Generado con patch_panel.py (zlib -9). Probado en el TV: la variante de 6 bits no funcionó."
+      "notas": "Regenerado con patch_panel.py (zlib 1.3, nivel 9). Según el usuario, la variante de 6 bits NO funcionó en el TV. Sin confirmar que el archivo grabado tuviera esta misma huella."
     },
     {
       "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
@@ -29,7 +29,7 @@
       "nombre": "ATEC 32L18D + panel LP141WX1 1280x800, salida 8 bits",
       "variante": "8bit",
       "estadoPrueba": "funciono",
-      "notas": "Generado con patch_panel.py (zlib -9). Probado en el TV: funcionó."
+      "notas": "Regenerado con patch_panel.py (zlib 1.3, nivel 9). Según el usuario, la variante de 8 bits funcionó en el TV. Sin confirmar que el archivo grabado tuviera esta misma huella."
     },
     {
       "sha256": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871",

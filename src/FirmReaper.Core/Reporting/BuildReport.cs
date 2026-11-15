@@ -49,7 +49,7 @@ public static class BuildReport
         sb.AppendLine($"  fin flash  0x{r.OldHeader.FlashEnd:X8} → 0x{r.NewHeader.FlashEnd:X8}");
         sb.AppendLine($"  CRC        0x{r.OldHeader.Crc:X8} → 0x{r.NewHeader.Crc:X8}");
         sb.AppendLine(r.Patches.Count > 0
-            ? $"Programa comprimido: {Fmt.N(r.CompressedSize)} bytes (Zopfli, {r.Profile.ZopfliIterations} iteraciones); libres {Fmt.N(r.FreeBytes)} bytes"
+            ? $"Programa comprimido: {Fmt.N(r.CompressedSize)} bytes ({r.Profile.Compression}); libres {Fmt.N(r.FreeBytes)} bytes"
             : "Programa: sin cambios (no se recomprime)");
         if (r.Logo != Profiles.LogoAction.Ninguna)
             sb.AppendLine($"Logo: {(r.Logo == Profiles.LogoAction.Girar ? "girado 180°" : "propio")}, {Fmt.N(r.LogoLength)} bytes, SHA-256 {r.LogoSha256}");

@@ -8,7 +8,7 @@ documentación, sin romper lo que ya funciona.
 | 1 | Motor de lectura y verificación (sin modificar nada) | ✅ Completada |
 | 2 | Zopfli en C#, perfiles, generar idéntico a los scripts, escritura segura | ✅ Completada |
 | 3 | Logo del Konka, editor de la tabla del mando del LG, visor hexadecimal | ✅ Completada |
-| 4 | Perfil ATEC (panel 1280x800, 6/8 bits) | Pendiente |
+| 4 | Perfil ATEC (panel 1280x800, 6/8 bits) + port de zlib | ✅ Completada |
 | 5 | Manual de usuario y ejecutable final | Pendiente |
 
 ## Etapa 1 — completada
@@ -91,3 +91,16 @@ documentación, sin romper lo que ya funciona.
   GitHub Actions comprueba que `FirmReaper.exe` es de tipo ventana y lo **arranca** (debe seguir abierto 20 s).
 - La ventana ahora muestra y registra cualquier error inesperado (`%LOCALAPPDATA%\FirmReaper\errores.log`);
   la consola abierta con doble clic explica qué es y espera a Enter.
+
+## Etapa 4 — completada
+
+- **Port de zlib 1.3** a C# (`Compression/ZlibDeflater.cs`, solo `deflate_slow`): 9 vectores de Python idénticos y
+  la app real del ATEC (8 y 6 bits) recomprimida igual que en los `.BIN`.
+- Perfiles: `compresion` admite `zlib` con `nivel` (4–9).
+- **Perfil ATEC** (generado con `patch_entry()` de `patch_panel.py`): opción **Salida LVDS**: 8 bits (por
+  defecto, "FUNCIONÓ") / 6 bits + dither ("NO funcionó"). Un solo parche de 92 bytes (la entrada #1 de la tabla
+  de paneles, RAM `0x4E3A78`); zona permitida = esa entrada.
+- Generado con el programa: 8 bits = `ab3d3485…`, 6 bits = `7bd55c39…` (idénticos a `patch_panel.py`), ~1 s.
+- **Sin confirmar:** que el `Atec32L18D_LP141WX1_8bit.BIN` grabado en el TV tenga esa misma huella (lo generó
+  otra sesión; si usó otra zlib, sus bytes comprimidos podrían diferir aunque el contenido sea el mismo).
+- 150 pruebas superadas.

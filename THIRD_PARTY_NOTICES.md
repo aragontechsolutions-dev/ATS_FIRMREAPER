@@ -1,6 +1,6 @@
 # Avisos de terceros
 
-FirmReaper incluye código o datos de los siguientes proyectos (licencias Apache 2.0 y BSD de 3 cláusulas);
+FirmReaper incluye código o datos de los siguientes proyectos (licencias Apache 2.0, BSD de 3 cláusulas y zlib);
 el texto completo de cada licencia está en la carpeta [`licenses/`](licenses/).
 
 ## Zopfli (Google)
@@ -36,3 +36,13 @@ el texto completo de cada licencia está en la carpeta [`licenses/`](licenses/).
 `Imaging/JpegBaselineEncoder.cs` es código propio que reproduce los algoritmos de libjpeg-turbo
 (jccolor.c, jfdctint.c, jcdctmgr.c, jchuff.c, jcmarker.c; licencias IJG/BSD) para que el logo girado salga
 idéntico byte a byte al de Pillow. This software is based in part on the work of the Independent JPEG Group.
+
+## zlib 1.3 (Jean-loup Gailly y Mark Adler)
+
+- Origen: https://github.com/madler/zlib, etiqueta `v1.3` (commit `09155ea`), archivos `deflate.c` y `trees.c`.
+- Copyright (C) 1995-2023 Jean-loup Gailly y Mark Adler.
+- Uso en FirmReaper: **port a C#** del compresor (solo `deflate_slow`, niveles 4–9, memLevel 8, ventana de
+  15 bits) en `src/FirmReaper.Core/Compression/ZlibDeflater.cs`, para generar el ATEC idéntico al de
+  `patch_panel.py`. Cambios: traducción a C#, salida de bits simplificada (mismo flujo de bits), sin los demás
+  niveles ni estrategias. Esta es una versión alterada del original.
+- Licencia: `licenses/Zlib_zlib-1.3.txt`.

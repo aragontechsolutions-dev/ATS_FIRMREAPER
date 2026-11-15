@@ -139,8 +139,10 @@ public static class FirmwareBuilder
 
             // 4. Recomprimir
             cancel.ThrowIfCancellationRequested();
-            progress?.Report($"Comprimiendo con Zopfli ({profile.ZopfliIterations} iteraciones)…");
-            var comp = ZopfliDeflater.Compress(newApp, new ZopfliOptions(NumIterations: profile.ZopfliIterations));
+            progress?.Report($"Comprimiendo ({profile.Compression})…");
+            var comp = profile.Compression.Method == CompressionMethod.Zopfli
+                ? ZopfliDeflater.Compress(newApp, new ZopfliOptions(NumIterations: profile.Compression.Value))
+                : ZlibDeflater.Compress(newApp, profile.Compression.Value);
             cancel.ThrowIfCancellationRequested();
             if (!RawInflater.Inflate(comp, MStarLayout.MaxAppSize).Data.AsSpan().SequenceEqual(newApp))
                 throw new BuildException("La recompresión no es reversible.");

@@ -14,6 +14,20 @@ public sealed record Patch(uint Address, byte[] Original, byte[] New, string Des
 
 public sealed record PatchZone(uint From, uint To, string Reason);
 
+public enum CompressionMethod
+{
+    Zopfli,
+    Zlib,
+}
+
+/// <summary>Compresor de la app. <paramref name="Value"/> = iteraciones (Zopfli) o nivel (zlib).</summary>
+public sealed record CompressionSpec(CompressionMethod Method, int Value)
+{
+    public override string ToString() => Method == CompressionMethod.Zopfli
+        ? $"Zopfli, {Value} iteraciones"
+        : $"zlib 1.3, nivel {Value}";
+}
+
 public enum LogoAction
 {
     /// <summary>El logo no cambia.</summary>
@@ -54,7 +68,8 @@ public sealed class Profile
     public required bool Verified { get; init; }
     public required string OriginalSha256 { get; init; }
     public required uint AppBaseRam { get; init; }
-    public required int ZopfliIterations { get; init; }
+    /// <summary>Compresor de la app: Zopfli (iteraciones) o zlib 1.3 (nivel).</summary>
+    public required CompressionSpec Compression { get; init; }
     public required IReadOnlyList<PatchZone> Zones { get; init; }
     public required IReadOnlyList<Patch> FixedPatches { get; init; }
     public required IReadOnlyList<ProfileOptionDef> Options { get; init; }
@@ -201,8 +216,23 @@ public static partial class ProfileLoader
         if (string.IsNullOrWhiteSpace(f.Nombre)) Fail("Falta el nombre.");
         if (f.Estado is not ("verificado" or "sin-verificar")) Fail($"Estado inválido: '{f.Estado}'.");
         if (!Sha256Regex().IsMatch(f.Original.Sha256)) Fail("SHA-256 del original mal formada.");
-        if (f.Compresion.Metodo != "zopfli") Fail($"Método de compresión no soportado: '{f.Compresion.Metodo}'.");
-        if (f.Compresion.Iteraciones is < 1 or > 1000) Fail("Iteraciones de zopfli fuera de rango (1–1000).");
+        CompressionSpec compression = null!;
+        switch (f.Compresion.Metodo)
+        {
+            case "zopfli":
+                if (f.Compresion.Iteraciones is not (>= 1 and <= 1000) || f.Compresion.Nivel is not null)
+                    Fail("zopfli necesita 'iteraciones' (1–1000) y no admite 'nivel'.");
+                compression = new CompressionSpec(CompressionMethod.Zopfli, f.Compresion.Iteraciones!.Value);
+                break;
+            case "zlib":
+                if (f.Compresion.Nivel is not (>= 4 and <= 9) || f.Compresion.Iteraciones is not null)
+                    Fail("zlib necesita 'nivel' (4–9) y no admite 'iteraciones'.");
+                compression = new CompressionSpec(CompressionMethod.Zlib, f.Compresion.Nivel!.Value);
+                break;
+            default:
+                Fail($"Método de compresión no soportado: '{f.Compresion.Metodo}'.");
+                break;
+        }
 
         uint baseRam = ParseAddr(f.App.BaseRam, "app.baseRam");
 
@@ -387,7 +417,7 @@ public static partial class ProfileLoader
             Verified = f.Estado == "verificado",
             OriginalSha256 = f.Original.Sha256,
             AppBaseRam = baseRam,
-            ZopfliIterations = f.Compresion.Iteraciones,
+            Compression = compression,
             Zones = zones,
             FixedPatches = fixedPatches,
             Options = options,
