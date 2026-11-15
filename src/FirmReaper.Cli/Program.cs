@@ -8,11 +8,11 @@ namespace FirmReaper.Cli;
 
 /// <summary>
 /// Línea de comandos de FirmReaper.
-///   firmreaper info ARCHIVO.BIN [--json]                 análisis completo (solo lectura)
-///   firmreaper verificar ARCHIVO.BIN ...                 una línea por archivo
-///   firmreaper catalogo                                  imágenes conocidas
-///   firmreaper perfiles                                  perfiles disponibles y sus opciones
-///   firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg] --salida CARPETA
+///   firmreaper-cli info ARCHIVO.BIN [--json]                 análisis completo (solo lectura)
+///   firmreaper-cli verificar ARCHIVO.BIN ...                 una línea por archivo
+///   firmreaper-cli catalogo                                  imágenes conocidas
+///   firmreaper-cli perfiles                                  perfiles disponibles y sus opciones
+///   firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg] --salida CARPETA
 /// Códigos de salida: 0 = correcto, 1 = no válido / no reconocido / error, 2 = error de uso.
 /// </summary>
 internal static class Program
@@ -21,7 +21,18 @@ internal static class Program
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         if (args.Length == 0)
-            return Usage();
+        {
+            Usage();
+            // Abierto con doble clic: explicar y esperar, en vez de cerrarse al instante.
+            if (OperatingSystem.IsWindows() && !Console.IsInputRedirected && !Console.IsOutputRedirected)
+            {
+                Console.Error.WriteLine();
+                Console.Error.WriteLine("Esta es la versión de LÍNEA DE COMANDOS. Para la ventana, abre FirmReaper.exe.");
+                Console.Error.WriteLine("Pulsa Enter para salir.");
+                Console.ReadLine();
+            }
+            return 2;
+        }
         try
         {
             var catalog = FirmwareCatalog.LoadEmbedded();
@@ -45,12 +56,12 @@ internal static class Program
     private static int Usage()
     {
         Console.Error.WriteLine("""
-            FirmReaper — firmware MStar
-              firmreaper info ARCHIVO.BIN [--json]
-              firmreaper verificar ARCHIVO.BIN [ARCHIVO2.BIN ...]
-              firmreaper catalogo
-              firmreaper perfiles
-              firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg] --salida CARPETA
+            FirmReaper (línea de comandos) — firmware MStar
+              firmreaper-cli info ARCHIVO.BIN [--json]
+              firmreaper-cli verificar ARCHIVO.BIN [ARCHIVO2.BIN ...]
+              firmreaper-cli catalogo
+              firmreaper-cli perfiles
+              firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg] --salida CARPETA
             """);
         return 2;
     }

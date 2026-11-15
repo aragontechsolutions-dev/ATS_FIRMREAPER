@@ -37,28 +37,32 @@ Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 
 ### Ventana (Windows)
 `FirmReaper.exe` → **Abrir .BIN…** (o arrastrar el archivo). No necesita instalación ni administrador.
+Si algo falla, el error se muestra y se guarda en `%LOCALAPPDATA%\FirmReaper\errores.log`.
+
+> El artefacto de GitHub Actions trae **dos** ejecutables: `FirmReaper.exe` (la ventana) y
+> `firmreaper-cli.exe` (la línea de comandos, para usar desde cmd/PowerShell).
 
 ### Línea de comandos (Windows o Linux)
 ```bash
-firmreaper info ARCHIVO.BIN            # análisis completo
+firmreaper-cli info ARCHIVO.BIN            # análisis completo
 ```
 ```bash
-firmreaper info ARCHIVO.BIN --json     # el mismo análisis en JSON
+firmreaper-cli info ARCHIVO.BIN --json     # el mismo análisis en JSON
 ```
 ```bash
-firmreaper verificar A.BIN B.BIN ...   # una línea por archivo
+firmreaper-cli verificar A.BIN B.BIN ...   # una línea por archivo
 ```
 ```bash
-firmreaper catalogo                    # imágenes conocidas
+firmreaper-cli catalogo                    # imágenes conocidas
 ```
 ```bash
-firmreaper perfiles                    # perfiles y sus opciones
+firmreaper-cli perfiles                    # perfiles y sus opciones
 ```
 ```bash
-firmreaper generar ORIGINAL.BIN --perfil lg-42lf652vx-soyea --opcion espejo=off --salida CARPETA
+firmreaper-cli generar ORIGINAL.BIN --perfil lg-42lf652vx-soyea --opcion espejo=off --salida CARPETA
 ```
 ```bash
-firmreaper generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --opcion logo=propio --logo MI_LOGO.jpg --salida CARPETA
+firmreaper-cli generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --opcion logo=propio --logo MI_LOGO.jpg --salida CARPETA
 ```
 Código de salida: `0` válido y reconocido · `1` no válido o no reconocido · `2` error de uso.
 
@@ -76,7 +80,7 @@ dotnet test --project tests/FirmReaper.Core.Tests
 dotnet publish src/FirmReaper.App -c Release -r win-x64 -o publish
 ```
 
-El último comando genera `publish/FirmReaper.exe` (≈133 MB, autocontenido: lleva .NET dentro).
+El último comando genera `publish/FirmReaper.exe` (≈135 MB, autocontenido: lleva .NET dentro).
 GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)) compila, prueba y publica
 el `.exe` en Windows en cada push; se descarga como artefacto desde la pestaña *Actions*.
 

@@ -27,7 +27,7 @@ documentación, sin romper lo que ya funciona.
 - **Perfiles JSON** (`docs/PERFILES.md`): integrados + carpeta externa `perfiles\`; validación estricta.
 - **Generación** (`Patching/FirmwareBuilder.cs`) con 7 comprobaciones; **escritura atómica** sin sobrescribir,
   **copia de seguridad** de solo lectura del original e **informe** (texto + JSON) por cada archivo.
-- CLI: `firmreaper perfiles` y `firmreaper generar`. Ventana: pestaña **Generar** (opciones, progreso, cancelar).
+- CLI: `firmreaper-cli perfiles` y `firmreaper-cli generar`. Ventana: pestaña **Generar** (opciones, progreso, cancelar).
 - Perfil **LG** (mando Soyea sí/no × espejo original/desactivado) y perfil **Konka** (MIRROR en menú, logo sin girar).
 - Herramientas AEON en `tools/aeon` (ensamblador/desensamblador Python de referencia).
 
@@ -73,3 +73,12 @@ documentación, sin romper lo que ya funciona.
 ### 3b. Pendiente
 - Editor de la tabla del mando del LG (botón → función).
 - Visor hexadecimal de los cambios.
+
+### Corrección: el .exe descargado abría una consola y se cerraba (2026-11-15)
+- **Causa:** el workflow publicaba `FirmReaper.exe` (ventana) y `firmreaper.exe` (consola) en la MISMA carpeta;
+  Windows no distingue mayúsculas, así que el segundo sobrescribía al primero. El usuario ejecutaba en realidad
+  la línea de comandos, que sin parámetros muestra la ayuda y termina.
+- **Arreglo:** la línea de comandos pasa a llamarse `firmreaper-cli.exe`; cada uno se publica en su carpeta;
+  GitHub Actions comprueba que `FirmReaper.exe` es de tipo ventana y lo **arranca** (debe seguir abierto 20 s).
+- La ventana ahora muestra y registra cualquier error inesperado (`%LOCALAPPDATA%\FirmReaper\errores.log`);
+  la consola abierta con doble clic explica qué es y espera a Enter.
