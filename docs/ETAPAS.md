@@ -121,3 +121,7 @@ documentación, sin romper lo que ya funciona.
 - Al fusionar en `main`, GitHub Actions publica la Release `vX.Y.Z` (versión de `Directory.Build.props`) si no
   existe, con `FirmReaper.exe`, `firmreaper-cli.exe`, `MANUAL_USUARIO.pdf`, `SHA256.txt` y un `.zip` con todo.
   Para una versión nueva: cambiar `<Version>`, añadir sus notas y fusionar.
+
+### Icono (2026-11-15)
+- `src/FirmReaper.App/Assets/FirmReaper.ico` (16–256 px): chip de memoria con marca de verificación. Se usa en el
+  `.exe` de la ventana, en sus ventanas y en `firmreaper-cli.exe`. Se regenera con `tools/icono/generar_icono.py`.

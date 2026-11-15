@@ -6,6 +6,7 @@
     <!-- Nombre distinto del de la ventana (FirmReaper.exe): en Windows los nombres no distinguen mayúsculas. -->
     <AssemblyName>firmreaper-cli</AssemblyName>
     <RootNamespace>FirmReaper.Cli</RootNamespace>
+    <ApplicationIcon>..\FirmReaper.App\Assets\FirmReaper.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
