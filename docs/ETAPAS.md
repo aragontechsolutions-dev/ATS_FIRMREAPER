@@ -116,3 +116,8 @@ documentación, sin romper lo que ya funciona.
 - El paquete de GitHub Actions incluye `FirmReaper.exe`, `firmreaper-cli.exe`, `MANUAL_USUARIO.pdf`,
   `SHA256.txt` y `LEEME.txt`.
 - La guía técnica para crear perfiles ya existía (`docs/PERFILES.md`).
+
+### Publicación (Release)
+- Al fusionar en `main`, GitHub Actions publica la Release `vX.Y.Z` (versión de `Directory.Build.props`) si no
+  existe, con `FirmReaper.exe`, `firmreaper-cli.exe`, `MANUAL_USUARIO.pdf`, `SHA256.txt` y un `.zip` con todo.
+  Para una versión nueva: cambiar `<Version>`, añadir sus notas y fusionar.

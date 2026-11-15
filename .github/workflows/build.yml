@@ -6,7 +6,6 @@ name: build
 on:
   push:
     branches: [ main, "claude/**" ]
-    tags: [ "v*" ]
   pull_request:
   workflow_dispatch:
 
@@ -81,9 +80,10 @@ jobs:
           path: dist/
           retention-days: 30
 
-  # Solo al subir una etiqueta vX.Y.Z: publica la Release con el paquete ya compilado y probado arriba.
+  # Al llegar a main (p. ej. al fusionar un Pull Request): si aún no existe la Release de la versión de
+  # Directory.Build.props, la crea (con su etiqueta vX.Y.Z) y adjunta el paquete ya compilado y probado arriba.
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: windows
     runs-on: ubuntu-latest
     permissions:
@@ -91,26 +91,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Versión y si ya está publicada
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(grep -oP '(?<=<Version>)[0-9]+\.[0-9]+\.[0-9]+(?=</Version>)' Directory.Build.props)
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          if gh release view "v$v" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "existe=si" >> "$GITHUB_OUTPUT"; echo "La Release v$v ya existe: no se publica nada."
+          else
+            echo "existe=no" >> "$GITHUB_OUTPUT"; echo "Se publicará la Release v$v."
+          fi
+
       - uses: actions/download-artifact@v4
+        if: steps.ver.outputs.existe == 'no'
         with:
           name: FirmReaper-win-x64
           path: dist
 
       - name: Empaquetar
+        if: steps.ver.outputs.existe == 'no'
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
         run: |
-          cd dist
-          zip -9 "../FirmReaper-${GITHUB_REF_NAME}-win-x64.zip" *
-          cd ..
-          sha256sum "FirmReaper-${GITHUB_REF_NAME}-win-x64.zip" > "FirmReaper-${GITHUB_REF_NAME}-win-x64.zip.sha256"
-          ls -la dist *.zip*
+          (cd dist && zip -9 "../FirmReaper-$TAG-win-x64.zip" *)
+          sha256sum "FirmReaper-$TAG-win-x64.zip" > "FirmReaper-$TAG-win-x64.zip.sha256"
+          ls -la dist FirmReaper-*
 
       - uses: softprops/action-gh-release@v2
+        if: steps.ver.outputs.existe == 'no'
         with:
-          name: FirmReaper ${{ github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: FirmReaper ${{ steps.ver.outputs.tag }}
           body_path: docs/NOTAS_VERSION_1.0.0.md
           files: |
-            FirmReaper-${{ github.ref_name }}-win-x64.zip
-            FirmReaper-${{ github.ref_name }}-win-x64.zip.sha256
+            FirmReaper-${{ steps.ver.outputs.tag }}-win-x64.zip
+            FirmReaper-${{ steps.ver.outputs.tag }}-win-x64.zip.sha256
             dist/FirmReaper.exe
             dist/firmreaper-cli.exe
             dist/MANUAL_USUARIO.pdf
