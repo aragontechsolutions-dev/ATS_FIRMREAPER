@@ -1,0 +1,89 @@
+using FirmReaper.Core.Analysis;
+using FirmReaper.Core.Catalog;
+
+namespace FirmReaper.Core.Tests;
+
+/// <summary>
+/// Pruebas con los firmwares REALES. Los .BIN no se suben a git: se buscan en la carpeta indicada por
+/// la variable de entorno FIRMREAPER_FW_DIR o, si no existe, en firmware_local/ del repositorio
+/// (subcarpetas originales/ y referencia/). Si un archivo no está, la prueba se omite (no falla).
+/// Los valores esperados son los que dan los scripts Python de tools/referencia_python.
+/// </summary>
+public class RealFirmwareTests
+{
+    private static string? FindFirmware(string name)
+    {
+        var roots = new List<string>();
+        var env = Environment.GetEnvironmentVariable("FIRMREAPER_FW_DIR");
+        if (!string.IsNullOrEmpty(env)) roots.Add(env);
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "FirmReaper.sln")))
+            dir = dir.Parent;
+        if (dir is not null) roots.Add(Path.Combine(dir.FullName, "firmware_local"));
+
+        foreach (var r in roots)
+            foreach (var sub in new[] { "", "originales", "referencia" })
+            {
+                var p = Path.Combine(r, sub, name);
+                if (File.Exists(p)) return p;
+            }
+        return null;
+    }
+
+    public static TheoryData<string, string, uint, uint, int, IdentificationKind> Casos => new()
+    {
+        // archivo, sha256, fin flash, CRC, tamaño app, identificación
+        { "Atec_32_KPC_Salva.BIN", "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b", 0x1E9283, 0xDC243619, 3_706_784, IdentificationKind.Conocido },
+        { "MST_EXT_SPI_ISP_20220511_165639.BIN", "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871", 0x1850CB, 0xD64ADEF6, 0x2D47B8, IdentificationKind.Conocido },
+        { "MST_EXT_SPI_ISP_20230301_153737.BIN", "fc9fed8fef551b17c7a2da420a212cd52ba5eb075e670e7f3389c123b600a21e", 0x1EAA7F, 0xB1B76255, 0x38E990, IdentificationKind.Conocido },
+        { "LG_42LF652VX_MANDO_SOYEA_v5.BIN", "17918f8fa6607bb802fdf6c2e71f554b547a390201eb65b9e704494b9fd9b002", 0x17D6B3, 0x8102266F, 0x2D47B8, IdentificationKind.Conocido },
+        { "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN", "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599", 0x17D6B3, 0xD38845E4, 0x2D47B8, IdentificationKind.Conocido },
+        { "Atec32L18D_LP141WX1_6bit.BIN", "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2", 0x1E8B76, 0x79B20851, 3_706_784, IdentificationKind.Conocido },
+        { "Atec32L18D_LP141WX1_8bit.BIN", "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c", 0x1E8B6D, 0xA118D9F1, 3_706_784, IdentificationKind.Conocido },
+    };
+
+    [Theory]
+    [MemberData(nameof(Casos))]
+    public void AnalizaEIdentificaComoLosScriptsPython(string file, string sha, uint flashEnd, uint crc, int appSize, IdentificationKind kind)
+    {
+        var path = FindFirmware(file);
+        if (path is null)
+            Assert.Skip($"No está {file} (definir FIRMREAPER_FW_DIR o copiarlo en firmware_local/).");
+
+        var a = FirmwareAnalyzer.AnalyzeFile(path);
+        Assert.Equal(sha, a.Sha256);
+        Assert.True(a.ContainerValid, string.Join("\n", a.Checks.Where(c => c.Status == CheckStatus.Error).Select(c => c.Detail)));
+        Assert.Equal(flashEnd, a.Header!.FlashEnd);
+        Assert.Equal(crc, a.Header.Crc);
+        Assert.Equal(crc, a.ComputedCrc);
+        Assert.Equal(appSize, a.AppSize);
+        Assert.Equal(kind, Identifier.Identify(a, FirmwareCatalog.LoadEmbedded()).Kind);
+    }
+
+    [Fact]
+    public void UnBitCambiadoEnUnOriginalSeDetecta()
+    {
+        var path = FindFirmware("MST_EXT_SPI_ISP_20220511_165639.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del LG.");
+        var fw = File.ReadAllBytes(path);
+        fw[0x30000] ^= 0x80;
+        var a = FirmwareAnalyzer.Analyze(fw);
+        Assert.False(a.ContainerValid);
+        Assert.Equal(IdentificationKind.DesconocidoInvalido, Identifier.Identify(a, FirmwareCatalog.LoadEmbedded()).Kind);
+    }
+
+    [Fact]
+    public void CambioFueraDeLaAppConCrcIntactoEsDesconocidoValido()
+    {
+        // Simula un firmware "modificado por otro": cambia un byte de la base de datos (fuera del CRC).
+        var path = FindFirmware("Atec_32_KPC_Salva.BIN");
+        if (path is null)
+            Assert.Skip("No está el original del ATEC.");
+        var fw = File.ReadAllBytes(path);
+        fw[0x3F0000] ^= 0x01;
+        var a = FirmwareAnalyzer.Analyze(fw);
+        Assert.True(a.ContainerValid);
+        Assert.Equal(IdentificationKind.DesconocidoValido, Identifier.Identify(a, FirmwareCatalog.LoadEmbedded()).Kind);
+    }
+}

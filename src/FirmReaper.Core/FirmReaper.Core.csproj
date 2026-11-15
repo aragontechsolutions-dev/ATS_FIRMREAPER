@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>FirmReaper.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Catálogo de imágenes conocidas: va DENTRO del ensamblado (no se puede manipular desde fuera). -->
+    <EmbeddedResource Include="Catalog\catalog.json" LogicalName="FirmReaper.Core.catalog.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FirmReaper.Core.Tests" />
+  </ItemGroup>
+
+</Project>

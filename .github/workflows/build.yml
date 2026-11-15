@@ -1,0 +1,47 @@
+# Compila, prueba y publica FirmReaper en Windows.
+# Los firmwares NO están en el repositorio: las pruebas con .BIN reales se omiten aquí
+# (se ejecutan en local). El .exe resultante se descarga desde la pestaña "Actions" (artefacto).
+name: build
+
+on:
+  push:
+    branches: [ main, "claude/**" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Compilar
+        run: dotnet build FirmReaper.sln -c Release
+
+      - name: Pruebas
+        run: dotnet test --project tests/FirmReaper.Core.Tests -c Release
+
+      - name: Publicar .exe único (win-x64)
+        run: dotnet publish src/FirmReaper.App -c Release -r win-x64 -o publish
+
+      - name: Publicar CLI (win-x64)
+        run: dotnet publish src/FirmReaper.Cli -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+
+      - name: Huellas SHA-256
+        shell: pwsh
+        run: Get-FileHash publish\*.exe -Algorithm SHA256 | Format-Table -AutoSize | Out-String -Width 200 | Tee-Object publish\SHA256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FirmReaper-win-x64
+          path: |
+            publish/*.exe
+            publish/SHA256.txt
+          retention-days: 30

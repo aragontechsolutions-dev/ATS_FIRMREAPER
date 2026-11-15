@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>FirmReaper</AssemblyName>
+    <RootNamespace>FirmReaper.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <!-- Publicación en un solo .exe autocontenido (no necesita instalar .NET ni permisos de administrador).
+       dotnet publish src/FirmReaper.App -c Release -r win-x64 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- Sin compresión del bundle: reduce falsos positivos de antivirus y acelera el arranque. -->
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FirmReaper.Core\FirmReaper.Core.csproj" />
+  </ItemGroup>
+
+</Project>

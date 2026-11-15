@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "imagenes": [
+    {
+      "sha256": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
+      "tipo": "original",
+      "modelo": "ATEC 32L18D",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "ATEC 32L18D — firmware original (Atec_32_KPC_Salva.BIN)",
+      "notas": "Panel original WXGA_AU20_T200XW02 1366x768."
+    },
+    {
+      "sha256": "7bd55c392efabf11ad37b61eff631792ba285bb82a1ce71d06bdee89976d65e2",
+      "tipo": "generado",
+      "origen": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
+      "modelo": "ATEC 32L18D",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "ATEC 32L18D + panel LP141WX1 1280x800, salida 6 bits",
+      "variante": "6bit",
+      "estadoPrueba": "no-funciono",
+      "notas": "Generado con patch_panel.py (zlib -9). Probado en el TV: la variante de 6 bits no funcionó."
+    },
+    {
+      "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
+      "tipo": "generado",
+      "origen": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
+      "modelo": "ATEC 32L18D",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "ATEC 32L18D + panel LP141WX1 1280x800, salida 8 bits",
+      "variante": "8bit",
+      "estadoPrueba": "funciono",
+      "notas": "Generado con patch_panel.py (zlib -9). Probado en el TV: funcionó."
+    },
+    {
+      "sha256": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871",
+      "tipo": "original",
+      "modelo": "LG 42LF652VX",
+      "placa": "TP.VST56.PB801",
+      "nombre": "LG 42LF652VX — firmware original (MST_EXT_SPI_ISP_20220511_165639.BIN)",
+      "notas": "Arranca con espejo (bMirror = 1) de fábrica."
+    },
+    {
+      "sha256": "17918f8fa6607bb802fdf6c2e71f554b547a390201eb65b9e704494b9fd9b002",
+      "tipo": "generado",
+      "origen": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871",
+      "modelo": "LG 42LF652VX",
+      "placa": "TP.VST56.PB801",
+      "nombre": "LG 42LF652VX + mando Soyea LKK32CMB v5 (espejo como el original)",
+      "variante": "soyea-v5",
+      "estadoPrueba": "pendiente",
+      "notas": "Generado con patch_ir_lg.py v5 (zopfli, 5 iteraciones)."
+    },
+    {
+      "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
+      "tipo": "generado",
+      "origen": "ef5c80550894357d7f7e6caf6367d8cf7f7a8931dd6c4757f2e01cd136bee871",
+      "modelo": "LG 42LF652VX",
+      "placa": "TP.VST56.PB801",
+      "nombre": "LG 42LF652VX + mando Soyea LKK32CMB v5 + espejo desactivado",
+      "variante": "soyea-v5-espejo-off",
+      "estadoPrueba": "pendiente",
+      "notas": "Generado con patch_ir_lg.py v5 --espejo-off (zopfli, 5 iteraciones)."
+    },
+    {
+      "sha256": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "tipo": "original",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 — firmware original",
+      "notas": "Huella tomada de patch_mirror_menu.py. El binario NO está disponible en este proyecto: no verificada aquí."
+    },
+    {
+      "sha256": "fc9fed8fef551b17c7a2da420a212cd52ba5eb075e670e7f3389c123b600a21e",
+      "tipo": "referencia",
+      "modelo": "Soyea (mando LKK32CMB)",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "Soyea — firmware de referencia (MST_EXT_SPI_ISP_20230301_153737.BIN)",
+      "notas": "Firmware del que se obtuvo la tabla del mando Soyea. No se parchea."
+    }
+  ]
+}

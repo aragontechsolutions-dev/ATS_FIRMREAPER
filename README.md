@@ -1,2 +1,90 @@
-# ATS_FIRMREAPER
-Programa para ajustar firmware para placas de TV
+# ATS_FIRMREAPER — FirmReaper
+
+Programa para Windows 10/11 que **analiza y (en etapas siguientes) modifica** firmwares de placas de TV
+**MStar** (CPU AEON R2, memoria SPI de 4 MB) mediante **perfiles** de parches verificados.
+
+> **Estado: etapa 1 de 5 completada — solo lectura.** El programa abre, identifica y verifica
+> volcados `.BIN`; **todavía no modifica nada**. Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
+
+## Qué hace hoy (etapa 1)
+
+- Abre un volcado SPI de 4 MB (botón o arrastrar a la ventana).
+- **Identifica** el archivo por su huella SHA-256 frente al catálogo interno:
+  - original conocido (ATEC 32L18D, LG 42LF652VX, Konka TV4-32K16*),
+  - versión generada por nosotros (y si se probó en el TV y funcionó),
+  - firmware de referencia (Soyea),
+  - **no reconocido**: con contenedor válido (modificado por otro / no analizado) o dañado.
+- **Verifica el contenedor** (11 comprobaciones): tamaño, cabecera, coherencia RAM, **CRC-32**,
+  tabla de recursos TEL, que la app no pise los recursos, descompresión, cola, fin en flash,
+  bloque MS_IMG_INFO y zona libre.
+- Muestra cabecera, tamaño comprimido/descomprimido, **espacio libre**, ID de placa, SBOOT y recursos TEL
+  (detecta el logo JPEG).
+- Guarda el informe en texto o JSON.
+
+\* El binario original del Konka no está en el proyecto; su huella se tomó del script.
+
+## Uso
+
+### Ventana (Windows)
+`FirmReaper.exe` → **Abrir .BIN…** (o arrastrar el archivo). No necesita instalación ni administrador.
+
+### Línea de comandos (Windows o Linux)
+```bash
+firmreaper info ARCHIVO.BIN            # análisis completo
+```
+```bash
+firmreaper info ARCHIVO.BIN --json     # el mismo análisis en JSON
+```
+```bash
+firmreaper verificar A.BIN B.BIN ...   # una línea por archivo
+```
+```bash
+firmreaper catalogo                    # imágenes conocidas
+```
+Código de salida: `0` válido y reconocido · `1` no válido o no reconocido · `2` error de uso.
+
+## Compilar
+
+Requisitos: SDK de **.NET 10** (LTS; .NET 8 dejó de tener soporte el 10-nov-2026).
+
+```bash
+dotnet build FirmReaper.sln
+```
+```bash
+dotnet test --project tests/FirmReaper.Core.Tests
+```
+```bash
+dotnet publish src/FirmReaper.App -c Release -r win-x64 -o publish
+```
+
+El último comando genera `publish/FirmReaper.exe` (≈133 MB, autocontenido: lleva .NET dentro).
+GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)) compila, prueba y publica
+el `.exe` en Windows en cada push; se descarga como artefacto desde la pestaña *Actions*.
+
+## Estructura
+
+| Carpeta | Contenido |
+|---|---|
+| `src/FirmReaper.Core` | Motor: CRC, descompresor deflate, formato MStar, catálogo, informes |
+| `src/FirmReaper.App` | Interfaz WPF |
+| `src/FirmReaper.Cli` | Línea de comandos |
+| `tests/FirmReaper.Core.Tests` | Pruebas automáticas (xUnit v3) |
+| `tools/referencia_python` | Scripts Python originales (referencia para comparar resultados) |
+| `docs/` | Documentación técnica ([índice](docs/ETAPAS.md)) |
+| `docs/historial` | Guías de los 3 proyectos hechos con los scripts |
+| `research_notes/`, `reports/` | Investigación previa (herramientas, formato, librerías, legal) |
+| `firmware_local/` | **No se sube a git.** Aquí van los `.BIN` para las pruebas locales |
+
+## Documentación
+
+- [docs/ETAPAS.md](docs/ETAPAS.md) — plan por etapas y estado.
+- [docs/FORMATO_MSTAR.md](docs/FORMATO_MSTAR.md) — formato del firmware (verificado vs. no verificado).
+- [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — diseño del programa y **seguridad**.
+- [docs/PRUEBAS.md](docs/PRUEBAS.md) — cómo se prueba y con qué archivos.
+- [reports/Software parcheo firmware TV MStar.md](reports/Software%20parcheo%20firmware%20TV%20MStar.md) — investigación.
+
+## Aviso
+
+Modificar el firmware puede dejar el TV sin arrancar. Haz siempre una copia del original (3 lecturas con
+el mismo hash) y ten un programador SPI a mano. El inversor CCFL trabaja a ~675 Vrms. Úsalo solo en equipos
+propios o con permiso del propietario. No se distribuyen firmwares del fabricante.
