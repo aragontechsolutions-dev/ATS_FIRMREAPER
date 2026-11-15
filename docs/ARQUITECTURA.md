@@ -9,7 +9,7 @@ FirmReaper.Core.Tests (xUnit v3) ──────┘
 ```
 
 El motor (`Core`) no depende de Windows: se prueba en Linux y en Windows con el mismo código.
-No usa paquetes NuGet de terceros (solo la biblioteca estándar de .NET).
+Única dependencia externa: `BitMiracle.LibJpeg.NET` (gestionada, BSD) para decodificar el logo.
 
 ## Componentes de `FirmReaper.Core`
 
@@ -35,6 +35,9 @@ No usa paquetes NuGet de terceros (solo la biblioteca estándar de .NET).
 | `Patching/FirmwareBuilder.cs` | Aplica parches, recomprime, recalcula cabecera/CRC y verifica |
 | `Patching/OutputWriter.cs` | Escritura atómica, sin sobrescribir, con copia de seguridad |
 | `Reporting/BuildReport.cs` | Informe de cada firmware generado |
+| `Imaging/JpegInfo.cs` | Lectura validada de la estructura de un JPEG (sin decodificar) |
+| `Imaging/JpegBaselineEncoder.cs` | Codificador JPEG que reproduce byte a byte a libjpeg-turbo (configuración de Pillow) |
+| `Imaging/LogoImage.cs` | Decodificar (LibJpeg.NET) y girar 180° el logo |
 
 ### ¿Por qué un descompresor propio?
 `DeflateStream` de .NET no informa del byte en que termina el flujo; ese dato es necesario para
@@ -74,5 +77,14 @@ comprobarlo** en un Windows 10 real.
 | Perder el original | Copia de solo lectura en `respaldo_originales\` (se comprueba su huella; si ya existe con otro contenido, se detiene) |
 | Original cambiado entre análisis y guardado | Se vuelve a calcular su huella antes de guardar |
 | Resultado distinto en Windows | `ExactLog` hace la compresión independiente de la biblioteca matemática del sistema |
+
+| Logo propio manipulado | Parser de marcadores con límites; baseline, dimensiones exactas, tamaño máximo, sin basura tras FFD9, decodificación completa, máximo 4096×4096 píxeles y 4 MB de archivo |
+| Escribir fuera del hueco del logo | La verificación final solo admite cambios en el hueco del recurso TEL del logo (JPEG + ceros); el resto del recurso y de la flash, idénticos |
+
+### ¿Por qué un codificador JPEG propio?
+Para que el logo girado sea **idéntico** al probado en el TV. LibJpeg.NET (port de libjpeg 6b) decodifica
+igual que Pillow pero **codifica distinto** (libjpeg-turbo cuantiza con recíprocos). El codificador propio
+replica el camino de libjpeg-turbo y da los mismos bytes, sin bibliotecas nativas (antes se valoró incluir
+libjpeg-turbo nativo; ya no hace falta).
 
 Perfiles firmados: no se implementan (uso por una sola persona); se registra la huella de cada perfil.

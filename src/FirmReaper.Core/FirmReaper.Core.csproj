@@ -16,4 +16,8 @@
     <InternalsVisibleTo Include="FirmReaper.Core.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="BitMiracle.LibJpeg.NET" Version="1.5.324" />
+  </ItemGroup>
+
 </Project>

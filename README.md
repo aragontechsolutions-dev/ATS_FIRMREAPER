@@ -3,9 +3,9 @@
 Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 **MStar** (CPU AEON R2, memoria SPI de 4 MB) mediante **perfiles** de parches verificados.
 
-> **Estado: etapas 1 y 2 de 5 completadas.** Analiza, identifica y verifica volcados `.BIN`, y genera
+> **Estado: etapas 1 y 2 completadas; etapa 3 en curso (logo hecho).** Analiza, identifica y verifica volcados `.BIN`, y genera
 > las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX mando Soyea / espejo; Konka TV4-32K16
-> espejo en el menú de fábrica o fijo, todavía sin el logo girado).
+> espejo en el menú de fábrica o fijo, y logo girado / propio / sin cambios).
 > Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
 
 ## Qué hace hoy
@@ -57,6 +57,9 @@ firmreaper perfiles                    # perfiles y sus opciones
 ```bash
 firmreaper generar ORIGINAL.BIN --perfil lg-42lf652vx-soyea --opcion espejo=off --salida CARPETA
 ```
+```bash
+firmreaper generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --opcion logo=propio --logo MI_LOGO.jpg --salida CARPETA
+```
 Código de salida: `0` válido y reconocido · `1` no válido o no reconocido · `2` error de uso.
 
 ## Compilar
@@ -88,7 +91,7 @@ el `.exe` en Windows en cada push; se descarga como artefacto desde la pestaña 
 | `tools/referencia_python` | Scripts Python originales (referencia para comparar resultados) |
 | `tools/aeon` | Ensamblador/desensamblador AEON R2 (Python) y tablas de la ISA |
 | `tools/perfiles` | Generador de los perfiles integrados a partir de los scripts |
-| `licenses/`, `THIRD_PARTY_NOTICES.md` | Licencias de terceros (Zopfli, tablas AEON: Apache 2.0) |
+| `licenses/`, `THIRD_PARTY_NOTICES.md` | Licencias de terceros (Zopfli y tablas AEON: Apache 2.0; LibJpeg.NET: BSD) |
 | `docs/` | Documentación técnica ([índice](docs/ETAPAS.md)) |
 | `docs/historial` | Guías de los 3 proyectos hechos con los scripts |
 | `research_notes/`, `reports/` | Investigación previa (herramientas, formato, librerías, legal) |

@@ -12,7 +12,7 @@ namespace FirmReaper.Cli;
 ///   firmreaper verificar ARCHIVO.BIN ...                 una línea por archivo
 ///   firmreaper catalogo                                  imágenes conocidas
 ///   firmreaper perfiles                                  perfiles disponibles y sus opciones
-///   firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] --salida CARPETA
+///   firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg] --salida CARPETA
 /// Códigos de salida: 0 = correcto, 1 = no válido / no reconocido / error, 2 = error de uso.
 /// </summary>
 internal static class Program
@@ -50,7 +50,7 @@ internal static class Program
               firmreaper verificar ARCHIVO.BIN [ARCHIVO2.BIN ...]
               firmreaper catalogo
               firmreaper perfiles
-              firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] --salida CARPETA
+              firmreaper generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo LOGO.jpg] --salida CARPETA
             """);
         return 2;
     }
@@ -110,7 +110,7 @@ internal static class Program
     private static int Generate(string[] args, ProfileRegistry reg)
     {
         string input = args[1];
-        string? profileId = null, outDir = null;
+        string? profileId = null, outDir = null, logoPath = null;
         var selection = new Dictionary<string, string>();
         for (int i = 2; i < args.Length; i++)
         {
@@ -118,6 +118,7 @@ internal static class Program
             {
                 case "--perfil" when i + 1 < args.Length: profileId = args[++i]; break;
                 case "--salida" when i + 1 < args.Length: outDir = args[++i]; break;
+                case "--logo" when i + 1 < args.Length: logoPath = args[++i]; break;
                 case "--opcion" when i + 1 < args.Length:
                     var kv = args[++i].Split('=', 2);
                     if (kv.Length != 2) return Usage();
@@ -131,7 +132,14 @@ internal static class Program
         var profile = reg.ById(profileId) ?? throw new ArgumentException($"No existe el perfil '{profileId}'.");
 
         var fw = File.ReadAllBytes(input);
-        var r = FirmwareBuilder.Build(fw, profile, selection, new SyncProgress(Console.Error));
+        byte[]? logo = null;
+        if (logoPath is not null)
+        {
+            if (new FileInfo(logoPath).Length > FirmwareBuilder.MaxCustomLogoBytes)
+                throw new ArgumentException("El archivo del logo es demasiado grande.");
+            logo = File.ReadAllBytes(logoPath);
+        }
+        var r = FirmwareBuilder.Build(fw, profile, selection, logo, new SyncProgress(Console.Error));
         var saved = OutputWriter.Save(r, input, outDir, DateTimeOffset.Now);
         Console.WriteLine($"Generado: {saved.Firmware}");
         Console.WriteLine($"SHA-256:  {r.OutputSha256}");

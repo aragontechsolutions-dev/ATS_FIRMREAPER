@@ -19,6 +19,18 @@ public sealed class ProfileFile
     public required List<ProfilePatch> ParchesFijos { get; init; }
     public required List<ProfileOption> Opciones { get; init; }
     public required List<ProfileKnownOutput> SalidasConocidas { get; init; }
+    /// <summary>Opcional: recurso del logo de arranque (necesario si algún valor actúa sobre el logo).</summary>
+    public ProfileLogo? Logo { get; init; }
+}
+
+public sealed class ProfileLogo
+{
+    /// <summary>Id del recurso en la tabla TEL ("0x065E").</summary>
+    public required string IdTel { get; init; }
+    /// <summary>Longitud del JPEG original (hasta FFD9). Lo que sigue en el recurso se conserva.</summary>
+    public required int LongitudJpeg { get; init; }
+    public required int Ancho { get; init; }
+    public required int Alto { get; init; }
 }
 
 public sealed class ProfileOriginal
@@ -70,6 +82,8 @@ public sealed class ProfileOptionValue
     public required string Id { get; init; }
     public required string Etiqueta { get; init; }
     public required List<ProfilePatch> Parches { get; init; }
+    /// <summary>Opcional: "girar" (180°) o "propio" (JPEG del usuario). Sin el campo: el logo no cambia.</summary>
+    public string? Logo { get; init; }
 }
 
 public sealed class ProfileKnownOutput

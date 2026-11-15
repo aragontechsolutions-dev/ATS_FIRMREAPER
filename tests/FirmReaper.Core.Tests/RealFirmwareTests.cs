@@ -142,18 +142,51 @@ public class RealFirmwareTests
     }
 
     [Theory]
-    [InlineData("menu", "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59", 137)]
-    [InlineData("fijo", "98a919fbef5f848147272fe37a6ccd51bbd0166c0eb22ae8a75125ef211e5fe0", 2 + 14 * 3)]
-    public void PerfilKonkaGeneraLasVersionesProbadas(string modo, string expectedSha, int changedBytes)
+    [InlineData("menu", "girado", "81bd3c8b643745d321a99f3a6479dee8dc97b464d55bbb3be006fb6160b93570", 137)]
+    [InlineData("menu", "original", "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59", 137)]
+    [InlineData("fijo", "original", "98a919fbef5f848147272fe37a6ccd51bbd0166c0eb22ae8a75125ef211e5fe0", 2 + 14 * 3)]
+    public void PerfilKonkaGeneraLasVersionesProbadas(string modo, string logo, string expectedSha, int changedBytes)
     {
         var path = FindFirmware("TV4-32K16.bin");
         if (path is null)
             Assert.Skip("No está el original del Konka.");
         var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "konka-tv4-32k16-mirror");
-        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile, new Dictionary<string, string> { ["modo"] = modo },
+        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile,
+            new Dictionary<string, string> { ["modo"] = modo, ["logo"] = logo },
             cancel: TestContext.Current.CancellationToken);
         Assert.Equal(expectedSha, r.OutputSha256);
         Assert.True(r.MatchesKnown);
         Assert.Equal(changedBytes, r.ChangedAppBytes);
+    }
+
+    [Fact]
+    public void GirarElLogoDaElMismoJpegQuePillow()
+    {
+        // El logo de TV4-32K16_MIRROR_MENU.bin lo generó Pillow 12.3.0 / libjpeg-turbo 3.1.4.1.
+        var orig = FindFirmware("TV4-32K16.bin");
+        var pillow = FindFirmware("TV4-32K16_MIRROR_MENU.bin");
+        if (orig is null || pillow is null)
+            Assert.Skip("Faltan los archivos del Konka.");
+        const int Off = 0x29B1B8, Len = 131381;
+        var jpeg = File.ReadAllBytes(orig).AsSpan(Off, Len).ToArray();
+        var expectedSlot = File.ReadAllBytes(pillow).AsSpan(Off, Len).ToArray();
+        var rotated = FirmReaper.Core.Imaging.LogoImage.Rotate180(jpeg);
+        Assert.True(expectedSlot.AsSpan(0, rotated.Length).SequenceEqual(rotated));
+        Assert.True(expectedSlot.AsSpan(rotated.Length).IndexOfAnyExcept((byte)0) < 0);
+    }
+
+    [Fact]
+    public void LogoPropioDemasiadoGrandeSeRechaza()
+    {
+        var path = FindFirmware("TV4-32K16.bin");
+        if (path is null)
+            Assert.Skip("No está el original del Konka.");
+        var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "konka-tv4-32k16-mirror");
+        // JPEG válido 1366x768 pero de más de 131 381 bytes (ruido con calidad máxima).
+        var big = LogoTests.NoiseJpeg(1366, 768, quality1: true);
+        Assert.True(big.Length > 131381);
+        var ex = Assert.Throws<BuildException>(() => FirmwareBuilder.Build(File.ReadAllBytes(path), profile,
+            new Dictionary<string, string> { ["logo"] = "propio" }, big, cancel: TestContext.Current.CancellationToken));
+        Assert.Contains("máximo", ex.Message);
     }
 }

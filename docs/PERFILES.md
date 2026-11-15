@@ -58,6 +58,17 @@ leen de los scripts de referencia; no se copian a mano).
 | `opciones` | Tipo `lista`: el usuario elige un valor; cada valor trae sus parches (puede no traer ninguno). |
 | parche | `direccion` (RAM, `0x…`), `original` y `nuevo` (hex en minúsculas, misma longitud, máx. 4096 bytes, distintos), `descripcion`. |
 | `salidasConocidas` | Huella del resultado para una combinación de opciones (todas las opciones definidas). Si coincide, se informa "idéntico a la versión documentada". |
+| `logo` (opcional) | Recurso del logo: `idTel` (id en la tabla TEL, `0x…`), `longitudJpeg` (bytes del JPEG original hasta FFD9), `ancho`, `alto`. |
+| valor `.logo` (opcional) | `"girar"` (180°, re-codificado idéntico a Pillow) o `"propio"` (JPEG del usuario). Sin el campo, el logo no cambia. Solo UNA opción puede actuar sobre el logo. |
+
+### El logo
+
+- El hueco del logo es el recurso TEL indicado: se escribe el JPEG nuevo, se rellena con ceros hasta
+  `longitudJpeg` y **lo que hubiera después en el recurso se conserva** (en el Konka, 3 bytes `00 47 0E`).
+- Un logo propio debe ser JPEG **baseline** (no progresivo), en color, de **exactamente** `ancho`×`alto`,
+  sin datos tras el FFD9 y de **como máximo** `longitudJpeg` bytes; además se decodifica entero antes de
+  aceptarlo.
+- Ejemplo (Konka): `"logo": {"idTel": "0x065E", "longitudJpeg": 131381, "ancho": 1366, "alto": 768}`.
 
 ## Reglas que comprueba el programa al cargar (si falla una, el perfil se rechaza entero)
 

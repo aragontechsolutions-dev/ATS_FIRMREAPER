@@ -163,6 +163,25 @@ public partial class MainWindow : Window
         if (CmbProfile.SelectedItem is not Profile p || _lastFile is null || _lastSha is null) return;
         var selection = _optionBoxes.ToDictionary(kv => kv.Key, kv => ((OptionValue)kv.Value.SelectedItem).Id);
 
+        // Logo propio: se pide el JPEG antes de la carpeta de salida.
+        byte[]? customLogo = null;
+        if (p.LogoActionFor(selection) == LogoAction.Propio)
+        {
+            var ofd = new OpenFileDialog
+            {
+                Title = $"Logo propio (JPEG baseline {p.Logo!.Width}x{p.Logo.Height}, máx. {p.Logo.JpegLength:N0} bytes)",
+                Filter = "Imagen JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg",
+                CheckFileExists = true,
+            };
+            if (ofd.ShowDialog(this) != true) return;
+            if (new FileInfo(ofd.FileName).Length > FirmwareBuilder.MaxCustomLogoBytes)
+            {
+                MessageBox.Show(this, "El archivo es demasiado grande para ser el logo.", "FirmReaper", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            customLogo = File.ReadAllBytes(ofd.FileName);
+        }
+
         var dlg = new OpenFolderDialog
         {
             Title = "Carpeta donde guardar el firmware generado",
@@ -182,7 +201,7 @@ public partial class MainWindow : Window
             var saved = await Task.Run(() =>
             {
                 var fw = File.ReadAllBytes(input);
-                var r = FirmwareBuilder.Build(fw, p, selection, progress, token);
+                var r = FirmwareBuilder.Build(fw, p, selection, customLogo, progress, token);
                 token.ThrowIfCancellationRequested();
                 return (r, OutputWriter.Save(r, input, outDir, DateTimeOffset.Now));
             }, token);

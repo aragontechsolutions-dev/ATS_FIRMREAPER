@@ -1,7 +1,7 @@
 # Avisos de terceros
 
-FirmReaper incluye código o datos de los siguientes proyectos. Todos con licencia **Apache 2.0**;
-el texto completo está en la carpeta [`licenses/`](licenses/).
+FirmReaper incluye código o datos de los siguientes proyectos (licencias Apache 2.0 y BSD de 3 cláusulas);
+el texto completo de cada licencia está en la carpeta [`licenses/`](licenses/).
 
 ## Zopfli (Google)
 
@@ -22,3 +22,17 @@ el texto completo está en la carpeta [`licenses/`](licenses/).
 - Uso en FirmReaper: `tools/aeon/aeon_isa.json` (copia idéntica, comprobada por SHA-256
   `633939287d1f2bda24398f36676004a824725d1c307b12e31cc8193bd74a6948`).
 - Licencia: `licenses/Apache-2.0_ghidra-plugin-aeon.txt`.
+
+## LibJpeg.NET (Bit Miracle) — basado en el software JPEG del Independent JPEG Group
+
+- Paquete NuGet `BitMiracle.LibJpeg.NET` 1.5.324 (código gestionado, sin partes nativas).
+- Copyright (c) 2008-2020, Bit Miracle. Basado en parte en el software del Independent JPEG Group
+  (http://www.ijg.org/), Copyright (C) 1991-1998, Thomas G. Lane.
+- Uso en FirmReaper: **decodificar** el logo original antes de girarlo (`Imaging/LogoImage.cs`).
+- Licencia: `licenses/BSD-3-Clause_LibJpeg.NET.txt`.
+
+## Codificador JPEG propio
+
+`Imaging/JpegBaselineEncoder.cs` es código propio que reproduce los algoritmos de libjpeg-turbo
+(jccolor.c, jfdctint.c, jcdctmgr.c, jchuff.c, jcmarker.c; licencias IJG/BSD) para que el logo girado salga
+idéntico byte a byte al de Pillow. This software is based in part on the work of the Independent JPEG Group.

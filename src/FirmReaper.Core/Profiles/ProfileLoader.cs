@@ -14,7 +14,20 @@ public sealed record Patch(uint Address, byte[] Original, byte[] New, string Des
 
 public sealed record PatchZone(uint From, uint To, string Reason);
 
-public sealed record OptionValue(string Id, string Label, IReadOnlyList<Patch> Patches);
+public enum LogoAction
+{
+    /// <summary>El logo no cambia.</summary>
+    Ninguna,
+    /// <summary>Girar 180° (re-codificado idéntico a Pillow).</summary>
+    Girar,
+    /// <summary>Sustituir por un JPEG del usuario.</summary>
+    Propio,
+}
+
+/// <summary>Recurso del logo: id en la tabla TEL, longitud del JPEG original y dimensiones exigidas.</summary>
+public sealed record LogoSpec(ushort TelId, int JpegLength, int Width, int Height);
+
+public sealed record OptionValue(string Id, string Label, IReadOnlyList<Patch> Patches, LogoAction Logo = LogoAction.Ninguna);
 
 public sealed record ProfileOptionDef(string Id, string Label, string Default, IReadOnlyList<OptionValue> Values)
 {
@@ -46,6 +59,7 @@ public sealed class Profile
     public required IReadOnlyList<Patch> FixedPatches { get; init; }
     public required IReadOnlyList<ProfileOptionDef> Options { get; init; }
     public required IReadOnlyList<KnownOutput> KnownOutputs { get; init; }
+    public LogoSpec? Logo { get; init; }
     public required ProfileSource Source { get; init; }
     /// <summary>Ruta del archivo (externo) o nombre del recurso (integrado).</summary>
     public required string Location { get; init; }
@@ -64,6 +78,17 @@ public sealed class Profile
         foreach (var o in Options)
             list.AddRange(o.Get(selection.TryGetValue(o.Id, out var v) ? v : o.Default).Patches);
         return list.OrderBy(p => p.Address).ToList();
+    }
+
+    /// <summary>Acción sobre el logo para una selección (como mucho una opción actúa sobre el logo).</summary>
+    public LogoAction LogoActionFor(IReadOnlyDictionary<string, string> selection)
+    {
+        foreach (var o in Options)
+        {
+            var v = o.Get(selection.TryGetValue(o.Id, out var s) ? s : o.Default);
+            if (v.Logo != LogoAction.Ninguna) return v.Logo;
+        }
+        return LogoAction.Ninguna;
     }
 
     public KnownOutput? KnownOutputFor(IReadOnlyDictionary<string, string> selection) =>
@@ -227,11 +252,33 @@ public static partial class ProfileLoader
             {
                 if (!IdRegex().IsMatch(v.Id)) Fail($"Id de valor inválido: '{v.Id}'.");
                 if (values.Any(x => x.Id == v.Id)) Fail($"Valor repetido en '{o.Id}': '{v.Id}'.");
-                values.Add(new OptionValue(v.Id, v.Etiqueta, v.Parches.Select(ToPatch).ToList()));
+                var logo = v.Logo switch
+                {
+                    null => LogoAction.Ninguna,
+                    "girar" => LogoAction.Girar,
+                    "propio" => LogoAction.Propio,
+                    _ => throw new InvalidDataException($"Acción de logo desconocida en '{o.Id}={v.Id}': '{v.Logo}'."),
+                };
+                values.Add(new OptionValue(v.Id, v.Etiqueta, v.Parches.Select(ToPatch).ToList(), logo));
             }
             if (values.All(v => v.Id != o.PorDefecto)) Fail($"El valor por defecto de '{o.Id}' no existe.");
             options.Add(new ProfileOptionDef(o.Id, o.Etiqueta, o.PorDefecto, values));
         }
+
+        // Logo: si algún valor actúa sobre él, el perfil debe describir el recurso, y solo una opción
+        // puede hacerlo (dos acciones sobre el mismo recurso serían contradictorias).
+        LogoSpec? logoSpec = null;
+        if (f.Logo is not null)
+        {
+            ushort telId = (ushort)ParseAddr(f.Logo.IdTel, "logo.idTel");
+            if (ParseAddr(f.Logo.IdTel, "logo.idTel") > 0xFFFF) Fail("logo.idTel fuera de rango.");
+            if (f.Logo.LongitudJpeg is < 4 or > 4 * 1024 * 1024) Fail("logo.longitudJpeg fuera de rango.");
+            if (f.Logo.Ancho is < 1 or > 4096 || f.Logo.Alto is < 1 or > 4096) Fail("Dimensiones del logo fuera de rango.");
+            logoSpec = new LogoSpec(telId, f.Logo.LongitudJpeg, f.Logo.Ancho, f.Logo.Alto);
+        }
+        var logoOptions = options.Where(o => o.Values.Any(v => v.Logo != LogoAction.Ninguna)).ToList();
+        if (logoOptions.Count > 0 && logoSpec is null) Fail("Hay acciones sobre el logo pero el perfil no define 'logo'.");
+        if (logoOptions.Count > 1) Fail("Solo una opción puede actuar sobre el logo.");
 
         // Ninguna combinación de opciones puede producir parches solapados: se comprueba
         // cada parche contra los fijos y contra los de las OTRAS opciones (los valores de una misma
@@ -279,6 +326,7 @@ public static partial class ProfileLoader
             FixedPatches = fixedPatches,
             Options = options,
             KnownOutputs = known,
+            Logo = logoSpec,
             Source = source,
             Location = location,
             FileSha256 = Convert.ToHexStringLower(SHA256.HashData(json)),

@@ -7,7 +7,7 @@ documentación, sin romper lo que ya funciona.
 |---|---|---|
 | 1 | Motor de lectura y verificación (sin modificar nada) | ✅ Completada |
 | 2 | Zopfli en C#, perfiles, generar idéntico a los scripts, escritura segura | ✅ Completada |
-| 3 | Logo del Konka (girar / propio / ninguno), editor de la tabla del mando del LG, visor hexadecimal | Pendiente |
+| 3 | Logo del Konka (girar / propio / ninguno) ✅ · editor de la tabla del mando del LG · visor hexadecimal | En curso |
 | 4 | Perfil ATEC (panel 1280x800, 6/8 bits) | Pendiente |
 | 5 | Manual de usuario y ejecutable final | Pendiente |
 
@@ -54,5 +54,22 @@ documentación, sin romper lo que ya funciona.
   Resultado: igual a glibc bit a bit en todo el rango que usa Zopfli.
 
 **No comprobado / pendiente**
-- El logo girado del Konka (versión `81bd3c8b…`, la probada) y el editor del mando del LG → etapa 3.
+- El editor del mando del LG → etapa 3.
 - La ventana no se ha abierto en un Windows real desde aquí (solo se compila).
+
+## Etapa 3 — en curso
+
+### 3a. Logo del Konka — completada
+- Perfil Konka v3: opción **Logo de arranque**: girado 180° (por defecto) / sin cambios / propio.
+- Con las opciones por defecto (MIRROR en menú + logo girado) el programa genera **idéntico** el firmware
+  probado en el TV (`81bd3c8b…160b93570`).
+- Cómo: decodificación con LibJpeg.NET (mismos píxeles que Pillow, comprobado) + **codificador JPEG propio**
+  que replica libjpeg-turbo (Pillow 12.3.0 / libjpeg-turbo 3.1.4.1): sale el mismo JPEG byte a byte. No hace
+  falta ninguna biblioteca nativa (era la opción 1 recomendada; esta es mejor y se comprobó).
+- Logo propio: validado (baseline, 1366×768, ≤ 131 381 bytes, sin basura, se decodifica); CLI `--logo`,
+  ventana: se pide el JPEG al generar.
+- 122 pruebas superadas.
+
+### 3b. Pendiente
+- Editor de la tabla del mando del LG (botón → función).
+- Visor hexadecimal de los cambios.

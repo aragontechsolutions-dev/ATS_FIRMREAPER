@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using FirmReaper.Core.Analysis;
 using FirmReaper.Core.Compression;
 using FirmReaper.Core.Compression.Zopfli;
+using FirmReaper.Core.Imaging;
 using FirmReaper.Core.MStar;
 using FirmReaper.Core.Profiles;
 
@@ -22,6 +23,10 @@ public sealed class BuildResult
     public required int CompressedSize { get; init; }
     public required long FreeBytes { get; init; }
     public required int ChangedAppBytes { get; init; }
+    public required LogoAction Logo { get; init; }
+    /// <summary>SHA-256 y tamaño del JPEG escrito en el hueco del logo (null si el logo no cambia).</summary>
+    public string? LogoSha256 { get; init; }
+    public int LogoLength { get; init; }
     /// <summary>Salida conocida del perfil para esta selección (null si no hay).</summary>
     public KnownOutput? Known { get; init; }
     /// <summary>True si la huella coincide con la salida conocida (archivo idéntico al ya generado/probado).</summary>
@@ -36,12 +41,15 @@ public sealed class BuildException(string message) : Exception(message);
 /// Genera un firmware modificado según un perfil. Pasos (cada uno debe superarse o no hay salida):
 /// 1) contenedor válido y huella = original del perfil; 2) bytes originales en cada parche;
 /// 3) aplicar; 4) recomprimir con Zopfli; 5) cabe antes de los recursos; 6) nueva cabecera y CRC;
-/// 7) re-verificar la salida y comprobar que solo cambió lo previsto.
+/// 7) logo (girar o propio) validado; 8) re-verificar la salida y que solo cambió lo previsto.
 /// </summary>
 public static class FirmwareBuilder
 {
+    /// <summary>Tamaño máximo aceptado para un JPEG propio leído de disco.</summary>
+    public const int MaxCustomLogoBytes = 4 * 1024 * 1024;
+
     public static BuildResult Build(byte[] fw, Profile profile, IReadOnlyDictionary<string, string> selection,
-        IProgress<string>? progress = null, CancellationToken cancel = default)
+        byte[]? customLogo = null, IProgress<string>? progress = null, CancellationToken cancel = default)
     {
         ArgumentNullException.ThrowIfNull(fw);
         ArgumentNullException.ThrowIfNull(profile);
@@ -64,68 +72,135 @@ public static class FirmwareBuilder
             throw new BuildException($"La base de la app del perfil (0x{profile.AppBaseRam:X}) no coincide con la del firmware (0x{a.Header.RamDest + MStarLayout.UncompressedPrefix:X}).");
 
         var patches = profile.PatchesFor(selection);
-        if (patches.Count == 0)
+        var logoAction = profile.LogoActionFor(selection);
+        if (patches.Count == 0 && logoAction == LogoAction.Ninguna)
             throw new BuildException("Con estas opciones no hay nada que cambiar: el resultado sería el original.");
+        if (logoAction != LogoAction.Propio && customLogo is not null)
+            throw new BuildException("Se indicó un logo propio, pero la opción elegida no usa un logo propio.");
 
-        // 2. Bytes originales
-        var app = a.App;
-        foreach (var p in patches)
-        {
-            long off = (long)p.Address - profile.AppBaseRam;
-            if (off < 0 || off + p.Original.Length > app.Length)
-                throw new BuildException($"Parche 0x{p.Address:X} fuera de la aplicación.");
-            var cur = app.AsSpan((int)off, p.Original.Length);
-            if (!cur.SequenceEqual(p.Original))
-                throw new BuildException(cur.SequenceEqual(p.New)
-                    ? $"Parche 0x{p.Address:X}: el archivo YA tiene este cambio."
-                    : $"Parche 0x{p.Address:X}: los bytes originales no coinciden.");
-        }
-        Ok($"Bytes originales correctos en los {patches.Count} parches.");
-
-        // 3. Aplicar (sobre una copia)
-        var newApp = (byte[])app.Clone();
-        foreach (var p in patches)
-            p.New.CopyTo(newApp, (int)(p.Address - profile.AppBaseRam));
-
-        // 4. Recomprimir
-        cancel.ThrowIfCancellationRequested();
-        progress?.Report($"Comprimiendo con Zopfli ({profile.ZopfliIterations} iteraciones)…");
-        var comp = ZopfliDeflater.Compress(newApp, new ZopfliOptions(NumIterations: profile.ZopfliIterations));
-        cancel.ThrowIfCancellationRequested();
-        if (!RawInflater.Inflate(comp, MStarLayout.MaxAppSize).Data.AsSpan().SequenceEqual(newApp))
-            throw new BuildException("La recompresión no es reversible.");
-        Ok($"Recompresión reversible ({Fmt.N(comp.Length)} bytes).");
-
-        // 5. ¿Cabe?
-        uint limit = a.Tel.FirstResourceOffset;
-        var newTail = new byte[MStarLayout.TailSize];
-        BinaryPrimitives.WriteUInt32LittleEndian(newTail, (uint)newApp.Length);
-        newTail[4] = a.Tail[4];
-        newTail[5] = a.Tail[5];
-        long newEnd = (long)MStarLayout.DeflateOffset + comp.Length + newTail.Length;
-        if (newEnd > limit)
-            throw new BuildException($"La app recomprimida no cabe: termina en 0x{newEnd:X} y el primer recurso está en 0x{limit:X}.");
-        Ok($"Cabe: fin 0x{newEnd:X6}, primer recurso 0x{limit:X6}, libres {Fmt.N(limit - newEnd)} bytes.");
-
-        // 6. Montar la salida
         var outFw = (byte[])fw.Clone();
-        outFw.AsSpan(MStarLayout.DeflateOffset, (int)(limit - MStarLayout.DeflateOffset)).Clear();
-        comp.CopyTo(outFw, MStarLayout.DeflateOffset);
-        newTail.CopyTo(outFw, MStarLayout.DeflateOffset + comp.Length);
         var h = a.Header;
-        uint crc = Crc32Msb.Compute(outFw.AsSpan(MStarLayout.AppFlashStart, (int)(newEnd - MStarLayout.AppFlashStart)));
-        var nh = h with
-        {
-            FlashEnd = (uint)newEnd,
-            RamEnd = h.RamDest + (uint)(newEnd - MStarLayout.AppFlashStart),
-            Crc = crc,
-        };
-        var hs = outFw.AsSpan(MStarLayout.HeaderOffset);
-        BinaryPrimitives.WriteUInt32LittleEndian(hs[0x08..], nh.RamEnd);
-        BinaryPrimitives.WriteUInt32LittleEndian(hs[0x0C..], nh.FlashEnd);
-        BinaryPrimitives.WriteUInt32LittleEndian(hs[0x14..], nh.Crc);
+        var nh = h;
+        uint limit = a.Tel.FirstResourceOffset;
+        int compressedSize = a.DeflateEnd.Value - MStarLayout.DeflateOffset;
+        long newEnd = h.FlashEnd;
+        var app = a.App;
+        var newApp = app;
 
-        // 7. Verificación independiente de la salida
+        if (patches.Count > 0)
+        {
+            // 2. Bytes originales
+            foreach (var p in patches)
+            {
+                long off = (long)p.Address - profile.AppBaseRam;
+                if (off < 0 || off + p.Original.Length > app.Length)
+                    throw new BuildException($"Parche 0x{p.Address:X} fuera de la aplicación.");
+                var cur = app.AsSpan((int)off, p.Original.Length);
+                if (!cur.SequenceEqual(p.Original))
+                    throw new BuildException(cur.SequenceEqual(p.New)
+                        ? $"Parche 0x{p.Address:X}: el archivo YA tiene este cambio."
+                        : $"Parche 0x{p.Address:X}: los bytes originales no coinciden.");
+            }
+            Ok($"Bytes originales correctos en los {patches.Count} parches.");
+
+            // 3. Aplicar (sobre una copia)
+            newApp = (byte[])app.Clone();
+            foreach (var p in patches)
+                p.New.CopyTo(newApp, (int)(p.Address - profile.AppBaseRam));
+
+            // 4. Recomprimir
+            cancel.ThrowIfCancellationRequested();
+            progress?.Report($"Comprimiendo con Zopfli ({profile.ZopfliIterations} iteraciones)…");
+            var comp = ZopfliDeflater.Compress(newApp, new ZopfliOptions(NumIterations: profile.ZopfliIterations));
+            cancel.ThrowIfCancellationRequested();
+            if (!RawInflater.Inflate(comp, MStarLayout.MaxAppSize).Data.AsSpan().SequenceEqual(newApp))
+                throw new BuildException("La recompresión no es reversible.");
+            Ok($"Recompresión reversible ({Fmt.N(comp.Length)} bytes).");
+
+            // 5. ¿Cabe?
+            var newTail = new byte[MStarLayout.TailSize];
+            BinaryPrimitives.WriteUInt32LittleEndian(newTail, (uint)newApp.Length);
+            newTail[4] = a.Tail[4];
+            newTail[5] = a.Tail[5];
+            newEnd = (long)MStarLayout.DeflateOffset + comp.Length + newTail.Length;
+            if (newEnd > limit)
+                throw new BuildException($"La app recomprimida no cabe: termina en 0x{newEnd:X} y el primer recurso está en 0x{limit:X}.");
+            Ok($"Cabe: fin 0x{newEnd:X6}, primer recurso 0x{limit:X6}, libres {Fmt.N(limit - newEnd)} bytes.");
+
+            // 6. Montar la app y la cabecera
+            outFw.AsSpan(MStarLayout.DeflateOffset, (int)(limit - MStarLayout.DeflateOffset)).Clear();
+            comp.CopyTo(outFw, MStarLayout.DeflateOffset);
+            newTail.CopyTo(outFw, MStarLayout.DeflateOffset + comp.Length);
+            uint crc = Crc32Msb.Compute(outFw.AsSpan(MStarLayout.AppFlashStart, (int)(newEnd - MStarLayout.AppFlashStart)));
+            nh = h with
+            {
+                FlashEnd = (uint)newEnd,
+                RamEnd = h.RamDest + (uint)(newEnd - MStarLayout.AppFlashStart),
+                Crc = crc,
+            };
+            var hs = outFw.AsSpan(MStarLayout.HeaderOffset);
+            BinaryPrimitives.WriteUInt32LittleEndian(hs[0x08..], nh.RamEnd);
+            BinaryPrimitives.WriteUInt32LittleEndian(hs[0x0C..], nh.FlashEnd);
+            BinaryPrimitives.WriteUInt32LittleEndian(hs[0x14..], nh.Crc);
+            compressedSize = comp.Length;
+        }
+        else
+        {
+            Ok("La aplicación no cambia (solo el logo): no se recomprime.");
+        }
+
+        // 7. Logo
+        byte[]? newLogo = null;
+        int logoOffset = 0, logoSlot = 0;
+        if (logoAction != LogoAction.Ninguna)
+        {
+            var spec = profile.Logo ?? throw new BuildException("El perfil no describe el recurso del logo.");
+            var entry = a.Tel.Entries.FirstOrDefault(e => e.Id == spec.TelId)
+                ?? throw new BuildException($"No existe el recurso 0x{spec.TelId:X4} (logo) en la tabla TEL.");
+            if (entry.Length < spec.JpegLength || entry.Offset < limit)
+                throw new BuildException("El recurso del logo no tiene el tamaño o la posición esperados.");
+            logoOffset = (int)entry.Offset;
+            logoSlot = spec.JpegLength;
+            var orig = fw.AsSpan(logoOffset, spec.JpegLength).ToArray();
+            JpegInfo oi;
+            try
+            {
+                oi = JpegInfo.Parse(orig);
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new BuildException("El logo original no es el esperado: " + ex.Message);
+            }
+            if (oi.Length != spec.JpegLength || oi.Width != spec.Width || oi.Height != spec.Height)
+                throw new BuildException("El logo original no es el esperado (longitud o dimensiones).");
+
+            cancel.ThrowIfCancellationRequested();
+            if (logoAction == LogoAction.Girar)
+            {
+                progress?.Report("Girando el logo 180°…");
+                try
+                {
+                    newLogo = LogoImage.Rotate180(orig);
+                }
+                catch (InvalidDataException ex)
+                {
+                    throw new BuildException("No se pudo girar el logo: " + ex.Message);
+                }
+            }
+            else
+            {
+                newLogo = customLogo ?? throw new BuildException("Falta el archivo JPEG del logo propio.");
+            }
+            ValidateLogo(newLogo, spec);
+            Ok($"Logo {(logoAction == LogoAction.Girar ? "girado 180°" : "propio")} válido: JPEG baseline {spec.Width}x{spec.Height}, " +
+               $"{Fmt.N(newLogo.Length)} bytes (máximo {Fmt.N(spec.JpegLength)}).");
+
+            // Mismo formato que el script: JPEG + ceros hasta la longitud original; el resto del recurso se conserva.
+            outFw.AsSpan(logoOffset, logoSlot).Clear();
+            newLogo.CopyTo(outFw, logoOffset);
+        }
+
+        // 8. Verificación independiente de la salida
         progress?.Report("Verificando el archivo generado…");
         var b = FirmwareAnalyzer.Analyze(outFw);
         var errors = b.Checks.Where(c => c.Status == CheckStatus.Error).Select(c => c.Title + ": " + c.Detail).ToList();
@@ -150,24 +225,38 @@ public static class FirmwareBuilder
         foreach (var p in patches)
             if (!b.App.AsSpan((int)(p.Address - profile.AppBaseRam), p.New.Length).SequenceEqual(p.New))
                 throw new BuildException($"El parche 0x{p.Address:X} no quedó aplicado.");
-        Ok($"Solo cambiaron los bytes previstos ({changed} bytes en la app).");
+        if (patches.Count > 0)
+            Ok($"Solo cambiaron los bytes previstos ({changed} bytes en la app).");
 
-        // Fuera de la zona de la app el archivo debe ser idéntico.
-        if (!fw.AsSpan(0, MStarLayout.HeaderOffset).SequenceEqual(outFw.AsSpan(0, MStarLayout.HeaderOffset))
-            || !fw.AsSpan(MStarLayout.HeaderOffset, 8).SequenceEqual(outFw.AsSpan(MStarLayout.HeaderOffset, 8))
-            || !fw.AsSpan(MStarLayout.HeaderOffset + 0x10, 4).SequenceEqual(outFw.AsSpan(MStarLayout.HeaderOffset + 0x10, 4))
-            || !fw.AsSpan(MStarLayout.HeaderOffset + AppHeader.Size, MStarLayout.DeflateOffset - MStarLayout.HeaderOffset - AppHeader.Size)
-                   .SequenceEqual(outFw.AsSpan(MStarLayout.HeaderOffset + AppHeader.Size, MStarLayout.DeflateOffset - MStarLayout.HeaderOffset - AppHeader.Size))
-            || !fw.AsSpan((int)limit).SequenceEqual(outFw.AsSpan((int)limit)))
-            throw new BuildException("Hay cambios fuera de la zona de la aplicación.");
-        Ok("Fuera de la aplicación el archivo es idéntico al original (SBOOT, PM, MS_IMG_INFO, TEL, recursos, base de datos).");
+        // Fuera de la app el archivo debe ser idéntico, salvo el hueco del logo (si se cambió).
+        bool SameRange(int from, int to) => fw.AsSpan(from, to - from).SequenceEqual(outFw.AsSpan(from, to - from));
+        bool outsideOk = SameRange(0, MStarLayout.HeaderOffset)
+            && SameRange(MStarLayout.HeaderOffset, MStarLayout.HeaderOffset + 8)
+            && SameRange(MStarLayout.HeaderOffset + 0x10, MStarLayout.HeaderOffset + 0x14)
+            && SameRange(MStarLayout.HeaderOffset + AppHeader.Size, MStarLayout.DeflateOffset);
+        if (newLogo is null)
+        {
+            outsideOk &= SameRange((int)limit, fw.Length);
+        }
+        else
+        {
+            outsideOk &= SameRange((int)limit, logoOffset) && SameRange(logoOffset + logoSlot, fw.Length);
+            var slot = outFw.AsSpan(logoOffset, logoSlot);
+            if (!slot[..newLogo.Length].SequenceEqual(newLogo) || slot[newLogo.Length..].IndexOfAnyExcept((byte)0) >= 0)
+                throw new BuildException("El hueco del logo no quedó como se esperaba.");
+        }
+        if (!outsideOk)
+            throw new BuildException("Hay cambios fuera de las zonas previstas.");
+        Ok(newLogo is null
+            ? "Fuera de la aplicación el archivo es idéntico al original (SBOOT, PM, MS_IMG_INFO, TEL, recursos, base de datos)."
+            : "Fuera de la aplicación y del hueco del logo el archivo es idéntico al original.");
 
         string outSha = Convert.ToHexStringLower(SHA256.HashData(outFw));
         var known = profile.KnownOutputFor(selection);
         if (known is not null)
             Ok(known.Sha256 == outSha
                 ? $"Idéntico a la versión ya generada y documentada ({known.FileName})."
-                : $"AVISO: difiere de la versión documentada {known.FileName} (mismo contenido, compresión distinta).");
+                : $"AVISO: difiere de la versión documentada {known.FileName}.");
 
         return new BuildResult
         {
@@ -179,11 +268,49 @@ public static class FirmwareBuilder
             OutputSha256 = outSha,
             OldHeader = h,
             NewHeader = nh,
-            CompressedSize = comp.Length,
+            CompressedSize = compressedSize,
             FreeBytes = limit - newEnd,
             ChangedAppBytes = changed,
+            Logo = logoAction,
+            LogoSha256 = newLogo is null ? null : Convert.ToHexStringLower(SHA256.HashData(newLogo)),
+            LogoLength = newLogo?.Length ?? 0,
             Known = known,
             Verifications = verifications,
         };
+    }
+
+    /// <summary>
+    /// Comprueba un JPEG para el hueco del logo: baseline (no progresivo), dimensiones exactas, en color,
+    /// que termina en EOI sin basura detrás, que cabe, y que se decodifica entero.
+    /// </summary>
+    public static void ValidateLogo(byte[] jpeg, LogoSpec spec)
+    {
+        JpegInfo info;
+        try
+        {
+            info = JpegInfo.Parse(jpeg);
+        }
+        catch (InvalidDataException ex)
+        {
+            throw new BuildException("Logo: " + ex.Message);
+        }
+        if (!info.IsBaseline)
+            throw new BuildException("Logo: debe ser JPEG baseline (no progresivo).");
+        if (info.Width != spec.Width || info.Height != spec.Height)
+            throw new BuildException($"Logo: debe medir {spec.Width}x{spec.Height} (mide {info.Width}x{info.Height}).");
+        if (info.Components != 3)
+            throw new BuildException("Logo: debe ser en color (3 componentes).");
+        if (info.Length != jpeg.Length)
+            throw new BuildException("Logo: hay datos después del final del JPEG (FFD9).");
+        if (jpeg.Length > spec.JpegLength)
+            throw new BuildException($"Logo: ocupa {Fmt.N(jpeg.Length)} bytes; el máximo es {Fmt.N(spec.JpegLength)}.");
+        try
+        {
+            LogoImage.DecodeRgb(jpeg, out _, out _);
+        }
+        catch (InvalidDataException ex)
+        {
+            throw new BuildException("Logo: " + ex.Message);
+        }
     }
 }
