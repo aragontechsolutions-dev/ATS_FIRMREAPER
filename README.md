@@ -5,7 +5,7 @@ Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 
 > **Estado: etapas 1 y 2 de 5 completadas.** Analiza, identifica y verifica volcados `.BIN`, y genera
 > las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX mando Soyea / espejo; Konka TV4-32K16
-> MIRROR en el menú de fábrica, todavía sin el logo girado).
+> espejo en el menú de fábrica o fijo, todavía sin el logo girado).
 > Plan completo en [docs/ETAPAS.md](docs/ETAPAS.md).
 
 ## Qué hace hoy

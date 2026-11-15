@@ -81,6 +81,17 @@
       "notas": "TV4-32K16_MIRROR_MENU.bin de patch_mirror_menu.py (zopfli 5 it.; logo con Pillow 12.3.0 / libjpeg-turbo 3.1.4.1). Funcionó en el TV según el resumen del proyecto."
     },
     {
+      "sha256": "98a919fbef5f848147272fe37a6ccd51bbd0166c0eb22ae8a75125ef211e5fe0",
+      "tipo": "generado",
+      "origen": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",
+      "modelo": "Konka TV4-32K16",
+      "placa": "TP.VST59S.PB813",
+      "nombre": "Konka TV4-32K16 + espejo fijo (logo sin girar)",
+      "variante": "mirror-fijo",
+      "estadoPrueba": "funciono",
+      "notas": "TV4-32K16_MIRROR.bin: primera versión, probada en el TV (funcionó). bMirror=1 + 14 lecturas del GOP fijas. Zopfli 5 it."
+    },
+    {
       "sha256": "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59",
       "tipo": "generado",
       "origen": "32c529658cdefd4beee9fd408a8d52586bbfa7cf4416084a7784f76dcadaad9e",

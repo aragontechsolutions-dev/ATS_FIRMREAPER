@@ -40,7 +40,10 @@ documentación, sin romper lo que ya funciona.
 - Original Konka recibido: `TV4-32K16.bin` = `32c52965…` (el esperado). Regenerando con el script la versión
   con logo sale `81bd3c8b…160b93570`, la misma del README del proyecto (Pillow 12.3.0, libjpeg-turbo 3.1.4.1).
 - GitHub Actions (Windows): compilación y pruebas superadas, incluida la del logaritmo.
-- 105 pruebas superadas (Linux, con firmwares).
+- **Konka "espejo fijo"** (`TV4-32K16_MIRROR.bin`, `98a919fb…`, recibido después): sus 15 parches se obtuvieron
+  comparándolo con el original y desensamblándolos (`bMirror = 1` + 14 lecturas de las banderas de espejo del
+  GOP fijadas a 1). El perfil Konka (v2) tiene la opción **Modo: en el menú / fijo** y genera ambos idénticos.
+- 107 pruebas superadas (Linux, con firmwares).
 
 **Problema encontrado y resuelto: el logaritmo de Windows**
 - GitHub Actions mostró que `Math.Log` en Windows da distinto último bit que Linux en algunos enteros →
@@ -51,7 +54,5 @@ documentación, sin romper lo que ya funciona.
   Resultado: igual a glibc bit a bit en todo el rango que usa Zopfli.
 
 **No comprobado / pendiente**
-- **Konka "espejo fijo"** (`TV4-32K16_MIRROR.bin`, la versión anterior): **no tengo** sus parches (no están en
-  los scripts recibidos); no está en el programa.
 - El logo girado del Konka (versión `81bd3c8b…`, la probada) y el editor del mando del LG → etapa 3.
 - La ventana no se ha abierto en un Windows real desde aquí (solo se compila).

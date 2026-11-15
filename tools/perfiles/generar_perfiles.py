@@ -86,13 +86,30 @@ guardar("lg-42lf652vx-soyea.json", {
 
 # ------------------------------------------------------------------ Konka TV4-32K16
 kk = cargar("patch_mirror_menu.py")
+menu = [parche(*x) for x in kk.PATCHES]
+
+# Versión "espejo fijo" (TV4-32K16_MIRROR.bin, SHA-256 98a919fb…, la primera que funcionó en el TV).
+# No hay script: los parches se obtuvieron comparando ese binario con el original y se desensamblaron
+# con tools/aeon/aeondis.py. 0x21DA41 es el mismo cambio que en la versión de menú.
+GOP_LBZ_E = ("10e70e", "50e001", "GOP: lbz r7,0xe(r7) -> ori r7,r0,0x1 (bandera de espejo del OSD = 1)")
+GOP_LBZ_F = ("10e70f", "50e001", "GOP: lbz r7,0xf(r7) -> ori r7,r0,0x1 (bandera de espejo del OSD = 1)")
+GOP_LWZ_C = ("0ce70e", "04e001", "GOP: lwz r7,0xc(r7) -> movhi r7,0x1 (palabra de banderas de espejo fija)")
+fijo_gop = [
+    (0x2AE569, GOP_LBZ_E), (0x2AE576, GOP_LBZ_F), (0x2B0E49, GOP_LWZ_C), (0x2B0E61, GOP_LBZ_E),
+    (0x2B0E76, GOP_LBZ_F), (0x2B0EE4, GOP_LBZ_F), (0x2B0F40, GOP_LWZ_C), (0x2B1301, GOP_LBZ_E),
+    (0x2B132B, GOP_LBZ_F), (0x2B13C7, GOP_LWZ_C), (0x2B13DF, GOP_LBZ_E), (0x2B13F4, GOP_LBZ_F),
+    (0x2B1414, GOP_LBZ_F), (0x2B1512, GOP_LBZ_E),
+]
+fijo = [parche(*kk.PATCHES[0])] + [parche(a, o, n, d) for a, (o, n, d) in fijo_gop]
+
 guardar("konka-tv4-32k16-mirror.json", {
     "formato": 1,
     "id": "konka-tv4-32k16-mirror",
-    "version": 1,
-    "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — MIRROR en el menú de fábrica",
-    "descripcion": "Espejo H+V de imagen y menús, activable en el menú de fábrica (opción 'Logo' → 'MIRROR'). "
-                   "Sin girar el logo (el logo girado 180° se añade en la etapa 3).",
+    "version": 2,
+    "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — espejo (MIRROR)",
+    "descripcion": "Espejo H+V de imagen y menús. 'En el menú': opción MIRROR ON/OFF en el menú de fábrica "
+                   "(en lugar de 'Logo'). 'Fijo': siempre activado (primera versión probada). "
+                   "El logo no se toca (el logo girado 180° se añade en la etapa 3).",
     "estado": "verificado",
     "original": {"sha256": kk.ORIG_SHA256},
     "app": {"baseRam": "0x%06X" % kk.APP_BASE},
@@ -100,15 +117,25 @@ guardar("konka-tv4-32k16-mirror.json", {
     "zonasPermitidas": [
         zona(0x21DA41, 0x21DA45, "XC init: bMirror"),
         zona(0x25E965, 0x25E969, "gancho 1 (tras cargar la base de datos)"),
+        zona(0x2AE569, 0x2B1515, "lecturas de las banderas de espejo del OSD en la librería GOP"),
         zona(0x2B29A7, 0x2B29AB, "gancho 2 (creación del contexto GOP)"),
         zona(0x32A0B4, 0x32A0B8, "puntero de la etiqueta del menú"),
         zona(0x33AB66, 0x33B9A2, "textos de depuración JPEG sin referencias"),
     ],
-    "parchesFijos": [parche(*x) for x in kk.PATCHES],
-    "opciones": [],
+    "parchesFijos": [],
+    "opciones": [
+        {"id": "modo", "etiqueta": "Modo de espejo", "tipo": "lista", "porDefecto": "menu",
+         "valores": [
+             {"id": "menu", "etiqueta": "Opción MIRROR en el menú de fábrica", "parches": menu},
+             {"id": "fijo", "etiqueta": "Espejo fijo (siempre activado)", "parches": fijo},
+         ]},
+    ],
     "salidasConocidas": [
-        {"opciones": {},
+        {"opciones": {"modo": "menu"},
          "sha256": "3bffdfd07255108fca0d1edc5cfa154f79e27375a3a4281d3284aa0d76750e59",
          "archivo": "TV4-32K16_MIRROR_MENU_SIN_LOGO.bin"},
+        {"opciones": {"modo": "fijo"},
+         "sha256": "98a919fbef5f848147272fe37a6ccd51bbd0166c0eb22ae8a75125ef211e5fe0",
+         "archivo": "TV4-32K16_MIRROR.bin"},
     ],
 })
