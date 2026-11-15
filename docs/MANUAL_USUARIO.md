@@ -1,4 +1,4 @@
-# FirmReaper 1.0 — Manual de usuario
+# FirmReaper 1.1 — Manual de usuario
 
 Programa para Windows que **analiza** volcados de firmware de placas de TV MStar (memoria SPI de 4 MB) y
 **genera versiones modificadas** de los firmwares que conoce, verificando todo antes de escribir.
@@ -354,5 +354,5 @@ El programa no guarda ajustes. Solo crea `%LOCALAPPDATA%\FirmReaper\errores.log`
 
 ---
 
-*FirmReaper 1.0.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
+*FirmReaper 1.1.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
 tablas AEON).*

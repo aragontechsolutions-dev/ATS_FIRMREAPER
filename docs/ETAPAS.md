@@ -132,3 +132,8 @@ documentación, sin romper lo que ya funciona.
   `docs/historial/README_ATEC_MANDO_SOYEA.md`.
 - Perfil ATEC v2: opción **Mando** (ATEC original por defecto / Soyea). Sin probar en el TV.
 - 152 pruebas superadas.
+
+## Versión 1.1.0
+- Icono propio y opción de mando Soyea en el ATEC (ver arriba). La 1.0.0 se publicó al fusionar el PR #1,
+  antes de estos dos cambios. Notas: `docs/NOTAS_VERSION_1.1.0.md`.
+- El trabajo `release` usa ahora las notas de la versión (`docs/NOTAS_VERSION_<versión>.md`) y falla si faltan.
