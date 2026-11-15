@@ -3,7 +3,8 @@
 Programa para Windows 10/11 que **analiza y modifica** firmwares de placas de TV
 **MStar** (CPU AEON R2, memoria SPI de 4 MB) mediante **perfiles** de parches verificados.
 
-> **Estado: etapas 1–4 completadas** (falta la 5: manual de usuario y versión final). Analiza, identifica y verifica volcados `.BIN`, y genera
+> **Versión 1.0.0 — las 5 etapas completadas.** Manual de usuario: [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md)
+> (también en [PDF](docs/MANUAL_USUARIO.pdf)). Analiza, identifica y verifica volcados `.BIN`, y genera
 > las versiones modificadas definidas en perfiles (hoy: LG 42LF652VX mando Soyea / espejo; Konka TV4-32K16
 > espejo en el menú de fábrica o fijo, y logo girado / propio / sin cambios; ATEC 32L18D panel LP141WX1
 > 1280x800, 8 o 6 bits).
@@ -112,6 +113,7 @@ el `.exe` en Windows en cada push; se descarga como artefacto desde la pestaña 
 
 ## Documentación
 
+- [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md) / [PDF](docs/MANUAL_USUARIO.pdf) — **manual de usuario**.
 - [docs/ETAPAS.md](docs/ETAPAS.md) — plan por etapas y estado.
 - [docs/FORMATO_MSTAR.md](docs/FORMATO_MSTAR.md) — formato del firmware (verificado vs. no verificado).
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — diseño del programa y **seguridad**.

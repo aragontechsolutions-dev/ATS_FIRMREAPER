@@ -104,3 +104,15 @@ documentación, sin romper lo que ya funciona.
 - **Sin confirmar:** que el `Atec32L18D_LP141WX1_8bit.BIN` grabado en el TV tenga esa misma huella (lo generó
   otra sesión; si usó otra zlib, sus bytes comprimidos podrían diferir aunque el contenido sea el mismo).
 - 150 pruebas superadas.
+
+## Etapa 5 — completada
+
+- **Manual de usuario:** `docs/MANUAL_USUARIO.md` y `docs/MANUAL_USUARIO.pdf` (A4, 8 páginas). Cubre instalación,
+  la ventana, generar (LG, Konka, ATEC, editor del mando, logo propio), archivos que se guardan, cómo grabar con
+  el programador, mensajes de error, línea de comandos, perfiles y versiones conocidas.
+- El PDF se regenera con `python3 tools/docs/md_a_pdf.py docs/MANUAL_USUARIO.md docs/MANUAL_USUARIO.pdf`
+  (markdown 3.7 + Chromium/Playwright).
+- **Versión 1.0.0** (en `Directory.Build.props`): se muestra en el título de la ventana y en la ayuda del CLI.
+- El paquete de GitHub Actions incluye `FirmReaper.exe`, `firmreaper-cli.exe`, `MANUAL_USUARIO.pdf`,
+  `SHA256.txt` y `LEEME.txt`.
+- La guía técnica para crear perfiles ya existía (`docs/PERFILES.md`).

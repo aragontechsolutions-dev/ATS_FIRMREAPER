@@ -56,10 +56,13 @@ internal static class Program
         }
     }
 
+    private static string Version =>
+        typeof(Program).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?";
+
     private static int Usage()
     {
-        Console.Error.WriteLine("""
-            FirmReaper (línea de comandos) — firmware MStar
+        Console.Error.WriteLine($"""
+            FirmReaper {Version} (línea de comandos) — firmware MStar
               firmreaper-cli info ARCHIVO.BIN [--json]
               firmreaper-cli verificar ARCHIVO.BIN [ARCHIVO2.BIN ...]
               firmreaper-cli catalogo

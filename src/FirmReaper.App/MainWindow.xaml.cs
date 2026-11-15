@@ -26,12 +26,17 @@ public partial class MainWindow : Window
     private string? _lastSha;
     private readonly Dictionary<string, ComboBox> _optionBoxes = [];
     private CancellationTokenSource? _cts;
+
+    /// <summary>Versión del programa (Directory.Build.props), p. ej. "1.0.0".</summary>
+    public static string AppVersion =>
+        typeof(MainWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?";
     /// <summary>Tabla del mando editada (null = la del perfil).</summary>
     private List<KeyAssignment>? _keyMap;
 
     public MainWindow()
     {
         InitializeComponent();
+        Title = $"FirmReaper {AppVersion} — firmware MStar";
         _catalog = FirmwareCatalog.LoadEmbedded();
         _profiles = ProfileRegistry.Load(ProfileRegistry.DefaultExternalFolder());
         if (_profiles.Errors.Count > 0)

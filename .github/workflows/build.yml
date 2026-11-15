@@ -66,10 +66,12 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item publish/app/FirmReaper.exe dist/
           Copy-Item publish/cli/firmreaper-cli.exe dist/
+          Copy-Item docs/MANUAL_USUARIO.pdf dist/
           Get-FileHash dist\*.exe -Algorithm SHA256 | Format-Table -AutoSize | Out-String -Width 200 | Tee-Object dist\SHA256.txt
           @"
           FirmReaper.exe       -> la VENTANA (doble clic).
           firmreaper-cli.exe   -> la LÍNEA DE COMANDOS (usar desde cmd/PowerShell).
+          MANUAL_USUARIO.pdf   -> manual de usuario.
           "@ | Set-Content -Encoding UTF8 dist\LEEME.txt
 
       - uses: actions/upload-artifact@v4
