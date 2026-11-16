@@ -44,7 +44,9 @@ No hay otra fuente: el logo es siempre el recurso `0x0300`.
 - `0x2B8474`: `movhi r3,0x37 ; movhi r4,0x9` → desprotege `0x370000`+`0x90000` antes de escribir
   ("WriteProtect open fail"): es la grabación del "Capture Logo" del menú.
 
-Conclusión: si el TV del usuario muestra "LG Life's Good" al encender, usa la zona `0x370000`. FirmReaper cambia
+Conclusión: si el TV del usuario muestra "LG Life's Good" al encender, usa la zona `0x370000`.
+**Confirmado por el usuario (2026-11-16): su LG muestra "LG Life's Good" al encender** → usa la zona `0x370000`
+(el ajuste de logo vale 2). FirmReaper cambia
 solo esa zona (hasta 0x40000 bytes, que es lo que lee el TV), con `FF` detrás.
 
 ## 5. Decodificación igual que Pillow

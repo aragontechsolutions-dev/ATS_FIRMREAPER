@@ -159,8 +159,8 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 - Con "Sí" + "Desactivado" + logo "Sin cambios" sale `LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN`.
 - **Logo:** este firmware guarda el logo "LG Life's Good" en una zona aparte (`0x370000`, la del "logo
   capturado"). El programa del TV lo usa **si su ajuste de logo está en ese modo**; si no, muestra una imagen
-  **azul lisa**. Si al encender tu TV ves "LG Life's Good", es este logo el que cambia; si ves una pantalla azul,
-  cambiarlo no tendrá efecto.
+  **azul lisa**. Si al encender tu TV ves "LG Life's Good", es este logo el que cambia (así ocurre en el TV de
+  este proyecto); si ves una pantalla azul, cambiarlo no tendrá efecto.
 - **Pendiente de probar en el TV:** encender desde reposo con el mando Soyea (el modo de reposo no se modificó).
 
 ### 4.2 Konka TV4-32K16

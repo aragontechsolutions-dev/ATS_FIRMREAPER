@@ -76,7 +76,8 @@ recurso con `crc16` en el perfil, y el análisis avisa si no coincide.
 | LG | Función `0x2C238C`: si el ajuste de logo (RAM `0x53F565`) vale 2, lee **0x40000 bytes desde `0x370000`** ("logo capturado": "LG Life's Good"); si no, el recurso TEL `0x0301` (imagen **azul lisa**) | `0x370000`: 1376x768, 4:2:2, sin reinicios, resto de la zona a `FF` hasta `0x3B0000` |
 
 En el LG el desplazamiento dentro de la zona sale de `(ajuste << 14) & 0xC0000`; con el valor del volcado del
-usuario es `0x370000` (en `0x3B0000` empiezan otros datos, no un JPEG).
+usuario es `0x370000` (en `0x3B0000` empiezan otros datos, no un JPEG). Confirmado por el usuario: su TV muestra
+"LG Life's Good" al encender.
 
 | Binario | Recursos | Primer recurso | Fin app | Libre |
 |---|---|---|---|---|

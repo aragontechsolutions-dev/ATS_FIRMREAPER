@@ -172,7 +172,8 @@ Esta etapa cubre el **logo**. Análisis: `docs/historial/README_LOGOS_ATEC_LG.md
 - Prueba de extremo a extremo con la línea de comandos (PNG de 800x600 → ATEC y LG) revisada a la vista.
 - 198 pruebas superadas.
 
-**Sin probar en el TV:** logos del ATEC y del LG. En el LG, confirmar que al encender se ve "LG Life's Good".
+**Sin probar en el TV:** logos del ATEC y del LG. Confirmado por el usuario (2026-11-16): el LG muestra
+"LG Life's Good" al encender, así que el logo que cambia el programa es el que se ve.
 
 ## Versión 1.2.0
 - Etapa 6. Notas: `docs/NOTAS_VERSION_1.2.0.md`.
