@@ -1,7 +1,7 @@
 {
   "formato": 1,
   "id": "atec-32l18d-lp141wx1",
-  "version": 3,
+  "version": 4,
   "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
   "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV (necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
   "estado": "verificado",
@@ -25,6 +25,11 @@
       "desde": "0x4E3A78",
       "hasta": "0x4E3AD4",
       "motivo": "entrada #1 de la tabla de paneles (la que usa este TV)"
+    },
+    {
+      "desde": "0x422090",
+      "hasta": "0x422190",
+      "motivo": "tabla código→función del mando (256 bytes; rutina IR 0x3233AA)"
     }
   ],
   "parchesFijos": [],
@@ -118,6 +123,406 @@
     "longitudJpeg": 49128,
     "ancho": 2167,
     "alto": 1228
+  },
+  "clienteMando": {
+    "direccion": "0x3233D5",
+    "formato": "aeon-sfeqi",
+    "registro": 7,
+    "original": "36 77"
+  },
+  "tablaMando": {
+    "formato": "directa256",
+    "direccion": "0x422090",
+    "original": "000102030405060708090a0b0c0d0e0fffffffff14101112132627ff221dffff30191a1b1c6effff3c3dffffffffffffffffffffffffffffffffffffffffffff2cffffffff2a2b3aff2fff2523ff1e58ff66ff211f207270ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "nota": "Las funciones se llaman como el botón del mando Soyea/ATEC que las produce. La cruceta de ese mando envía VOL±/CH±; dentro de los menús el firmware (el mismo del Soyea) las usa como flechas.",
+    "funciones": [
+      {
+        "indice": "0x00",
+        "nombre": "0"
+      },
+      {
+        "indice": "0x01",
+        "nombre": "1"
+      },
+      {
+        "indice": "0x02",
+        "nombre": "2"
+      },
+      {
+        "indice": "0x03",
+        "nombre": "3"
+      },
+      {
+        "indice": "0x04",
+        "nombre": "4"
+      },
+      {
+        "indice": "0x05",
+        "nombre": "5"
+      },
+      {
+        "indice": "0x06",
+        "nombre": "6"
+      },
+      {
+        "indice": "0x07",
+        "nombre": "7"
+      },
+      {
+        "indice": "0x08",
+        "nombre": "8"
+      },
+      {
+        "indice": "0x09",
+        "nombre": "9"
+      },
+      {
+        "indice": "0x0A",
+        "nombre": "-/-- (DASH)"
+      },
+      {
+        "indice": "0x0B",
+        "nombre": "RETURN (canal anterior)"
+      },
+      {
+        "indice": "0x0C",
+        "nombre": "POWER"
+      },
+      {
+        "indice": "0x0D",
+        "nombre": "SOURCE (fuente)"
+      },
+      {
+        "indice": "0x0E",
+        "nombre": "MUTE"
+      },
+      {
+        "indice": "0x0F",
+        "nombre": "MENU"
+      },
+      {
+        "indice": "0x10",
+        "nombre": "VOL+ / DERECHA en menús"
+      },
+      {
+        "indice": "0x11",
+        "nombre": "VOL- / IZQUIERDA en menús"
+      },
+      {
+        "indice": "0x12",
+        "nombre": "CH+ / ARRIBA en menús"
+      },
+      {
+        "indice": "0x13",
+        "nombre": "CH- / ABAJO en menús"
+      },
+      {
+        "indice": "0x14",
+        "nombre": "OK (SELECT)"
+      },
+      {
+        "indice": "0x19",
+        "nombre": "ROJO"
+      },
+      {
+        "indice": "0x1A",
+        "nombre": "VERDE"
+      },
+      {
+        "indice": "0x1B",
+        "nombre": "AMARILLO"
+      },
+      {
+        "indice": "0x1C",
+        "nombre": "AZUL"
+      },
+      {
+        "indice": "0x1D",
+        "nombre": "EXIT"
+      },
+      {
+        "indice": "0x1E",
+        "nombre": "PREV"
+      },
+      {
+        "indice": "0x1F",
+        "nombre": "REW"
+      },
+      {
+        "indice": "0x20",
+        "nombre": "FF"
+      },
+      {
+        "indice": "0x21",
+        "nombre": "NEXT"
+      },
+      {
+        "indice": "0x22",
+        "nombre": "INFO"
+      },
+      {
+        "indice": "0x23",
+        "nombre": "STOP"
+      },
+      {
+        "indice": "0x25",
+        "nombre": "PLAY"
+      },
+      {
+        "indice": "0x26",
+        "nombre": "PICTURE (modo imagen)"
+      },
+      {
+        "indice": "0x27",
+        "nombre": "AUDIO"
+      },
+      {
+        "indice": "0x2A",
+        "nombre": "SLEEP"
+      },
+      {
+        "indice": "0x2B",
+        "nombre": "CC"
+      },
+      {
+        "indice": "0x2C",
+        "nombre": "MTS"
+      },
+      {
+        "indice": "0x2F",
+        "nombre": "CH.LIST (lista de canales)"
+      },
+      {
+        "indice": "0x30",
+        "nombre": "FAV"
+      },
+      {
+        "indice": "0x3A",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "indice": "0x3C",
+        "nombre": "PAGE UP"
+      },
+      {
+        "indice": "0x3D",
+        "nombre": "PAGE DOWN"
+      },
+      {
+        "indice": "0x58",
+        "nombre": "TEMP_DET"
+      },
+      {
+        "indice": "0x66",
+        "nombre": "EPG"
+      },
+      {
+        "indice": "0x6E",
+        "nombre": "TV/RADIO"
+      },
+      {
+        "indice": "0x70",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      },
+      {
+        "indice": "0x72",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      }
+    ],
+    "botones": [
+      {
+        "codigo": "0x00",
+        "nombre": "0"
+      },
+      {
+        "codigo": "0x01",
+        "nombre": "1"
+      },
+      {
+        "codigo": "0x02",
+        "nombre": "2"
+      },
+      {
+        "codigo": "0x03",
+        "nombre": "3"
+      },
+      {
+        "codigo": "0x04",
+        "nombre": "4"
+      },
+      {
+        "codigo": "0x05",
+        "nombre": "5"
+      },
+      {
+        "codigo": "0x06",
+        "nombre": "6"
+      },
+      {
+        "codigo": "0x07",
+        "nombre": "7"
+      },
+      {
+        "codigo": "0x08",
+        "nombre": "8"
+      },
+      {
+        "codigo": "0x09",
+        "nombre": "9"
+      },
+      {
+        "codigo": "0x0A",
+        "nombre": "-/-- (DASH)"
+      },
+      {
+        "codigo": "0x0B",
+        "nombre": "RETURN (canal anterior)"
+      },
+      {
+        "codigo": "0x0C",
+        "nombre": "POWER"
+      },
+      {
+        "codigo": "0x0D",
+        "nombre": "SOURCE (fuente)"
+      },
+      {
+        "codigo": "0x0E",
+        "nombre": "MUTE"
+      },
+      {
+        "codigo": "0x0F",
+        "nombre": "MENU"
+      },
+      {
+        "codigo": "0x14",
+        "nombre": "OK (SELECT)"
+      },
+      {
+        "codigo": "0x15",
+        "nombre": "VOL+ / DERECHA en menús"
+      },
+      {
+        "codigo": "0x16",
+        "nombre": "VOL- / IZQUIERDA en menús"
+      },
+      {
+        "codigo": "0x17",
+        "nombre": "CH+ / ARRIBA en menús"
+      },
+      {
+        "codigo": "0x18",
+        "nombre": "CH- / ABAJO en menús"
+      },
+      {
+        "codigo": "0x19",
+        "nombre": "PICTURE (modo imagen)"
+      },
+      {
+        "codigo": "0x1A",
+        "nombre": "AUDIO"
+      },
+      {
+        "codigo": "0x1C",
+        "nombre": "INFO"
+      },
+      {
+        "codigo": "0x1D",
+        "nombre": "EXIT"
+      },
+      {
+        "codigo": "0x20",
+        "nombre": "FAV"
+      },
+      {
+        "codigo": "0x21",
+        "nombre": "ROJO"
+      },
+      {
+        "codigo": "0x22",
+        "nombre": "VERDE"
+      },
+      {
+        "codigo": "0x23",
+        "nombre": "AMARILLO"
+      },
+      {
+        "codigo": "0x24",
+        "nombre": "AZUL"
+      },
+      {
+        "codigo": "0x25",
+        "nombre": "TV/RADIO"
+      },
+      {
+        "codigo": "0x28",
+        "nombre": "PAGE UP"
+      },
+      {
+        "codigo": "0x29",
+        "nombre": "PAGE DOWN"
+      },
+      {
+        "codigo": "0x40",
+        "nombre": "MTS"
+      },
+      {
+        "codigo": "0x45",
+        "nombre": "SLEEP"
+      },
+      {
+        "codigo": "0x46",
+        "nombre": "CC"
+      },
+      {
+        "codigo": "0x47",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "codigo": "0x49",
+        "nombre": "CH.LIST (lista de canales)"
+      },
+      {
+        "codigo": "0x4B",
+        "nombre": "PLAY"
+      },
+      {
+        "codigo": "0x4C",
+        "nombre": "STOP"
+      },
+      {
+        "codigo": "0x4E",
+        "nombre": "PREV"
+      },
+      {
+        "codigo": "0x4F",
+        "nombre": "TEMP_DET"
+      },
+      {
+        "codigo": "0x51",
+        "nombre": "EPG"
+      },
+      {
+        "codigo": "0x53",
+        "nombre": "NEXT"
+      },
+      {
+        "codigo": "0x54",
+        "nombre": "REW"
+      },
+      {
+        "codigo": "0x55",
+        "nombre": "FF"
+      },
+      {
+        "codigo": "0x56",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      },
+      {
+        "codigo": "0x57",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      }
+    ]
   },
   "salidasConocidas": [
     {

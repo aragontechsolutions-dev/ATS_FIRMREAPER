@@ -33,6 +33,10 @@ public sealed class BuildResult
     public IReadOnlyList<KeyAssignment>? KeyMap { get; init; }
     /// <summary>True si la tabla del mando es distinta de la del perfil.</summary>
     public bool KeyMapEdited { get; init; }
+    /// <summary>Código de cliente del mando que queda en el firmware (null si el perfil no lo describe).</summary>
+    public NecCustomer? ClientCode { get; init; }
+    /// <summary>True si el código de cliente lo eligió el usuario (distinto del que daban las opciones).</summary>
+    public bool ClientCodeEdited { get; init; }
     /// <summary>Salida conocida del perfil para esta selección (null si no hay).</summary>
     public KnownOutput? Known { get; init; }
     /// <summary>True si la huella coincide con la salida conocida (archivo idéntico al ya generado/probado).</summary>
@@ -56,7 +60,7 @@ public static class FirmwareBuilder
 
     public static BuildResult Build(byte[] fw, Profile profile, IReadOnlyDictionary<string, string> selection,
         byte[]? customLogo = null, IProgress<string>? progress = null, CancellationToken cancel = default,
-        IReadOnlyList<KeyAssignment>? keyMap = null)
+        IReadOnlyList<KeyAssignment>? keyMap = null, NecCustomer? clientCode = null)
     {
         ArgumentNullException.ThrowIfNull(fw);
         ArgumentNullException.ThrowIfNull(profile);
@@ -81,12 +85,12 @@ public static class FirmwareBuilder
         var patches = profile.PatchesFor(selection);
         var logoAction = profile.LogoActionFor(selection);
 
-        // Tabla del mando: si se aplica la opción que la contiene, se puede sustituir por una editada.
+        // Tabla del mando: ligada a un parche (se sustituyen sus bytes nuevos) o en su sitio (parche nuevo sobre
+        // los bytes originales del perfil). Si no cambia nada, no hay parche.
         IReadOnlyList<KeyAssignment>? appliedKeyMap = null;
         bool keyMapEdited = false;
         var kt = profile.KeyTable;
-        bool tableApplies = kt is not null &&
-            (selection.TryGetValue(kt.OptionId, out var tv) ? tv : profile.Options.First(o => o.Id == kt.OptionId).Default) == kt.ValueId;
+        bool tableApplies = kt is not null && kt.AppliesTo(selection, profile);
         if (keyMap is not null && !tableApplies)
             throw new BuildException("Se indicó una tabla del mando, pero la opción elegida no la aplica.");
         if (tableApplies)
@@ -98,12 +102,47 @@ public static class FirmwareBuilder
             keyMapEdited = !kt.IsDefault(appliedKeyMap);
             if (keyMapEdited)
             {
-                int i = patches.FindIndex(p => p.Address == kt.Address);
-                var old = patches[i];
-                patches[i] = old with { New = kt.Encode(appliedKeyMap), Description = old.Description + " [EDITADA]" };
+                var bytes = kt.Encode(appliedKeyMap);
+                if (kt.InPlace)
+                {
+                    patches.Add(new Patch(kt.Address, kt.OriginalBytes!, bytes, "Tabla código → función del mando [EDITADA]"));
+                }
+                else
+                {
+                    int i = patches.FindIndex(p => p.Address == kt.Address);
+                    var old = patches[i];
+                    patches[i] = old with { New = bytes, Description = old.Description + " [EDITADA]" };
+                }
                 Ok($"Tabla del mando editada: {appliedKeyMap.Count} teclas (máximo {kt.MaxAssignments}).");
             }
         }
+
+        // Código de cliente del mando: el que dan las opciones, salvo que el usuario elija otro.
+        NecCustomer? finalClient = null;
+        bool clientEdited = false;
+        if (profile.ClientCode is { } cc)
+        {
+            int ci = patches.FindIndex(p => p.Address == cc.Address);
+            var fromOptions = ci >= 0 ? cc.Decode(patches[ci].New)!.Value : cc.Original;
+            finalClient = fromOptions;
+            if (clientCode is { } want && want != fromOptions)
+            {
+                if (cc.WhyNot(want) is { } why) throw new BuildException("Código de cliente: " + why);
+                var bytes = cc.Encode(want);
+                string desc = $"Código de cliente del mando: {cc.Original} → {want} [ELEGIDO]";
+                if (ci >= 0) patches.RemoveAt(ci);
+                if (want != cc.Original) patches.Add(new Patch(cc.Address, cc.OriginalBytes, bytes, desc));
+                finalClient = want;
+                clientEdited = true;
+                Ok($"Código de cliente del mando elegido: {want} (las opciones daban {fromOptions}).");
+            }
+        }
+        else if (clientCode is not null)
+        {
+            throw new BuildException("Este perfil no permite cambiar el código de cliente del mando.");
+        }
+        patches.Sort((x, y) => x.Address.CompareTo(y.Address));
+
         if (patches.Count == 0 && logoAction == LogoAction.Ninguna)
             throw new BuildException("Con estas opciones no hay nada que cambiar: el resultado sería el original.");
         if (logoAction != LogoAction.Propio && customLogo is not null)
@@ -283,8 +322,8 @@ public static class FirmwareBuilder
             : "Fuera de la aplicación y del hueco del logo el archivo es idéntico al original.");
 
         string outSha = Convert.ToHexStringLower(SHA256.HashData(outFw));
-        // Con una tabla editada no hay versión documentada con la que comparar.
-        var known = keyMapEdited ? null : profile.KnownOutputFor(selection);
+        // Con una tabla o un código de cliente elegidos no hay versión documentada con la que comparar.
+        var known = keyMapEdited || clientEdited ? null : profile.KnownOutputFor(selection);
         if (known is not null)
             Ok(known.Sha256 == outSha
                 ? $"Idéntico a la versión ya generada y documentada ({known.FileName})."
@@ -309,6 +348,8 @@ public static class FirmwareBuilder
             LogoDetail = logoDetail,
             KeyMap = appliedKeyMap,
             KeyMapEdited = keyMapEdited,
+            ClientCode = finalClient,
+            ClientCodeEdited = clientEdited,
             Known = known,
             Verifications = verifications,
         };

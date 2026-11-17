@@ -23,20 +23,44 @@ public sealed class ProfileFile
     public ProfileLogo? Logo { get; init; }
     /// <summary>Opcional: tabla código → función del mando, editable por el usuario.</summary>
     public ProfileKeyTable? TablaMando { get; init; }
+    /// <summary>Opcional: código de cliente del mando, editable por el usuario.</summary>
+    public ProfileClientCode? ClienteMando { get; init; }
 }
 
 public sealed class ProfileKeyTable
 {
-    /// <summary>Dirección (RAM) de la tabla; debe coincidir con un parche del valor <see cref="Opcion"/>=<see cref="Valor"/>.</summary>
+    /// <summary>"lista8" (LG, por defecto), "lista4" (Konka) o "directa256" (ATEC). Ver docs/PERFILES.md.</summary>
+    public string? Formato { get; init; }
+    /// <summary>Dirección (RAM) de la tabla.</summary>
     public required string Direccion { get; init; }
-    /// <summary>Número de entradas de 8 bytes (incluido el terminador).</summary>
-    public required int Entradas { get; init; }
-    /// <summary>Valor que se suma al código del botón en cada entrada (u32), p. ej. "0x0100".</summary>
-    public required string PrefijoCodigo { get; init; }
-    public required string Opcion { get; init; }
-    public required string Valor { get; init; }
+    /// <summary>lista8/lista4: número de entradas (incluido el terminador). No se usa en directa256.</summary>
+    public int? Entradas { get; init; }
+    /// <summary>Solo lista8: valor que se suma al código del botón en cada entrada (u32), p. ej. "0x0100".</summary>
+    public string? PrefijoCodigo { get; init; }
+    /// <summary>
+    /// Tabla ligada a un parche: opción y valor cuyo parche (misma dirección y longitud) es la tabla.
+    /// Sin ellos, la tabla es la del firmware original ("original") y se edita en su sitio.
+    /// </summary>
+    public string? Opcion { get; init; }
+    public string? Valor { get; init; }
+    /// <summary>Tabla en su sitio: bytes originales en hexadecimal (se comprueban al generar).</summary>
+    public string? Original { get; init; }
+    /// <summary>Texto para el usuario en el editor (p. ej. cómo actúa la cruceta).</summary>
+    public string? Nota { get; init; }
     public required List<ProfileKeyFunction> Funciones { get; init; }
     public required List<ProfileKeyButton> Botones { get; init; }
+}
+
+public sealed class ProfileClientCode
+{
+    /// <summary>Dirección (RAM) donde está el código de cliente.</summary>
+    public required string Direccion { get; init; }
+    /// <summary>"bytes-invertidos" o "aeon-sfeqi" (ver docs/PERFILES.md).</summary>
+    public required string Formato { get; init; }
+    /// <summary>Solo aeon-sfeqi: registro de la instrucción (0–31).</summary>
+    public int? Registro { get; init; }
+    /// <summary>Código del original, en el orden de envío: "00 BF".</summary>
+    public required string Original { get; init; }
 }
 
 public sealed class ProfileKeyFunction

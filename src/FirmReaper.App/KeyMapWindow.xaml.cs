@@ -8,7 +8,10 @@ using Microsoft.Win32;
 
 namespace FirmReaper.App;
 
-/// <summary>Editor de la tabla botón → función de un mando (perfiles con "tablaMando").</summary>
+/// <summary>
+/// Editor de la tabla botón → función de un mando (perfiles con "tablaMando"). Muestra los botones conocidos del
+/// perfil y los códigos que el usuario añade (botones de otro mando).
+/// </summary>
 public partial class KeyMapWindow : Window
 {
     /// <summary>Fila del editor: un botón del mando y la función elegida (-1 = sin función).</summary>
@@ -53,18 +56,26 @@ public partial class KeyMapWindow : Window
         functions.AddRange(_spec.Functions.OrderBy(f => f.Key).Select(f => new FunctionItem(f.Key, $"0x{f.Key:X2}  {f.Value}")));
         ColFunction.ItemsSource = functions;
 
-        foreach (var (code, name) in _spec.Buttons)
-        {
-            var row = new KeyRow { Code = code, ButtonName = name };
-            row.PropertyChanged += (_, _) => UpdateCount();
-            _rows.Add(row);
-        }
+        TxtNote.Text = _spec.Note ?? "";
+        TxtNote.Visibility = string.IsNullOrEmpty(_spec.Note) ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var (code, name) in _spec.Buttons) AddRow(code, name);
         Grid.ItemsSource = _rows;
         Load(current);
     }
 
+    private KeyRow AddRow(byte code, string name)
+    {
+        var row = new KeyRow { Code = code, ButtonName = name, FunctionIndex = -1 };
+        row.PropertyChanged += (_, _) => UpdateCount();
+        _rows.Add(row);
+        return row;
+    }
+
     private void Load(IReadOnlyList<KeyAssignment> map)
     {
+        // Códigos de la tabla que no son botones conocidos (otro mando): se añaden como filas.
+        foreach (var a in map)
+            if (_rows.All(r => r.Code != a.Code)) AddRow(a.Code, _spec.ButtonName(a.Code));
         foreach (var r in _rows)
         {
             var a = map.FirstOrDefault(k => k.Code == r.Code);
@@ -83,8 +94,8 @@ public partial class KeyMapWindow : Window
         var map = new List<KeyAssignment>();
         foreach (var d in _spec.Default)
             if (assigned.Remove(d.Code, out byte idx)) map.Add(new KeyAssignment(d.Code, idx));
-        foreach (var (code, _) in _spec.Buttons)
-            if (assigned.Remove(code, out byte idx)) map.Add(new KeyAssignment(code, idx));
+        foreach (var r in _rows)
+            if (assigned.Remove(r.Code, out byte idx)) map.Add(new KeyAssignment(r.Code, idx));
         return map;
     }
 
@@ -96,6 +107,22 @@ public partial class KeyMapWindow : Window
     }
 
     private void OnRestore(object sender, RoutedEventArgs e) => Load(_spec.Default);
+
+    private void OnAddCode(object sender, RoutedEventArgs e)
+    {
+        var t = TxtNewCode.Text.Trim();
+        if (t.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) t = t[2..];
+        if (t.Length is < 1 or > 2 || !byte.TryParse(t, System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture, out byte code))
+        {
+            MessageBox.Show(this, "Escribe el código del botón en hexadecimal (00–FF).", "FirmReaper", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        var row = _rows.FirstOrDefault(r => r.Code == code) ?? AddRow(code, _spec.ButtonName(code));
+        Grid.SelectedItem = row;
+        Grid.ScrollIntoView(row);
+        TxtNewCode.Clear();
+    }
 
     private void OnImport(object sender, RoutedEventArgs e)
     {

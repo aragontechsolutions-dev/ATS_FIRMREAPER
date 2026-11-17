@@ -73,7 +73,7 @@ BOTONES_SOYEA = [(c, n) for c, _, n in lg.SOYEA_MAP] + [
 guardar("lg-42lf652vx-soyea.json", {
     "formato": 1,
     "id": "lg-42lf652vx-soyea",
-    "version": 6,
+    "version": 7,
     "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB y logo",
     "descripcion": "Obedecer al mando Soyea LKK32CMB con la misma función por botón que el firmware Soyea; "
                    "cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica. "
@@ -121,7 +121,14 @@ guardar("lg-42lf652vx-soyea.json", {
          "sha256": "3a836aee3dacb7d60fade3f7e834e8578309156e58a02e365e122fe236fed599",
          "archivo": "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN"},
     ],
+    # Código de cliente del mando 1: en memoria en orden inverso al de envío (el Soyea "37 78", probado en el TV,
+    # está como 78 37). "Mando Soyea = sí" lo cambia a 37 78; el usuario puede poner otro
+    # (ver docs/historial/README_MANDO_GENERICO.md).
+    "clienteMando": {"direccion": "0x39DEFE", "formato": "bytes-invertidos", "original": "00 BF"},
     "tablaMando": {
+        "formato": "lista8",
+        "nota": "Los botones con función VOLUME_± o CHANNEL_± hacen además de flechas dentro de los menús y del "
+                "USB (lo decide la rutina de la cruceta de la v5 según la función, no según el botón).",
         "direccion": "0x%06X" % lg.KEYTAB,
         "entradas": lg.KEYTAB_N,
         "prefijoCodigo": "0x0100",
@@ -135,6 +142,21 @@ guardar("lg-42lf652vx-soyea.json", {
 # ------------------------------------------------------------------ Konka TV4-32K16
 kk = cargar("patch_mirror_menu.py")
 menu = [parche(*x) for x in kk.PATCHES]
+
+# Mando del Konka (análisis en docs/historial/README_MANDO_GENERICO.md):
+# - 0x38FFA2: código de cliente u16 (el decodificador 0x2A60DF pone el 1.er byte en la parte alta → en memoria
+#   queda en orden inverso al de envío). Original 07 07.
+# - 0x38FFA4: lista de 46 entradas de 4 bytes [código, tecla, 0, 0], terminada en tecla 0xFF (45 teclas);
+#   al arrancar (0x25F519) se copia a la tabla RAM 0x3EA7D4 indexada por código. Detrás hay otros datos: no crece.
+# - La tecla usa la MISMA numeración que los índices del LG (misma familia TP.): dígitos 0x02–0x0B, flechas
+#   0x0D–0x10, OK 0x11, VOL/CH 0x12–0x15 (0x25F971 convierte flechas ↔ VOL/CH igual que el LG).
+KONKA_TABLA_HEX = (
+    "02010000011f00006e21000028220000212800002427000004030000050400000605000008060000090700000a080000"
+    "0c0900000d0a00000e0b00002c0c00001102000013200000071200000b13000012140000101500001e1c00000f1e0000"
+    "1a1b00002d1a000068110000650f000062100000600d0000610e000047430000461d000045290000482a0000502b0000"
+    "3d2c00003762000041610000355900003e2300001f5d0000445e0000422d0000432e0000ffff0000"
+)
+
 
 # Versión "espejo fijo" (TV4-32K16_MIRROR.bin, SHA-256 98a919fb…, la primera que funcionó en el TV).
 # No hay script: los parches se obtuvieron comparando ese binario con el original y se desensamblaron
@@ -150,11 +172,45 @@ fijo_gop = [
 ]
 fijo = [parche(*kk.PATCHES[0])] + [parche(a, o, n, d) for a, (o, n, d) in fijo_gop]
 
+NOMBRES_LG = dict(FUNCIONES_LG)
+_kt = bytes.fromhex(KONKA_TABLA_HEX)
+KONKA_TECLAS = []                     # (código, tecla) del original, en orden
+for _i in range(0, len(_kt), 4):
+    if _kt[_i + 1] == 0xFF:
+        break
+    KONKA_TECLAS.append((_kt[_i], _kt[_i + 1]))
+assert len(KONKA_TECLAS) == 45 and len(_kt) == 46 * 4
+
+
+def nombre_konka(t):
+    # Misma numeración que los índices del LG; las que el LG no documenta, sin nombre (no se inventan).
+    n = NOMBRES_LG.get(t)
+    if n is None or "sin identificar" in n:
+        return "tecla Konka 0x%02X (sin identificar)" % t
+    return n
+
+
+def verificar_tabla(bin_path, base_ram, addr, hex_esperado, nombre):
+    """Si el original está en firmware_local, comprueba que la tabla embebida es la del firmware."""
+    if not os.path.exists(bin_path):
+        print("AVISO: falta", bin_path, "— la tabla de", nombre, "no se comprueba contra el firmware")
+        return
+    import zlib
+    fw = open(bin_path, "rb").read()
+    d = zlib.decompressobj(-15)
+    app = fw[0x20080:0x23880] + d.decompress(fw[0x23880:])
+    o = addr - (base_ram - 0x3800)
+    assert app[o:o + len(hex_esperado) // 2].hex() == hex_esperado, "la tabla de %s no coincide" % nombre
+
+
+verificar_tabla(os.path.join(RAIZ, "firmware_local", "originales", "TV4-32K16.bin"), kk.APP_BASE, 0x38FFA2,
+                "0707" + KONKA_TABLA_HEX, "Konka")
+
 guardar("konka-tv4-32k16-mirror.json", {
     "formato": 1,
     "id": "konka-tv4-32k16-mirror",
-    "version": 3,
-    "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — espejo (MIRROR) y logo",
+    "version": 4,
+    "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — espejo (MIRROR), logo y mando",
     "descripcion": "Espejo H+V de imagen y menús. 'En el menú': opción MIRROR ON/OFF en el menú de fábrica "
                    "(en lugar de 'Logo'). 'Fijo': siempre activado (primera versión probada). "
                    "Logo de arranque: girado 180° (se dibuja antes de que actúe el espejo), propio o sin cambios.",
@@ -169,6 +225,7 @@ guardar("konka-tv4-32k16-mirror.json", {
         zona(0x2B29A7, 0x2B29AB, "gancho 2 (creación del contexto GOP)"),
         zona(0x32A0B4, 0x32A0B8, "puntero de la etiqueta del menú"),
         zona(0x33AB66, 0x33B9A2, "textos de depuración JPEG sin referencias"),
+        zona(0x38FFA2, 0x38FFA4 + 46 * 4, "código de cliente y lista código→tecla del mando (se copia a RAM al arrancar)"),
     ],
     "parchesFijos": [],
     "opciones": [
@@ -185,6 +242,17 @@ guardar("konka-tv4-32k16-mirror.json", {
          ]},
     ],
     "logo": {"idTel": "0x065E", "longitudJpeg": kk.LOGO_JPEG_LEN, "ancho": 1366, "alto": 768},
+    "clienteMando": {"direccion": "0x38FFA2", "formato": "bytes-invertidos", "original": "07 07"},
+    "tablaMando": {
+        "formato": "lista4",
+        "direccion": "0x38FFA4",
+        "entradas": 46,
+        "original": KONKA_TABLA_HEX,
+        "nota": "Máximo 45 teclas (detrás de la tabla hay otros datos). El mando de fábrica (cliente 88 90) usa otras "
+                "tablas y no cambia. Solo se ofrecen las funciones que ya usa el mando original.",
+        "funciones": [{"indice": "0x%02X" % t, "nombre": nombre_konka(t)} for t in sorted({t for _, t in KONKA_TECLAS})],
+        "botones": [{"codigo": "0x%02X" % c, "nombre": "botón " + nombre_konka(t)} for c, t in KONKA_TECLAS],
+    },
     "salidasConocidas": [
         {"opciones": {"modo": "menu", "logo": "girado"},
          "sha256": "81bd3c8b643745d321a99f3a6479dee8dc97b464d55bbb3be006fb6160b93570",
@@ -198,6 +266,16 @@ guardar("konka-tv4-32k16-mirror.json", {
     ],
 })
 
+# Tabla código → función del ATEC (256 bytes en 0x422090; idéntica a la del Soyea en 0x423CE0).
+ATEC_TABLA_HEX = (
+    "000102030405060708090a0b0c0d0e0fffffffff14101112132627ff221dffff30191a1b1c6effff3c3dffffffffffff"
+    "ffffffffffffffffffffffffffffffff2cffffffff2a2b3aff2fff2523ff1e58ff66ff211f207270ffffffffffffffff"
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    "ffffffffffffffffffffffffffffffff"
+)
+
 # ------------------------------------------------------------------ ATEC 32L18D
 at = cargar("patch_panel.py")
 atec_bin = os.path.join(RAIZ, "firmware_local", "originales", "Atec_32_KPC_Salva.BIN")
@@ -205,6 +283,11 @@ if not os.path.exists(atec_bin):
     print("AVISO: falta", atec_bin, "— no se genera el perfil ATEC")
 else:
     fw = open(atec_bin, "rb").read()
+    verificar_tabla(atec_bin, 0x243800, 0x422090, ATEC_TABLA_HEX, "ATEC")
+    BOTONES_SOYEA_D = dict(BOTONES_SOYEA)
+    _at = bytes.fromhex(ATEC_TABLA_HEX)
+    ATEC_FUNCIONES = {_at[c]: BOTONES_SOYEA_D[c] for c in range(256) if _at[c] != 0xFF}
+    assert len(ATEC_FUNCIONES) == 48
     import hashlib
     assert hashlib.sha256(fw).hexdigest() == at.ORIG_SHA256
     app, _, _ = at.extract_app(fw)
@@ -221,7 +304,7 @@ else:
     guardar("atec-32l18d-lp141wx1.json", {
         "formato": 1,
         "id": "atec-32l18d-lp141wx1",
-        "version": 3,
+        "version": 4,
         "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
         "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV "
                        "(necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
@@ -232,6 +315,7 @@ else:
         "zonasPermitidas": [
             zona(0x3233D5, 0x3233D9, "comparación del código de cliente del mando (rutina IR 0x3233AA)"),
             zona(base + o, base + o + at.ENTRY_SIZE, "entrada #1 de la tabla de paneles (la que usa este TV)"),
+            zona(0x422090, 0x422190, "tabla código→función del mando (256 bytes; rutina IR 0x3233AA)"),
         ],
         "parchesFijos": [],
         "opciones": [
@@ -263,6 +347,18 @@ else:
              ]},
         ],
         "logo": {"idTel": "0x0300", "crc16": True, "longitudJpeg": 49128, "ancho": 2167, "alto": 1228},
+        # Código de cliente: inmediato con signo de bg.sfeqi r7 (solo hasta 0x7FFF). La opción "Mando = Soyea" lo
+        # cambia a 37 78; el usuario puede poner otro. El segundo mando aceptado (A0 5F) no se toca.
+        "clienteMando": {"direccion": "0x3233D5", "formato": "aeon-sfeqi", "registro": 7, "original": "36 77"},
+        "tablaMando": {
+            "formato": "directa256",
+            "direccion": "0x422090",
+            "original": ATEC_TABLA_HEX,
+            "nota": "Las funciones se llaman como el botón del mando Soyea/ATEC que las produce. La cruceta de ese "
+                    "mando envía VOL±/CH±; dentro de los menús el firmware (el mismo del Soyea) las usa como flechas.",
+            "funciones": [{"indice": "0x%02X" % t, "nombre": n} for t, n in sorted(ATEC_FUNCIONES.items())],
+            "botones": [{"codigo": "0x%02X" % c, "nombre": n} for c, n in sorted(BOTONES_SOYEA_D.items())],
+        },
         "salidasConocidas": [
             {"opciones": {"bits": "8", "mando": "atec", "logo": "original"},
              "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",

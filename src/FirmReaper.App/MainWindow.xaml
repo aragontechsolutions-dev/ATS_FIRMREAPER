@@ -73,6 +73,15 @@
                                 <TextBlock x:Name="TxtKeyMap" VerticalAlignment="Center" MinWidth="240" />
                                 <Button x:Name="BtnKeyMap" Content="Editar…" Padding="12,4" Margin="8,0,0,0" Click="OnEditKeyMap" />
                             </StackPanel>
+                            <!-- Código de cliente del mando (solo perfiles con "clienteMando") -->
+                            <StackPanel x:Name="PanelClient" Orientation="Horizontal" Margin="0,0,0,6" Visibility="Collapsed">
+                                <TextBlock Text="Código de cliente:" Width="120" VerticalAlignment="Center" />
+                                <TextBox x:Name="TxtClient" Width="70" FontFamily="Consolas" FontSize="14" MaxLength="7"
+                                         VerticalContentAlignment="Center" TextChanged="OnClientChanged" />
+                                <Button Content="Restaurar" Padding="10,4" Margin="8,0,0,0" Click="OnClientRestore" />
+                                <TextBlock x:Name="TxtClientInfo" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="#444"
+                                           TextWrapping="Wrap" MaxWidth="460" />
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="120,10,0,0">
                                 <Button x:Name="BtnGenerate" Content="Generar…" Padding="18,6" FontWeight="SemiBold" Click="OnGenerate" />
                                 <Button x:Name="BtnCancel" Content="Cancelar" Padding="14,6" Margin="8,0,0,0" Click="OnCancel" IsEnabled="False" />

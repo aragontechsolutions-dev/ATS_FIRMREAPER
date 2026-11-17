@@ -334,6 +334,73 @@ public class RealFirmwareTests
         Assert.True(a.App.AsSpan(0x3233D5 - 0x243800, 4).SequenceEqual(Convert.FromHexString("c0ef06e0")));
     }
 
+    // ------------------------------------------------------------------ mando genérico (etapa 8)
+
+    private static (byte[] Fw, Profile P)? Load(string file, string profileId)
+    {
+        var path = FindFirmware(file);
+        return path is null ? null : (File.ReadAllBytes(path), ProfileLoader.LoadBuiltin().Single(p => p.Id == profileId));
+    }
+
+    [Fact]
+    public void AtecConOtroCodigoDeClienteYTablaEditada()
+    {
+        if (Load("Atec_32_KPC_Salva.BIN", "atec-32l18d-lp141wx1") is not var (fw, p)) { Assert.Skip("No está el original del ATEC."); return; }
+        var kt = p.KeyTable!;
+        // SLEEP (botón 0x45) → INFO (0x22), y cliente 12 34.
+        var map = kt.Default.Select(k => k.Code == 0x45 ? k with { Index = 0x22 } : k).ToList();
+        var r = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["mando"] = "soyea" },
+            cancel: TestContext.Current.CancellationToken, keyMap: map, clientCode: new NecCustomer(0x12, 0x34));
+        Assert.True(r.KeyMapEdited && r.ClientCodeEdited);
+        Assert.Equal(new NecCustomer(0x12, 0x34), r.ClientCode);
+        Assert.Null(r.Known);
+        var app = FirmwareAnalyzer.Analyze(r.Output).App!;
+        Assert.Equal("c0e68240", Convert.ToHexStringLower(app.AsSpan(0x3233D5 - 0x243800, 4))); // sfeqi r7,0x3412
+        Assert.Equal(0x22, app[0x422090 - 0x243800 + 0x45]);
+        // Respecto al original: panel (25) + 3 bytes del inmediato + 1 de la tabla.
+        Assert.Equal(25 + 3 + 1, r.ChangedAppBytes);
+        // Un código con el 2.º byte > 7F no se puede poner en el ATEC.
+        Assert.Throws<BuildException>(() => FirmwareBuilder.Build(fw, p, new Dictionary<string, string>(),
+            cancel: TestContext.Current.CancellationToken, clientCode: new NecCustomer(0x00, 0xBF)));
+    }
+
+    [Fact]
+    public void KonkaConClienteSoyeaYTablaEditada()
+    {
+        if (Load("TV4-32K16.bin", "konka-tv4-32k16-mirror") is not var (fw, p)) { Assert.Skip("No está el original del Konka."); return; }
+        var kt = p.KeyTable!;
+        // Quitar el último botón y asignar un código nuevo (0x70) a POWER.
+        var map = kt.Default.Take(44).Append(new KeyAssignment(0x70, 0x01)).ToList();
+        var r = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["logo"] = "original" },
+            cancel: TestContext.Current.CancellationToken, keyMap: map, clientCode: new NecCustomer(0x37, 0x78));
+        var app = FirmwareAnalyzer.Analyze(r.Output).App!;
+        int o = (int)(0x38FFA2 - p.AppBaseRam);
+        Assert.Equal("7837", Convert.ToHexStringLower(app.AsSpan(o, 2)));           // invertido en memoria
+        Assert.Equal(map, kt.Decode(app.AsSpan(o + 2, kt.ByteLength)));
+        Assert.Equal("70010000", Convert.ToHexStringLower(app.AsSpan(o + 2 + 44 * 4, 4)));
+        Assert.Equal("ffff0000", Convert.ToHexStringLower(app.AsSpan(o + 2 + 45 * 4, 4)));
+        // Lo que sigue a la tabla no cambia.
+        var orig = FirmwareAnalyzer.Analyze(fw).App!;
+        int end = o + 2 + kt.ByteLength;
+        Assert.True(app.AsSpan(end, 4096).SequenceEqual(orig.AsSpan(end, 4096)));
+    }
+
+    [Fact]
+    public void LgConOtroCodigoDeClienteSinMandoSoyea()
+    {
+        if (Load("MST_EXT_SPI_ISP_20220511_165639.BIN", "lg-42lf652vx-soyea") is not var (fw, p)) { Assert.Skip("No está el original del LG."); return; }
+        var r = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["mando"] = "no", ["espejo"] = "off" },
+            cancel: TestContext.Current.CancellationToken, clientCode: new NecCustomer(0x12, 0x34));
+        var app = FirmwareAnalyzer.Analyze(r.Output).App!;
+        Assert.Equal("3412", Convert.ToHexStringLower(app.AsSpan((int)(0x39DEFE - p.AppBaseRam), 2)));
+        Assert.Equal(1 + 2, r.ChangedAppBytes); // espejo (1) + cliente (2)
+        // Poner el mismo código que da la opción no cambia nada: sale la v5 documentada.
+        var v5 = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["mando"] = "si", ["espejo"] = "original" },
+            cancel: TestContext.Current.CancellationToken, clientCode: new NecCustomer(0x37, 0x78));
+        Assert.True(v5.MatchesKnown);
+        Assert.False(v5.ClientCodeEdited);
+    }
+
     [Fact]
     public void LaTablaDelMandoDelAtecEsLaDelSoyea()
     {

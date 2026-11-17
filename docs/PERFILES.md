@@ -61,20 +61,45 @@ leen de los scripts de referencia; no se copian a mano).
 | `logo` (opcional) | Dónde está el logo de arranque y cómo es el original. **Uno y solo uno** de: `idTel` (recurso de la tabla TEL, `0x…`; con `crc16: true` si el recurso termina en CRC-16 que hay que mantener) o `zonaFlash` (`desde`, `hasta` = dirección de **flash**, no de RAM; `relleno`, normalmente `0xFF`). Además `longitudJpeg` (bytes del JPEG original hasta FFD9 incluido), `ancho`, `alto`. |
 | valor `.logo` (opcional) | `"girar"` (180°, re-codificado en el formato del original, idéntico a Pillow) o `"propio"` (imagen del usuario: JPEG, PNG o BMP). Sin el campo, el logo no cambia. Solo UNA opción puede actuar sobre el logo. |
 
-| `tablaMando` (opcional) | Tabla botón → función editable: `direccion`, `entradas`, `prefijoCodigo`, `opcion`/`valor` (el valor de opción que la aplica), `funciones` (`indice` + `nombre`, las únicas permitidas) y `botones` (`codigo` + `nombre`). |
+| `tablaMando` (opcional) | Tabla botón → función editable: `formato` (`lista8` por defecto, `lista4`, `directa256`), `direccion`, `entradas` (listas), `prefijoCodigo` (solo `lista8`), **o bien** `opcion`/`valor` (la tabla es el parche de ese valor) **o bien** `original` (hex de la tabla del firmware: se edita en su sitio), `funciones` (`indice` + `nombre`, las únicas permitidas), `botones` (`codigo` + `nombre`) y `nota` opcional para el editor. |
+| `clienteMando` (opcional) | Código de cliente del mando editable: `direccion`, `formato` (`bytes-invertidos` o `aeon-sfeqi`, este con `registro`), `original` (en el orden de envío, p. ej. `"00 BF"`). |
 
 ### La tabla del mando
 
-- Debe coincidir EXACTAMENTE (dirección y longitud) con un parche del valor `opcion`=`valor`. El editor solo
-  cambia los bytes "nuevos" de ese parche: la zona permitida y los bytes originales se siguen comprobando.
-- Formato en el firmware (LG TP.V56): `entradas` × 8 bytes: u32 LE `prefijoCodigo | código`, u8 índice, 3 bytes a 0;
-  el resto, terminador `FFFF0000 FF000000`. El firmware usa la PRIMERA coincidencia: no se admiten botones repetidos.
-- Una entrada queda siempre para el terminador (LG: máximo 44 teclas).
-- La tabla por defecto es la del parche (la v5 probada). Con una tabla editada el resultado ya no es la versión
-  documentada (el informe lo indica y lista la tabla).
+Tres formatos (análisis en `docs/historial/README_MANDO_GENERICO.md`):
+
+| `formato` | Firmware | Bytes |
+|---|---|---|
+| `lista8` | LG TP.V56 | `entradas` × 8: u32 LE `prefijoCodigo \| código`, u8 función, 3 bytes a 0; el resto, terminador `FFFF0000 FF000000`. El firmware usa la PRIMERA coincidencia |
+| `lista4` | Konka TP.VST59S | `entradas` × 4: código, función, 0, 0; termina en la primera entrada con función `FF` (relleno `FF FF 00 00`) |
+| `directa256` | ATEC / Soyea | 256 bytes: el byte número "código" es la función; `FF` = el botón no hace nada |
+
+- **Ligada a un parche** (`opcion`/`valor`, LG): debe coincidir EXACTAMENTE (dirección y longitud) con un parche de
+  ese valor. El editor solo cambia los bytes "nuevos" de ese parche.
+- **En su sitio** (`original`, ATEC y Konka): los bytes de la tabla del firmware original van en el perfil (se
+  comprueban al generar), la tabla debe estar dentro de una zona permitida y **ningún parche puede tocarla**. Si se
+  edita, se genera un parche nuevo sobre esos bytes; si no, no se toca.
+- En las listas, una entrada queda siempre para el terminador (LG: máximo 44 teclas; Konka: 45). No se admiten
+  botones repetidos. Las funciones son SOLO las de `funciones` (la `0xFF` está reservada).
+- **Los códigos de botón pueden ser cualquiera** (0x00–0xFF): `botones` solo pone nombre a los conocidos; así se
+  puede preparar la tabla para otro mando.
+- Al cargar se exige que la tabla por defecto se pueda reconstruir **byte a byte** (si no, el perfil se rechaza).
+- Con una tabla editada el resultado ya no es la versión documentada (el informe lo indica y lista la tabla; el
+  nombre del archivo lleva `_tabla-editada`).
 - Archivo de tabla (importar/exportar, `firmreaper-cli tabla-mando` / `--tabla-mando`):
   `{"formato":1,"perfil":"<id>","asignaciones":[{"codigo":"0x45","indice":"0x26","boton":"SLEEP","funcion":"SLEEP"}]}`
   (`boton` y `funcion` son informativos).
+
+### El código de cliente del mando
+
+- Se escribe y se muestra como los dos bytes **en el orden en que los envía el mando** (Soyea = `37 78`).
+- `bytes-invertidos` (LG `0x39DEFE`, Konka `0x38FFA2`): en memoria quedan `b2 b1`.
+- `aeon-sfeqi` (ATEC `0x3233D5`): inmediato de `bg.sfeqi rN,Y` con `Y = b2·256 + b1`. `Y` tiene signo: solo
+  códigos con `b2 ≤ 7F`; otro código se rechaza con un mensaje que lo explica.
+- Al cargar: debe estar dentro de una zona permitida, no solaparse con la tabla, y todo parche de las opciones que lo
+  toque debe ser EXACTAMENTE ese campo, partir del `original` declarado y contener un código válido.
+- Al generar: el código de las opciones (p. ej. "Mando Soyea" → `37 78`) se sustituye por el elegido; si el elegido
+  es el original, el campo queda como en el original. Nombre del archivo: `_cliente-XXXX`.
 
 ### El logo
 

@@ -13,7 +13,7 @@ namespace FirmReaper.Cli;
 ///   firmreaper-cli catalogo                                  imágenes conocidas
 ///   firmreaper-cli perfiles                                  perfiles disponibles y sus opciones
 ///   firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo IMAGEN]
-///                  [--tabla-mando TABLA.json] --salida CARPETA
+///                  [--tabla-mando TABLA.json] [--cliente "37 78"] --salida CARPETA
 ///   firmreaper-cli tabla-mando --perfil ID [--salida TABLA.json]   tabla del mando por defecto (para editarla)
 /// Códigos de salida: 0 = correcto, 1 = no válido / no reconocido / error, 2 = error de uso.
 /// </summary>
@@ -68,7 +68,7 @@ internal static class Program
               firmreaper-cli catalogo
               firmreaper-cli perfiles
               firmreaper-cli generar ARCHIVO.BIN --perfil ID [--opcion clave=valor ...] [--logo IMAGEN]
-                             [--tabla-mando TABLA.json] --salida CARPETA
+                             [--tabla-mando TABLA.json] [--cliente "37 78"] --salida CARPETA
               firmreaper-cli tabla-mando --perfil ID [--salida TABLA.json]
             """);
         return 2;
@@ -122,6 +122,10 @@ internal static class Program
                 Console.WriteLine($"  --opcion {o.Id}={string.Join("|", o.Values.Select(v => v.Id))}   ({o.Label}; por defecto {o.Default})");
             if (p.Options.Count == 0)
                 Console.WriteLine("  (sin opciones)");
+            if (p.KeyTable is { } kt)
+                Console.WriteLine($"  --tabla-mando TABLA.json   (tabla del mando editable, {kt.Default.Count} teclas; exportar con 'tabla-mando --perfil {p.Id}')");
+            if (p.ClientCode is { } cc)
+                Console.WriteLine($"  --cliente \"XX YY\"          (código de cliente del mando; original {cc.Original})");
         }
         return 0;
     }
@@ -129,7 +133,7 @@ internal static class Program
     private static int Generate(string[] args, ProfileRegistry reg)
     {
         string input = args[1];
-        string? profileId = null, outDir = null, logoPath = null, keyPath = null;
+        string? profileId = null, outDir = null, logoPath = null, keyPath = null, client = null;
         var selection = new Dictionary<string, string>();
         for (int i = 2; i < args.Length; i++)
         {
@@ -139,6 +143,7 @@ internal static class Program
                 case "--salida" when i + 1 < args.Length: outDir = args[++i]; break;
                 case "--logo" when i + 1 < args.Length: logoPath = args[++i]; break;
                 case "--tabla-mando" when i + 1 < args.Length: keyPath = args[++i]; break;
+                case "--cliente" when i + 1 < args.Length: client = args[++i]; break;
                 case "--opcion" when i + 1 < args.Length:
                     var kv = args[++i].Split('=', 2);
                     if (kv.Length != 2) return Usage();
@@ -165,7 +170,15 @@ internal static class Program
             var kt = profile.KeyTable ?? throw new ArgumentException("Este perfil no tiene tabla del mando editable.");
             keyMap = kt.FromJson(File.ReadAllBytes(keyPath), profile.Id);
         }
-        var r = FirmwareBuilder.Build(fw, profile, selection, logo, new SyncProgress(Console.Error), keyMap: keyMap);
+        NecCustomer? clientCode = null;
+        if (client is not null)
+        {
+            if (profile.ClientCode is null) throw new ArgumentException("Este perfil no permite cambiar el código de cliente del mando.");
+            if (!NecCustomer.TryParse(client, out var c))
+                throw new ArgumentException("--cliente: 2 bytes en hexadecimal en el orden de envío (p. ej. \"37 78\" o 3778).");
+            clientCode = c;
+        }
+        var r = FirmwareBuilder.Build(fw, profile, selection, logo, new SyncProgress(Console.Error), keyMap: keyMap, clientCode: clientCode);
         var saved = OutputWriter.Save(r, input, outDir, DateTimeOffset.Now);
         Console.WriteLine($"Generado: {saved.Firmware}");
         Console.WriteLine($"SHA-256:  {r.OutputSha256}");
@@ -193,6 +206,8 @@ internal static class Program
         {
             Console.WriteLine(json);
         }
+        if (profile.ClientCode is { } cc)
+            Console.Error.WriteLine($"Código de cliente del original: {cc.Original} (se cambia con --cliente).");
         Console.Error.WriteLine($"Botones del mando: {string.Join(", ", kt.Buttons.Select(b => $"0x{b.Code:X2} {b.Name}"))}");
         Console.Error.WriteLine($"Funciones: {string.Join(", ", kt.Functions.Select(f => $"0x{f.Key:X2} {f.Value}"))}");
         return 0;

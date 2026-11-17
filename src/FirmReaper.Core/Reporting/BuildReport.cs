@@ -64,6 +64,11 @@ public static class BuildReport
             if (p.Original.Length <= 16)
                 sb.AppendLine($"            {Convert.ToHexStringLower(p.Original)} → {Convert.ToHexStringLower(p.New)}");
         }
+        if (r.ClientCode is { } cc)
+        {
+            sb.AppendLine($"Código de cliente del mando: {cc}" + (r.ClientCodeEdited ? " (ELEGIDO por el usuario; sin probar en el TV)" : ""));
+            sb.AppendLine();
+        }
         if (r.KeyMap is not null && r.Profile.KeyTable is { } kt)
         {
             sb.AppendLine();
@@ -127,6 +132,7 @@ public static class BuildReport
                 nuevo = Convert.ToHexStringLower(p.New),
                 descripcion = p.Description,
             }),
+            clienteMando = r.ClientCode is null ? null : new { codigo = r.ClientCode.ToString(), elegido = r.ClientCodeEdited },
             tablaMando = r.KeyMap is null ? null : new
             {
                 editada = r.KeyMapEdited,

@@ -1,7 +1,7 @@
 {
   "formato": 1,
   "id": "lg-42lf652vx-soyea",
-  "version": 6,
+  "version": 7,
   "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB y logo",
   "descripcion": "Obedecer al mando Soyea LKK32CMB con la misma función por botón que el firmware Soyea; cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica. Logo de arranque (zona del logo capturado 0x370000): girado o propio.",
   "estado": "verificado",
@@ -163,7 +163,14 @@
       "archivo": "LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN"
     }
   ],
+  "clienteMando": {
+    "direccion": "0x39DEFE",
+    "formato": "bytes-invertidos",
+    "original": "00 BF"
+  },
   "tablaMando": {
+    "formato": "lista8",
+    "nota": "Los botones con función VOLUME_± o CHANNEL_± hacen además de flechas dentro de los menús y del USB (lo decide la rutina de la cruceta de la v5 según la función, no según el botón).",
     "direccion": "0x39DD94",
     "entradas": 45,
     "prefijoCodigo": "0x0100",

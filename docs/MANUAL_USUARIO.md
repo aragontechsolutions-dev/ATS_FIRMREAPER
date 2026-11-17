@@ -21,9 +21,9 @@ Programa para Windows que **analiza** volcados de firmware de placas de TV MStar
 
 | Modelo | Placa | Modificaciones |
 |---|---|---|
-| LG 42LF652VX | TP.VST56.PB801 | Mando Soyea LKK32CMB (sí/no), espejo de imagen (original/desactivado), tabla del mando editable, logo de arranque (sin cambios / girado / propio) |
-| Konka TV4-32K16 | TP.VST59S.PB813 | Espejo (opción MIRROR en el menú de fábrica / fijo), logo de arranque (girado 180° / propio / sin cambios) |
-| ATEC 32L18D | BD_MST061B_10AZU_14014 | Panel LG.Philips LP141WX1 1280x800 (salida LVDS de 8 o 6 bits); mando Soyea LKK32CMB (opcional); logo de arranque (sin cambios / girado / propio) |
+| LG 42LF652VX | TP.VST56.PB801 | Mando Soyea LKK32CMB (sí/no), espejo de imagen (original/desactivado), logo de arranque (sin cambios / girado / propio), código de cliente y tabla del mando editables |
+| Konka TV4-32K16 | TP.VST59S.PB813 | Espejo (opción MIRROR en el menú de fábrica / fijo), logo de arranque (girado 180° / propio / sin cambios), código de cliente y tabla del mando editables |
+| ATEC 32L18D | BD_MST061B_10AZU_14014 | Panel LG.Philips LP141WX1 1280x800 (salida LVDS de 8 o 6 bits); mando Soyea LKK32CMB (opcional); logo de arranque (sin cambios / girado / propio); código de cliente y tabla del mando editables |
 
 **No hace:**
 
@@ -153,6 +153,7 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 | Mando Soyea LKK32CMB | **Sí (v5)** / No (mando LG original) |
 | Espejo de imagen | **Como el original (activado)** / Desactivado |
 | Tabla del mando | Solo con "Mando Soyea: Sí". **Editar…** abre el editor (4.4) |
+| Código de cliente | El del mando al que obedece el TV (4.4) |
 | Logo de arranque (zona 0x370000) | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 
 - Con "Sí" + "Como el original" + logo "Sin cambios" sale `LG_42LF652VX_MANDO_SOYEA_v5.BIN`.
@@ -169,6 +170,7 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 |---|---|
 | Modo de espejo | **Opción MIRROR en el menú de fábrica** / Espejo fijo (siempre activado) |
 | Logo de arranque | **Girado 180°** / Sin cambios / Propio |
+| Código de cliente / Tabla del mando | Ver 4.4 |
 
 - Por defecto (menú + girado) sale `TV4-32K16_MIRROR_MENU.bin`, **la versión probada en el TV**.
 - "Espejo fijo" + "Sin cambios" da `TV4-32K16_MIRROR.bin` (la primera versión probada).
@@ -186,6 +188,7 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 | Salida LVDS | **8 bits (probado: FUNCIONÓ)** / 6 bits + dither (probado: NO funcionó) |
 | Mando | **ATEC original** / Soyea LKK32CMB (sin probar en el TV) |
 | Logo de arranque | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
+| Código de cliente / Tabla del mando | Ver 4.4 |
 
 - Cambia la entrada del panel a 1280x800 (LP141WX1). La salida de 8 bits necesita **mapeo JEIDA**; el par 3
   de datos queda sin conectar.
@@ -197,18 +200,39 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 - **Logo:** el TV muestra siempre el recurso `0x0300` (el logo "atec" sobre negro). Mide 2167 × 1228 y el hueco
   es pequeño (49 134 bytes): con imágenes con mucho detalle el programa tendrá que bajar la calidad.
 
-### 4.4 Editor de la tabla del mando (LG)
+### 4.4 El mando: código de cliente y tabla de botones (LG, Konka, ATEC)
 
-Pestaña Generar → *Tabla del mando* → **Editar…**
+Cada mando envía, con cada botón, un **código de cliente** (2 bytes, igual para todos sus botones) y el **código
+del botón**. El TV solo obedece a los mandos con su código de cliente, y traduce cada código de botón a una función
+con su **tabla**. En la pestaña Generar puedes cambiar las dos cosas.
 
-- Una fila por cada botón del mando Soyea (48). En la columna **Función en el TV** eliges qué hace.
-  *(sin función)* = el botón no hace nada.
-- Máximo **44** botones con función (el contador abajo se pone en rojo si te pasas).
-- Los botones con función **VOLUME_±** o **CHANNEL_±** hacen además de flechas dentro de los menús y del USB.
-- **Restaurar la del perfil** vuelve a la tabla v5. **Importar… / Exportar…** guardan la tabla en `.json`.
-- Algunas funciones salen como *"función LG 0xNN (sin identificar)"*: existen en el TV pero no se sabe qué
-  hacen. Úsalas solo para probar.
-- **Una tabla editada no está probada en el TV.** El informe lo indica ("EDITADA") y ya no la compara con la v5.
+**Código de cliente** (casilla en la pestaña Generar):
+
+- Se escribe como 2 bytes en hexadecimal **en el orden en que los envía el mando**, por ejemplo `37 78` (Soyea).
+- Muestra el de las opciones elegidas: el original del TV (LG `00 BF`, ATEC `36 77`, Konka `07 07`) o `37 78`
+  si eliges "Mando Soyea". Si escribes otro, el TV **solo obedecerá a un mando con ese código**. **Restaurar** vuelve
+  al de las opciones.
+- **ATEC:** solo admite códigos cuyo **segundo byte sea 7F o menor** (por cómo compara el firmware). Si pones otro,
+  el programa lo explica y no genera nada.
+- Los mandos de fábrica (`88 90` en LG y Konka, `A0 5F` en ATEC) siguen funcionando.
+
+**Tabla del mando** → **Editar…**:
+
+- Una fila por botón. En **Función en el TV** eliges qué hace; *(sin función)* = nada.
+- Para **otro mando**, escribe el código de un botón suyo (00–FF) y pulsa **Añadir código**: aparece una fila nueva.
+- Máximo de botones con función: LG **44**, Konka **45**, ATEC sin límite práctico (256).
+- **Restaurar la del perfil**, **Importar… / Exportar…** (`.json`).
+- Funciones que salen como *"… (sin identificar)"*: existen en el TV pero no se sabe qué hacen. Úsalas solo para probar.
+- **LG:** la tabla solo se puede editar con "Mando Soyea: Sí". Los botones con función VOLUME_± o CHANNEL_± hacen
+  además de flechas en menús y USB.
+- **ATEC:** las funciones se llaman como el botón del mando Soyea/ATEC que las produce.
+- **Konka:** solo se ofrecen las funciones que ya usa su mando original.
+
+**¿Cómo sé los códigos de mi mando?** Hay que leerlos con un receptor de infrarrojos (por ejemplo, un Arduino con un
+receptor de 38 kHz y un programa que muestre los códigos NEC: el primer byte del cliente, el segundo y el del botón).
+
+**Un código de cliente elegido o una tabla editada no están probados en el TV.** El informe lo indica ("ELEGIDO" /
+"EDITADA") y el nombre del archivo lleva `_cliente-XXXX` o `_tabla-editada`.
 
 ### 4.5 Logo de arranque: girado o propio (LG, Konka, ATEC)
 
@@ -292,7 +316,8 @@ que cambian aparecen **en rojo**.
 | *Logo: La imagen no cabe en el hueco del logo ni con la calidad mínima…* | La imagen tiene demasiado detalle para el hueco del logo. Usa una más sencilla (4.5) |
 | *Logo: PNG/BMP/JPEG no válido…* | El archivo de imagen está dañado o es de un tipo no admitido (PNG entrelazado, BMP comprimido o de menos de 24 bits, JPEG CMYK). Vuelve a guardarlo con un editor de imágenes |
 | *El logo original no es el esperado…* / *Tras el logo original hay datos…* | El original no tiene el logo donde dice el perfil. No se toca nada |
-| *Tabla del mando no válida: …* | Hay botones repetidos, funciones no permitidas o más de 44 teclas |
+| *Tabla del mando no válida: …* | Hay botones repetidos, funciones no permitidas o más teclas de las que caben |
+| *Código de cliente: …segundo byte (…) debe ser 7F o menor* | En el ATEC solo se pueden poner códigos con el segundo byte ≤ 7F (4.4) |
 | *El archivo original cambió en disco después de analizarlo…* | Se modificó el `.BIN` mientras usabas el programa. Ábrelo de nuevo |
 | *Ya existe una copia de seguridad con ese nombre y distinto contenido* | En `respaldo_originales` hay un archivo con el mismo nombre pero diferente. Revísalo |
 
@@ -317,8 +342,8 @@ Desde cmd o PowerShell, en la carpeta de `firmreaper-cli.exe`:
 | `firmreaper-cli verificar A.BIN B.BIN …` | Una línea por archivo (útil para comparar lecturas) |
 | `firmreaper-cli catalogo` | Versiones conocidas |
 | `firmreaper-cli perfiles` | Modificaciones disponibles y sus opciones |
-| `firmreaper-cli generar ORIGINAL.BIN --perfil ID [--opcion clave=valor …] [--logo IMAGEN] [--tabla-mando TABLA.json] --salida CARPETA` | Generar (`IMAGEN`: JPEG, PNG o BMP) |
-| `firmreaper-cli tabla-mando --perfil lg-42lf652vx-soyea --salida tabla.json` | Exportar la tabla del mando por defecto |
+| `firmreaper-cli generar ORIGINAL.BIN --perfil ID [--opcion clave=valor …] [--logo IMAGEN] [--tabla-mando TABLA.json] [--cliente "37 78"] --salida CARPETA` | Generar (`IMAGEN`: JPEG, PNG o BMP; `--cliente`: código de cliente del mando) |
+| `firmreaper-cli tabla-mando --perfil ID --salida tabla.json` | Exportar la tabla del mando por defecto (LG, Konka o ATEC) |
 
 Ejemplos:
 
@@ -326,6 +351,7 @@ Ejemplos:
 firmreaper-cli generar MST_EXT_SPI_ISP_20220511_165639.BIN --perfil lg-42lf652vx-soyea --opcion espejo=off --salida C:\salida
 firmreaper-cli generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --opcion logo=propio --logo milogo.png --salida C:\salida
 firmreaper-cli generar Atec_32_KPC_Salva.BIN --perfil atec-32l18d-lp141wx1 --opcion logo=girado --salida C:\salida
+firmreaper-cli generar TV4-32K16.bin --perfil konka-tv4-32k16-mirror --cliente "37 78" --tabla-mando tabla.json --salida C:\salida
 firmreaper-cli generar Atec_32_KPC_Salva.BIN --perfil atec-32l18d-lp141wx1 --opcion bits=8 --salida C:\salida
 ```
 

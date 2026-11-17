@@ -98,6 +98,8 @@ public sealed class Profile
     public LogoSpec? Logo { get; init; }
     /// <summary>Tabla del mando editable (null si el perfil no la tiene).</summary>
     public KeyTableSpec? KeyTable { get; init; }
+    /// <summary>Código de cliente del mando editable (null si el perfil no lo tiene).</summary>
+    public ClientCodeSpec? ClientCode { get; init; }
     public required ProfileSource Source { get; init; }
     /// <summary>Ruta del archivo (externo) o nombre del recurso (integrado).</summary>
     public required string Location { get; init; }
@@ -351,24 +353,49 @@ public static partial class ProfileLoader
         if (logoOptions.Count > 0 && logoSpec is null) Fail("Hay acciones sobre el logo pero el perfil no define 'logo'.");
         if (logoOptions.Count > 1) Fail("Solo una opción puede actuar sobre el logo.");
 
-        // Tabla del mando editable: debe corresponder EXACTAMENTE a un parche existente (misma dirección y
-        // longitud) de la opción indicada; así el editor nunca escribe fuera de lo que el perfil ya autoriza.
+        bool InZones(uint addr, int len) => zones.Any(z => addr >= z.From && addr + (uint)len <= z.To);
+        IEnumerable<(string Owner, Patch P)> AllPatches() =>
+            fixedPatches.Select(p => ("fijos", p)).Concat(options.SelectMany(o => o.Values.SelectMany(v => v.Patches.Select(p => ($"{o.Id}={v.Id}", p)))));
+
+        // Tabla del mando editable. Ligada a un parche: debe ser EXACTAMENTE (dirección y longitud) un parche de la
+        // opción indicada. En su sitio: los bytes originales van en el perfil, debe estar dentro de una zona
+        // permitida y ningún parche puede tocarla. Así el editor nunca escribe fuera de lo que el perfil autoriza.
         KeyTableSpec? keyTable = null;
         if (f.TablaMando is { } tm)
         {
+            var format = tm.Formato switch
+            {
+                null or "lista8" => KeyTableFormat.Lista8,
+                "lista4" => KeyTableFormat.Lista4,
+                "directa256" => KeyTableFormat.Directa256,
+                _ => throw new InvalidDataException($"tablaMando.formato desconocido: '{tm.Formato}'."),
+            };
             uint addr = ParseAddr(tm.Direccion, "tablaMando.direccion");
-            if (tm.Entradas is < 2 or > 512) Fail("tablaMando.entradas fuera de rango (2–512).");
-            uint prefix = ParseAddr(tm.PrefijoCodigo, "tablaMando.prefijoCodigo");
-            if ((prefix & 0xFF) != 0) Fail("tablaMando.prefijoCodigo debe tener a 0 el byte bajo.");
-            var opt = options.FirstOrDefault(o => o.Id == tm.Opcion) ?? throw new InvalidDataException($"tablaMando: no existe la opción '{tm.Opcion}'.");
-            var val = opt.Values.FirstOrDefault(v => v.Id == tm.Valor) ?? throw new InvalidDataException($"tablaMando: la opción '{tm.Opcion}' no tiene el valor '{tm.Valor}'.");
-            var tablePatch = val.Patches.FirstOrDefault(p => p.Address == addr);
-            if (tablePatch is null || tablePatch.New.Length != tm.Entradas * KeyTableSpec.EntrySize)
-                Fail("tablaMando: no hay un parche con esa dirección y longitud en la opción indicada.");
+            int entries = 256;
+            uint prefix = 0;
+            if (format == KeyTableFormat.Directa256)
+            {
+                if (tm.Entradas is not null || tm.PrefijoCodigo is not null) Fail("tablaMando directa256 no admite 'entradas' ni 'prefijoCodigo'.");
+            }
+            else
+            {
+                if (tm.Entradas is not (>= 2 and <= 512)) Fail("tablaMando.entradas fuera de rango (2–512).");
+                entries = tm.Entradas!.Value;
+                if (format == KeyTableFormat.Lista8)
+                {
+                    prefix = ParseAddr(tm.PrefijoCodigo ?? throw new InvalidDataException("tablaMando lista8 necesita 'prefijoCodigo'."), "tablaMando.prefijoCodigo");
+                    if ((prefix & 0xFF) != 0) Fail("tablaMando.prefijoCodigo debe tener a 0 el byte bajo.");
+                }
+                else if (tm.PrefijoCodigo is not null)
+                {
+                    Fail("tablaMando lista4 no admite 'prefijoCodigo'.");
+                }
+            }
             var functions = new Dictionary<byte, string>();
             foreach (var fn in tm.Funciones)
             {
                 byte idx = KeyTableSpec.ParseByte(fn.Indice);
+                if (idx == 0xFF) Fail("tablaMando: la función 0xFF está reservada (sin función / terminador).");
                 if (string.IsNullOrWhiteSpace(fn.Nombre)) Fail($"tablaMando: función 0x{idx:X2} sin nombre.");
                 if (!functions.TryAdd(idx, fn.Nombre)) Fail($"tablaMando: función 0x{idx:X2} repetida.");
             }
@@ -380,39 +407,92 @@ public static partial class ProfileLoader
                 if (buttons.Any(x => x.Item1 == code)) Fail($"tablaMando: botón 0x{code:X2} repetido.");
                 buttons.Add((code, bt.Nombre));
             }
-            var spec = new KeyTableSpec
+            var probe = new KeyTableSpec
             {
-                Address = addr,
-                Entries = tm.Entradas,
-                CodePrefix = prefix,
-                OptionId = tm.Opcion,
-                ValueId = tm.Valor,
-                Functions = functions,
-                Buttons = buttons,
-                Default = [],
+                Format = format, Address = addr, Entries = entries, CodePrefix = prefix,
+                Functions = functions, Buttons = buttons, Default = [],
             };
+            byte[] tableBytes;
+            byte[]? original = null;
+            if ((tm.Opcion is null) != (tm.Valor is null)) Fail("tablaMando: 'opcion' y 'valor' van juntos.");
+            if (tm.Opcion is not null)
+            {
+                if (tm.Original is not null) Fail("tablaMando ligada a un parche no admite 'original'.");
+                var opt = options.FirstOrDefault(o => o.Id == tm.Opcion) ?? throw new InvalidDataException($"tablaMando: no existe la opción '{tm.Opcion}'.");
+                var val = opt.Values.FirstOrDefault(v => v.Id == tm.Valor) ?? throw new InvalidDataException($"tablaMando: la opción '{tm.Opcion}' no tiene el valor '{tm.Valor}'.");
+                var tablePatch = val.Patches.FirstOrDefault(p => p.Address == addr);
+                if (tablePatch is null || tablePatch.New.Length != probe.ByteLength)
+                    Fail("tablaMando: no hay un parche con esa dirección y longitud en la opción indicada.");
+                tableBytes = tablePatch!.New;
+            }
+            else
+            {
+                original = ParseHex(tm.Original ?? throw new InvalidDataException("tablaMando en su sitio necesita 'original' (o 'opcion'/'valor')."), "tablaMando.original");
+                if (original.Length != probe.ByteLength) Fail($"tablaMando.original debe tener {probe.ByteLength} bytes.");
+                if (!InZones(addr, original.Length)) Fail("tablaMando: la tabla no está dentro de una zona permitida.");
+                foreach (var (owner, p) in AllPatches())
+                    if (p.Address < addr + (uint)original.Length && addr < p.End)
+                        Fail($"tablaMando: la tabla se solapa con el parche 0x{p.Address:X} ({owner}).");
+                tableBytes = original;
+            }
             List<KeyAssignment> def;
             try
             {
-                def = spec.Decode(tablePatch!.New);
+                def = probe.Decode(tableBytes);
             }
             catch (InvalidDataException ex)
             {
                 throw new InvalidDataException("tablaMando: la tabla por defecto no es válida: " + ex.Message);
             }
-            var errs = spec.Validate(def);
+            var errs = probe.Validate(def);
             if (errs.Count > 0) Fail("tablaMando: la tabla por defecto no es válida: " + string.Join(" ", errs));
+            if (!probe.Encode(def).AsSpan().SequenceEqual(tableBytes))
+                Fail("tablaMando: la tabla por defecto no se puede reconstruir exactamente (bytes de relleno inesperados).");
+            if (tm.Nota is { Length: > 1000 }) Fail("tablaMando.nota demasiado larga.");
             keyTable = new KeyTableSpec
             {
-                Address = addr,
-                Entries = tm.Entradas,
-                CodePrefix = prefix,
-                OptionId = tm.Opcion,
-                ValueId = tm.Valor,
-                Functions = functions,
-                Buttons = buttons,
-                Default = def,
+                Format = format, Address = addr, Entries = entries, CodePrefix = prefix,
+                OptionId = tm.Opcion, ValueId = tm.Valor, OriginalBytes = original,
+                Functions = functions, Buttons = buttons, Default = def, Note = tm.Nota,
             };
+        }
+
+        // Código de cliente del mando: dentro de una zona permitida; los parches que lo toquen deben ser exactamente
+        // ese campo (misma dirección y longitud) y partir de los bytes originales declarados.
+        ClientCodeSpec? clientCode = null;
+        if (f.ClienteMando is { } cm)
+        {
+            var cf = cm.Formato switch
+            {
+                "bytes-invertidos" => ClientCodeFormat.BytesInvertidos,
+                "aeon-sfeqi" => ClientCodeFormat.AeonSfeqi,
+                _ => throw new InvalidDataException($"clienteMando.formato desconocido: '{cm.Formato}'."),
+            };
+            if (cf == ClientCodeFormat.AeonSfeqi ? cm.Registro is not (>= 0 and <= 31) : cm.Registro is not null)
+                Fail("clienteMando.registro: obligatorio (0–31) solo con aeon-sfeqi.");
+            if (!NecCustomer.TryParse(cm.Original, out var orig)) Fail("clienteMando.original inválido (formato \"00 BF\").");
+            var spec = new ClientCodeSpec
+            {
+                Address = ParseAddr(cm.Direccion, "clienteMando.direccion"),
+                Format = cf,
+                Register = cm.Registro ?? 0,
+                Original = orig,
+            };
+            if (spec.WhyNot(orig) is { } why) Fail("clienteMando.original: " + why);
+            if (!InZones(spec.Address, spec.ByteLength)) Fail("clienteMando: no está dentro de una zona permitida.");
+            if (keyTable is not null && spec.Address < keyTable.Address + (uint)keyTable.ByteLength && keyTable.Address < spec.Address + (uint)spec.ByteLength)
+                Fail("clienteMando: se solapa con la tabla del mando.");
+            foreach (var (owner, p) in AllPatches())
+            {
+                if (p.Address >= spec.Address + (uint)spec.ByteLength || spec.Address >= p.End) continue;
+                if (p.Address != spec.Address || p.Original.Length != spec.ByteLength)
+                    Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) toca el código de cliente sin ser exactamente ese campo.");
+                if (!p.Original.AsSpan().SequenceEqual(spec.OriginalBytes))
+                    Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) no parte del código original declarado.");
+                if (spec.Decode(p.New) is null)
+                    Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) no contiene un código de cliente válido.");
+            }
+            clientCode = spec;
         }
 
         // Ninguna combinación de opciones puede producir parches solapados: se comprueba
@@ -463,6 +543,7 @@ public static partial class ProfileLoader
             KnownOutputs = known,
             Logo = logoSpec,
             KeyTable = keyTable,
+            ClientCode = clientCode,
             Source = source,
             Location = location,
             FileSha256 = Convert.ToHexStringLower(SHA256.HashData(json)),

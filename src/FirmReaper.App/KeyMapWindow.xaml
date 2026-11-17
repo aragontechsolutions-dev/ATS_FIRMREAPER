@@ -2,15 +2,24 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Tabla del mando — botón → función" Icon="/Assets/FirmReaper.ico"
-        Height="720" Width="760" MinHeight="420" MinWidth="560"
+        Height="720" Width="900" MinHeight="420" MinWidth="760"
         WindowStartupLocation="CenterOwner" FontFamily="Segoe UI" FontSize="13">
     <DockPanel Margin="10">
-        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#444">
-            Elige qué función del TV ejecuta cada botón del mando. "(sin función)" = el botón no hace nada.
-            Los botones con función VOLUME_± o CHANNEL_± hacen además de flechas dentro de los menús y del USB
-            (lo decide la rutina de la cruceta según la función, no según el botón).
-        </TextBlock>
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock TextWrapping="Wrap" Foreground="#444">
+                Elige qué función del TV ejecuta cada botón del mando. "(sin función)" = el botón no hace nada.
+                Para usar otro mando, añade los códigos de sus botones con "Añadir código" (y pon su código de cliente
+                en la ventana principal).
+            </TextBlock>
+            <TextBlock x:Name="TxtNote" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#444" />
+        </StackPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+            <TextBlock Text="Código:" VerticalAlignment="Center" />
+            <TextBox x:Name="TxtNewCode" Width="48" Margin="6,0,0,0" FontFamily="Consolas" MaxLength="4" VerticalContentAlignment="Center" />
+            <Button Content="Añadir código" Padding="10,5" Margin="6,0,0,0" Click="OnAddCode" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <TextBlock x:Name="TxtCount" VerticalAlignment="Center" Margin="0,0,16,0" />
             <Button Content="Restaurar la del perfil" Padding="12,5" Click="OnRestore" />
             <Button Content="Importar…" Padding="12,5" Margin="8,0,0,0" Click="OnImport" />
@@ -18,6 +27,7 @@
             <Button Content="Aceptar" Padding="18,5" Margin="16,0,0,0" IsDefault="True" FontWeight="SemiBold" Click="OnAccept" />
             <Button Content="Cancelar" Padding="12,5" Margin="8,0,0,0" IsCancel="True" />
         </StackPanel>
+        </DockPanel>
         <DataGrid x:Name="Grid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                   HeadersVisibility="Column" GridLinesVisibility="Horizontal" SelectionMode="Single">
             <DataGrid.Columns>

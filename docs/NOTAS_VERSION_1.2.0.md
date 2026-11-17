@@ -15,6 +15,13 @@
   (lo dejó así el script antiguo) y es normal: ese archivo funciona.
 - Girar el logo da exactamente los mismos bytes que Pillow también en 4:2:0 y 4:2:2 (se corrigió la
   decodificación de imágenes con color submuestreado).
+- **Mando en los tres TV (LG, Konka y ATEC):**
+  - **Código de cliente**: elige a qué mando obedece el TV (2 bytes, p. ej. `37 78`). En el ATEC solo se admiten
+    códigos con el segundo byte 7F o menor.
+  - **Tabla del mando** (qué hace cada botón) editable también en el Konka y el ATEC, y en los tres se pueden
+    **añadir códigos de botones de otro mando**.
+  - Línea de comandos: `--cliente "37 78"`; `tabla-mando` funciona con los tres.
+  - Si personalizas el mando, el nombre del archivo lo indica (`_cliente-XXXX`, `_tabla-editada`).
 
 Las opciones por defecto generan los mismos archivos que la 1.1.0 (incluidas todas las versiones probadas).
 
@@ -33,6 +40,7 @@ todas formas**.
 ## Pendiente de confirmar en el TV
 
 - Logos girados o propios del ATEC y del LG.
+- Códigos de cliente elegidos y tablas del mando editadas (los tres TV).
 - LG v5 (mando Soyea) y encender desde reposo con el mando Soyea (no implementado).
 - Konka con el logo sin girar.
 - ATEC: que el archivo de 8 bits grabado tenga la huella `ab3d3485…`; la opción de mando Soyea.

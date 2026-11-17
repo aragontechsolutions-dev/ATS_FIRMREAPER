@@ -12,7 +12,7 @@ documentación, sin romper lo que ya funciona.
 | 5 | Manual de usuario y ejecutable final | ✅ Completada |
 | 6 | Logo de arranque en ATEC y LG (girado / propio) | ✅ Completada |
 | 7 | Panel: resolución y doble canal (ATEC; localizar en LG y Konka) | Pendiente |
-| 8 | Mando: editor genérico (código de cliente + tabla) en los 3 | Pendiente |
+| 8 | Mando: editor genérico (código de cliente + tabla) en los 3 | ✅ Completada |
 | 9 | Espejo (mirror): ATEC desde cero; revisar el del OSD del LG | Pendiente |
 
 ## Etapa 1 — completada
@@ -175,5 +175,28 @@ Esta etapa cubre el **logo**. Análisis: `docs/historial/README_LOGOS_ATEC_LG.md
 **Sin probar en el TV:** logos del ATEC y del LG. Confirmado por el usuario (2026-11-16): el LG muestra
 "LG Life's Good" al encender, así que el logo que cambia el programa es el que se ve.
 
+## Etapa 8 — completada (mando genérico en LG, ATEC y Konka)
+
+Análisis: `docs/historial/README_MANDO_GENERICO.md`. (La etapa 7, panel, espera datos del usuario: modelo del panel
+Full HD y fotos de la placa.)
+
+**Hallazgos**
+- Konka: código de cliente `07 07` en `0x38FFA2` y lista código→tecla (45 teclas) en `0x38FFA4`; su numeración de
+  teclas es la de los índices del LG.
+- Orden de los bytes del cliente comprobado en los 3 (LG y Konka invertido; ATEC inmediato `b2·256 + b1`).
+- ATEC: el inmediato de `bg.sfeqi` tiene signo → solo códigos con el 2.º byte ≤ 7F.
+- Error propio detectado por la validación nueva: había supuesto que el LG guardaba el cliente en el orden de envío;
+  el parche probado (`bf00` → `7837`) demuestra que va invertido. Corregido antes de publicar.
+
+**Hecho**
+- Tablas en 3 formatos (`lista8`, `lista4`, `directa256`), ligadas a un parche (LG) o editadas en su sitio (ATEC, Konka).
+- Código de cliente editable en los 3 (`clienteMando`), con su codificación por firmware.
+- Editor: añadir códigos de otro mando; nota propia de cada perfil. Ventana: casilla "Código de cliente". CLI: `--cliente`.
+- Nombre del archivo con `_cliente-XXXX` / `_tabla-editada`. Perfiles: LG v7, ATEC v4, Konka v4.
+- Eliminado el formato de cliente "bytes" (orden directo): ningún firmware lo usa.
+- Revisión de seguridad: `docs/ARQUITECTURA.md` (etapa 8). 230 pruebas.
+
+**Sin probar en el TV:** códigos de cliente elegidos y tablas editadas en los 3.
+
 ## Versión 1.2.0
-- Etapa 6. Notas: `docs/NOTAS_VERSION_1.2.0.md`.
+- Etapas 6 y 8 (la 1.2.0 aún no se había publicado). Notas: `docs/NOTAS_VERSION_1.2.0.md`.

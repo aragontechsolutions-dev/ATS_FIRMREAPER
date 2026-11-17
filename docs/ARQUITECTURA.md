@@ -42,7 +42,7 @@ entrópica, la IDCT y la salida YCbCr; el ensanchado de la crominancia y el colo
 | `Imaging/JpegBaselineEncoder.cs` | Codificador JPEG que reproduce byte a byte a libjpeg-turbo (configuración de Pillow) |
 | `Imaging/LogoImage.cs` | Formato del logo (`LogoFormat`); decodificar como libjpeg-turbo; girar; encajar una imagen en el tamaño del logo; codificar ajustando la calidad al hueco |
 | `Imaging/ImageDecoder.cs` | Lectura validada de la imagen del usuario: JPEG, PNG (propio, con `RawInflater`) y BMP 24/32 bits |
-| `Profiles/KeyTable.cs` | Tabla botón → función del mando: codificar, decodificar, validar, importar/exportar JSON |
+| `Profiles/KeyTable.cs` | Tabla botón → función del mando (formatos lista8, lista4, directa256): codificar, decodificar, validar, importar/exportar JSON; código de cliente NEC (`NecCustomer`, `ClientCodeSpec`, codificación de `bg.sfeqi`) |
 
 Interfaz (`FirmReaper.App`): `MainWindow` (analizar, generar, cambios en hexadecimal), `KeyMapWindow`
 (editor de la tabla del mando).
@@ -116,5 +116,17 @@ byte a byte los de Pillow.
 | Logo nuevo que el TV no sepa mostrar | Siempre se escribe en el formato exacto del original (dimensiones, submuestreo, tablas, reinicios); un JPEG del usuario solo se usa tal cual si ya tiene ese formato. Validación final: SOF0, en color, dimensiones y submuestreo, sin datos tras FFD9, cabe y se decodifica |
 | Escribir fuera del hueco | Verificación final: idéntico al original fuera del hueco (y de los 2 bytes del CRC); dentro, el JPEG y después solo el relleno |
 | Consumo excesivo | Como máximo 15 intentos de codificación para ajustar la calidad; el redimensionado guarda solo las filas que aún necesita |
+
+## Seguridad (revisión de la etapa 8: mando genérico)
+
+| Riesgo | Medida |
+|---|---|
+| Código de cliente mal escrito | Solo se acepta exactamente 2 bytes hexadecimales; en el ATEC se rechaza `b2 > 7F` (el inmediato con signo nunca coincidiría y el TV dejaría de obedecer a cualquier mando de ese tipo) |
+| Escribir fuera del campo del cliente | El perfil fija dirección y formato; al cargar se exige que esté en una zona permitida y que todo parche que lo toque sea EXACTAMENTE ese campo y parta del original declarado; al generar se comprueban los bytes originales y que solo cambió lo previsto |
+| Tabla editada que desborde | Tamaño fijo por formato; en las listas, máximo `entradas − 1` teclas (Konka: 45, porque detrás hay otros datos); funciones solo de la lista cerrada del perfil (`0xFF` reservada); sin botones repetidos |
+| Tabla en su sitio | Sus bytes originales van en el perfil y se comprueban en el firmware; debe estar en una zona permitida y ningún parche de ninguna opción puede tocarla; si no se edita, no se escribe |
+| Códigos de botón arbitrarios (otro mando) | Son solo un dato de la tabla (0x00–0xFF); en `lista8` se rechaza el que coincide con el terminador |
+| Archivo de tabla importado | JSON estricto, ≤ 256 KB, ≤ 256 asignaciones, del mismo perfil y validado igual que en el editor |
+| Confundir un archivo personalizado con uno probado | No se compara con las versiones documentadas; el informe dice "ELEGIDO"/"EDITADA" y el nombre lleva `_cliente-XXXX` / `_tabla-editada` |
 
 Perfiles firmados: no se implementan (uso por una sola persona); se registra la huella de cada perfil.

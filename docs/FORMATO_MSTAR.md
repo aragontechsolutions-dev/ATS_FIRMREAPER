@@ -93,3 +93,14 @@ usuario es `0x370000` (en `0x3B0000` empiezan otros datos, no un JPEG). Confirma
 | ATEC 32L18D | `BD_MST061B_10AZU_14014` | `KK_CUBA_SBOOT_20140718` |
 | Soyea | `BD_MST061B_10AZU_14014` | `KK_CUBA_SBOOT_20140718` |
 | LG 42LF652VX | `BD_VST56_PB801` | — |
+
+## Mando (código de cliente y tabla) (V)
+
+Detalle y método en `docs/historial/README_MANDO_GENERICO.md`. Código de cliente escrito en el orden de envío
+(Soyea = `37 78`).
+
+| Firmware | Cliente | Tabla código → función |
+|---|---|---|
+| LG | `0x39DEFE`, en memoria `b2 b1` (original `00 BF`; mando 2 de fábrica `88 90` en `0x39DEFC`) | `0x39DD94`, 45 × 8 bytes: u32 `0x0100\|código`, función |
+| ATEC / Soyea | `bg.sfeqi r7,Y` en `0x3233D5` / `0x3251E3`, `Y = b2·256 + b1` con signo (≤ 0x7FFF); también acepta `A0 5F` | `0x422090` / `0x423CE0`, 256 bytes: byte[código] = función |
+| Konka | `0x38FFA2`, en memoria `b2 b1` (original `07 07`); mando de fábrica `0x8890` en el código | `0x38FFA4`, 46 × 4 bytes: código, función, 0, 0 (fin: función `FF`); se copia a RAM `0x3EA7D4` al arrancar |
