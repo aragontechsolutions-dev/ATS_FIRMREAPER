@@ -151,13 +151,16 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 | Opción | Valores |
 |---|---|
 | Mando Soyea LKK32CMB | **Sí (v5)** / No (mando LG original) |
-| Espejo de imagen | **Como el original (activado)** / Desactivado |
+| Espejo al iniciar | **Como el original (activado)** / Desactivado al iniciar (ver la nota de abajo) |
 | Tabla del mando | Solo con "Mando Soyea: Sí". **Editar…** abre el editor (4.4) |
 | Código de cliente | El del mando al que obedece el TV (4.4) |
 | Logo de arranque (zona 0x370000) | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 
 - Con "Sí" + "Como el original" + logo "Sin cambios" sale `LG_42LF652VX_MANDO_SOYEA_v5.BIN`.
 - Con "Sí" + "Desactivado" + logo "Sin cambios" sale `LG_42LF652VX_MANDO_SOYEA_v5_ESPEJO_OFF.BIN`.
+- **Espejo:** el LG ya tiene la opción **MIRROR** en su menú de fábrica, y espeja imagen y menús. El TV la aplica
+  durante el arranque, así que **manda sobre** la opción de FirmReaper, que solo cambia el valor inicial. Para
+  quitar o poner el espejo, usa el menú de fábrica (sin probar en el TV; no sé el código de entrada de este modelo).
 - **Logo:** este firmware guarda el logo "LG Life's Good" en una zona aparte (`0x370000`, la del "logo
   capturado"). El programa del TV lo usa **si su ajuste de logo está en ese modo**; si no, muestra una imagen
   **azul lisa**. Si al encender tu TV ves "LG Life's Good", es este logo el que cambia (así ocurre en el TV de
@@ -197,6 +200,9 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 - **Mando Soyea:** el firmware del ATEC es el mismo que el del Soyea (misma placa) y su tabla de botones es
   idéntica; solo cambia el código del mando. Con esta opción el TV obedece al mando Soyea **y deja de obedecer
   al mando original del ATEC**. Encender desde reposo con el mando Soyea no está comprobado.
+- **Espejo:** no hace falta modificar el firmware: el menú de fábrica del ATEC ya tiene **"Mirror Enable"**, que
+  espeja imagen y menús (sin probar en el TV; no sé el código de entrada de este modelo). Con el panel montado al
+  revés, usa además "Logo de arranque: girado".
 - **Logo:** el TV muestra siempre el recurso `0x0300` (el logo "atec" sobre negro). Mide 2167 × 1228 y el hueco
   es pequeño (49 134 bytes): con imágenes con mucho detalle el programa tendrá que bajar la calidad.
 

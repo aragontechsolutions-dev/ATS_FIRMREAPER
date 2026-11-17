@@ -3,7 +3,7 @@
   "id": "atec-32l18d-lp141wx1",
   "version": 4,
   "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
-  "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV (necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
+  "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV (necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó. Espejo de imagen y menús: ya existe en el menú de fábrica (Mirror Enable), no hace falta parche.",
   "estado": "verificado",
   "original": {
     "sha256": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b"

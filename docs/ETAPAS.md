@@ -13,7 +13,7 @@ documentación, sin romper lo que ya funciona.
 | 6 | Logo de arranque en ATEC y LG (girado / propio) | ✅ Completada |
 | 7 | Panel: resolución y doble canal (ATEC; localizar en LG y Konka) | Pendiente |
 | 8 | Mando: editor genérico (código de cliente + tabla) en los 3 | ✅ Completada |
-| 9 | Espejo (mirror): ATEC desde cero; revisar el del OSD del LG | Pendiente |
+| 9 | Espejo (mirror): ATEC desde cero; revisar el del OSD del LG | ✅ Completada |
 
 ## Etapa 1 — completada
 
@@ -198,5 +198,14 @@ Full HD y fotos de la placa.)
 
 **Sin probar en el TV:** códigos de cliente elegidos y tablas editadas en los 3.
 
+## Etapa 9 — completada (espejo en ATEC y LG)
+
+Análisis: `docs/historial/README_ESPEJO_ATEC_LG.md`.
+- **ATEC y LG ya tienen el espejo (imagen + menús) en su menú de fábrica**: ATEC "Mirror Enable", LG "MIRROR".
+  No hace falta parche. Konka: ya resuelto antes.
+- LG: la opción "Espejo: desactivado" solo cambia el valor inicial; el ajuste MIRROR del menú se aplica en el arranque
+  y manda. Se cambió el texto de la opción (mismos bytes, salidas documentadas idénticas). Perfil LG v8.
+- Nada nuevo que escribir en el firmware → sin riesgos nuevos de seguridad. Sin probar en el TV.
+
 ## Versión 1.2.0
-- Etapas 6 y 8 (la 1.2.0 aún no se había publicado). Notas: `docs/NOTAS_VERSION_1.2.0.md`.
+- Etapas 6, 8 y 9 (la 1.2.0 aún no se había publicado). Notas: `docs/NOTAS_VERSION_1.2.0.md`.

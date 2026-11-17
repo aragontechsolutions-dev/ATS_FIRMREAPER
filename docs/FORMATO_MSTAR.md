@@ -104,3 +104,10 @@ Detalle y método en `docs/historial/README_MANDO_GENERICO.md`. Código de clien
 | LG | `0x39DEFE`, en memoria `b2 b1` (original `00 BF`; mando 2 de fábrica `88 90` en `0x39DEFC`) | `0x39DD94`, 45 × 8 bytes: u32 `0x0100\|código`, función |
 | ATEC / Soyea | `bg.sfeqi r7,Y` en `0x3233D5` / `0x3251E3`, `Y = b2·256 + b1` con signo (≤ 0x7FFF); también acepta `A0 5F` | `0x422090` / `0x423CE0`, 256 bytes: byte[código] = función |
 | Konka | `0x38FFA2`, en memoria `b2 b1` (original `07 07`); mando de fábrica `0x8890` en el código | `0x38FFA4`, 46 × 4 bytes: código, función, 0, 0 (fin: función `FF`); se copia a RAM `0x3EA7D4` al arrancar |
+
+## Espejo (mirror) (V)
+
+`XC_INITDATA` (estructura de 0x44 bytes en la pila al iniciar el XC; reconocible por `0xB71B00` = cristal de
+12 MHz en +4): `bMirror` en +0x1B (LG `0x25E644`, Konka `0x21DA41`, ATEC `0x260BA6`). En ATEC y LG el espejo real lo
+decide después un ajuste del menú de fábrica (ATEC "Mirror Enable" `0x5FD0E0+0xBC`; LG "MIRROR" `0x53ED78`), que
+aplica modo XC 3 y `MApi_GOP_GWIN_SetH/VMirror` al OSD. Detalle: `docs/historial/README_ESPEJO_ATEC_LG.md`.

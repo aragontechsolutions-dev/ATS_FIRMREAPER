@@ -73,10 +73,11 @@ BOTONES_SOYEA = [(c, n) for c, _, n in lg.SOYEA_MAP] + [
 guardar("lg-42lf652vx-soyea.json", {
     "formato": 1,
     "id": "lg-42lf652vx-soyea",
-    "version": 7,
+    "version": 8,
     "nombre": "LG 42LF652VX (TP.VST56.PB801) — mando Soyea LKK32CMB y logo",
     "descripcion": "Obedecer al mando Soyea LKK32CMB con la misma función por botón que el firmware Soyea; "
-                   "cruceta como flechas en menús y USB (v5). Opción de desactivar el espejo de fábrica. "
+                   "cruceta como flechas en menús y USB (v5). El espejo de imagen y menús se cambia mejor en el menú "
+                   "de fábrica (MIRROR); aquí solo su valor inicial. "
                    "Logo de arranque (zona del logo capturado 0x370000): girado o propio.",
     "estado": "verificado",
     "original": {"sha256": lg.ORIG_SHA256},
@@ -95,10 +96,15 @@ guardar("lg-42lf652vx-soyea.json", {
              {"id": "si", "etiqueta": "Sí (v5)", "parches": [p_cliente, p_tabla, p_gancho, p_rutina]},
              {"id": "no", "etiqueta": "No (mando LG original)", "parches": []},
          ]},
-        {"id": "espejo", "etiqueta": "Espejo de imagen", "tipo": "lista", "porDefecto": "original",
+        # Espejo: el parche solo cambia el valor INICIAL (XC_INITDATA.bMirror). Durante el arranque (secuencia por
+        # pasos 0x2BED0F → 0x2AFC1C) el TV aplica el ajuste "MIRROR" del menú de fábrica (RAM 0x53ED78) a vídeo y
+        # menús; ver docs/historial/README_ESPEJO_ATEC_LG.md. Las etiquetas lo dicen; los bytes no cambian.
+        {"id": "espejo", "etiqueta": "Espejo al iniciar (después manda MIRROR del menú de fábrica)", "tipo": "lista",
+         "porDefecto": "original",
          "valores": [
              {"id": "original", "etiqueta": "Como el original (activado)", "parches": []},
-             {"id": "off", "etiqueta": "Desactivado", "parches": [p_espejo]},
+             {"id": "off", "etiqueta": "Desactivado al iniciar (mejor: MIRROR = OFF en el menú de fábrica)",
+              "parches": [p_espejo]},
          ]},
         # Logo de arranque: el programa del TV (función 0x2C238C) lee 0x40000 bytes desde 0x370000 (logo
         # "capturado", el de "LG Life's Good") si el ajuste de logo vale 2; si no, usa el recurso TEL 0x0301
@@ -307,7 +313,8 @@ else:
         "version": 4,
         "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
         "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV "
-                       "(necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó.",
+                       "(necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó. "
+                       "Espejo de imagen y menús: ya existe en el menú de fábrica (Mirror Enable), no hace falta parche.",
         "estado": "verificado",
         "original": {"sha256": at.ORIG_SHA256},
         "app": {"baseRam": "0x%06X" % base},

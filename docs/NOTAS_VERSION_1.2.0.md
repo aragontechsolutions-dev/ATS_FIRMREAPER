@@ -22,6 +22,9 @@
     **añadir códigos de botones de otro mando**.
   - Línea de comandos: `--cliente "37 78"`; `tabla-mando` funciona con los tres.
   - Si personalizas el mando, el nombre del archivo lo indica (`_cliente-XXXX`, `_tabla-editada`).
+- **Espejo:** el ATEC y el LG ya traen el espejo de imagen y menús en su **menú de fábrica** ("Mirror Enable" /
+  "MIRROR"); no hace falta modificar el firmware. En el LG, la opción "Espejo" del programa solo cambia el valor
+  inicial y ahora lo dice (el menú de fábrica manda).
 
 Las opciones por defecto generan los mismos archivos que la 1.1.0 (incluidas todas las versiones probadas).
 
