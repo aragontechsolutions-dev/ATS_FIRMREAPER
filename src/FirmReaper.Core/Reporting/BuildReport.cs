@@ -52,7 +52,10 @@ public static class BuildReport
             ? $"Programa comprimido: {Fmt.N(r.CompressedSize)} bytes ({r.Profile.Compression}); libres {Fmt.N(r.FreeBytes)} bytes"
             : "Programa: sin cambios (no se recomprime)");
         if (r.Logo != Profiles.LogoAction.Ninguna)
+        {
             sb.AppendLine($"Logo: {(r.Logo == Profiles.LogoAction.Girar ? "girado 180°" : "propio")}, {Fmt.N(r.LogoLength)} bytes, SHA-256 {r.LogoSha256}");
+            sb.AppendLine($"  {r.LogoDetail}");
+        }
         sb.AppendLine();
         sb.AppendLine($"Parches ({r.Patches.Count}; {r.ChangedAppBytes} bytes cambiados en la app):");
         foreach (var p in r.Patches)
@@ -60,6 +63,11 @@ public static class BuildReport
             sb.AppendLine($"  0x{p.Address:X6}  {p.Original.Length,4} bytes  {p.Description}");
             if (p.Original.Length <= 16)
                 sb.AppendLine($"            {Convert.ToHexStringLower(p.Original)} → {Convert.ToHexStringLower(p.New)}");
+        }
+        if (r.ClientCode is { } cc)
+        {
+            sb.AppendLine($"Código de cliente del mando: {cc}" + (r.ClientCodeEdited ? " (ELEGIDO por el usuario; sin probar en el TV)" : ""));
+            sb.AppendLine();
         }
         if (r.KeyMap is not null && r.Profile.KeyTable is { } kt)
         {
@@ -113,7 +121,7 @@ public static class BuildReport
                 crc = new[] { $"0x{r.OldHeader.Crc:X8}", $"0x{r.NewHeader.Crc:X8}" },
             },
             comprimido = r.CompressedSize,
-            logo = r.Logo == Profiles.LogoAction.Ninguna ? null : new { accion = r.Logo.ToString(), longitud = r.LogoLength, sha256 = r.LogoSha256 },
+            logo = r.Logo == Profiles.LogoAction.Ninguna ? null : new { accion = r.Logo.ToString(), longitud = r.LogoLength, sha256 = r.LogoSha256, detalle = r.LogoDetail },
             libres = r.FreeBytes,
             bytesCambiados = r.ChangedAppBytes,
             parches = r.Patches.Select(p => new
@@ -124,6 +132,7 @@ public static class BuildReport
                 nuevo = Convert.ToHexStringLower(p.New),
                 descripcion = p.Description,
             }),
+            clienteMando = r.ClientCode is null ? null : new { codigo = r.ClientCode.ToString(), elegido = r.ClientCodeEdited },
             tablaMando = r.KeyMap is null ? null : new
             {
                 editada = r.KeyMapEdited,

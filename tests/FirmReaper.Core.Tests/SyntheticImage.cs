@@ -56,6 +56,9 @@ internal static class SyntheticImage
         WriteTel(fw, t + 25, 0x0300, firstResource + 0x1000, 0x100, 0x00);
         WriteTel(fw, t + 36, 0xF000, 0xCCCCCCCC, 0xCCCCCCCC, 0xCC);
         fw[firstResource + 0x1000] = 0xFF; fw[firstResource + 0x1001] = 0xD8; fw[firstResource + 0x1002] = 0xFF;
+        // Como en los reales: cada recurso termina con su CRC-16.
+        Crc16Tel.Update(fw.AsSpan((int)firstResource, 0x1000));
+        Crc16Tel.Update(fw.AsSpan((int)firstResource + 0x1000, 0x100));
 
         if (flashEnd > firstResource)
             throw new ArgumentException("la app sintética no cabe antes del primer recurso");

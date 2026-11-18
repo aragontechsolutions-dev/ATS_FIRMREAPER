@@ -32,6 +32,10 @@ public partial class MainWindow : Window
         typeof(MainWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?";
     /// <summary>Tabla del mando editada (null = la del perfil).</summary>
     private List<KeyAssignment>? _keyMap;
+    /// <summary>True mientras el programa (no el usuario) escribe en TxtClient.</summary>
+    private bool _settingClient;
+    /// <summary>True si el usuario escribió un código de cliente distinto del que dan las opciones.</summary>
+    private bool _clientEdited;
 
     public MainWindow()
     {
@@ -147,6 +151,7 @@ public partial class MainWindow : Window
         PanelOptions.Children.Clear();
         _optionBoxes.Clear();
         _keyMap = null;
+        _clientEdited = false;
         if (CmbProfile.SelectedItem is not Profile p) return;
 
         TxtProfileDesc.Text = p.Description + $"  (v{p.Version}, {(p.Source == ProfileSource.Integrado ? "integrado" : "externo")})";
@@ -161,9 +166,14 @@ public partial class MainWindow : Window
             row.Children.Add(cmb);
             PanelOptions.Children.Add(row);
             _optionBoxes[o.Id] = cmb;
-            cmb.SelectionChanged += (_, _) => UpdateKeyMapPanel();
+            cmb.SelectionChanged += (_, _) =>
+            {
+                UpdateKeyMapPanel();
+                UpdateClientPanel();
+            };
         }
         UpdateKeyMapPanel();
+        UpdateClientPanel();
         if (p.Options.Count == 0)
             PanelOptions.Children.Add(new TextBlock { Text = "Este perfil no tiene opciones.", Margin = new Thickness(120, 0, 0, 6), Foreground = Brushes.Gray });
     }
@@ -175,14 +185,15 @@ public partial class MainWindow : Window
         if (CmbProfile.SelectedItem is not Profile p || _lastFile is null || _lastSha is null) return;
         var selection = CurrentSelection();
 
-        // Logo propio: se pide el JPEG antes de la carpeta de salida.
+        // Logo propio: se pide la imagen antes de la carpeta de salida. Puede ser de cualquier tamaño:
+        // el programa la encaja en el tamaño del logo y la codifica en el formato del original.
         byte[]? customLogo = null;
         if (p.LogoActionFor(selection) == LogoAction.Propio)
         {
             var ofd = new OpenFileDialog
             {
-                Title = $"Logo propio (JPEG baseline {p.Logo!.Width}x{p.Logo.Height}, máx. {p.Logo.JpegLength:N0} bytes)",
-                Filter = "Imagen JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg",
+                Title = $"Logo propio: imagen (se ajustará a {p.Logo!.Width}x{p.Logo.Height}; mejor con esa proporción)",
+                Filter = "Imágenes (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp",
                 CheckFileExists = true,
             };
             if (ofd.ShowDialog(this) != true) return;
@@ -194,8 +205,26 @@ public partial class MainWindow : Window
             customLogo = File.ReadAllBytes(ofd.FileName);
         }
 
-        // Tabla del mando editada: solo si la opción que la contiene está elegida.
+        // Tabla del mando editada: solo si la opción que la contiene está elegida (o si es la tabla en su sitio).
         var keyMapToUse = KeyMapApplies(p, selection) ? _keyMap : null;
+
+        // Código de cliente: solo si el usuario puso uno distinto del que dan las opciones.
+        NecCustomer? clientToUse = null;
+        if (p.ClientCode is { } cc && _clientEdited)
+        {
+            if (!NecCustomer.TryParse(TxtClient.Text, out var want))
+            {
+                MessageBox.Show(this, "El código de cliente debe ser de 2 bytes en hexadecimal, en el orden en que los envía el mando (por ejemplo 37 78).",
+                    "FirmReaper", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (cc.WhyNot(want) is { } why)
+            {
+                MessageBox.Show(this, why, "FirmReaper", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            clientToUse = want;
+        }
 
         var dlg = new OpenFolderDialog
         {
@@ -216,7 +245,7 @@ public partial class MainWindow : Window
             var saved = await Task.Run(() =>
             {
                 var fw = File.ReadAllBytes(input);
-                var r = FirmwareBuilder.Build(fw, p, selection, customLogo, progress, token, keyMapToUse);
+                var r = FirmwareBuilder.Build(fw, p, selection, customLogo, progress, token, keyMapToUse, clientToUse);
                 token.ThrowIfCancellationRequested();
                 return (r, OutputWriter.Save(r, input, outDir, DateTimeOffset.Now));
             }, token);
@@ -256,7 +285,7 @@ public partial class MainWindow : Window
     // ------------------------------------------------------------------ Tabla del mando
 
     private static bool KeyMapApplies(Profile p, IReadOnlyDictionary<string, string> selection) =>
-        p.KeyTable is { } kt && selection.TryGetValue(kt.OptionId, out var v) && v == kt.ValueId;
+        p.KeyTable is { } kt && kt.AppliesTo(selection, p);
 
     private Dictionary<string, string> CurrentSelection() =>
         _optionBoxes.ToDictionary(kv => kv.Key, kv => ((OptionValue)kv.Value.SelectedItem).Id);
@@ -290,6 +319,62 @@ public partial class MainWindow : Window
         }
     }
 
+    // ------------------------------------------------------------------ Código de cliente del mando
+
+    /// <summary>Código de cliente que dan las opciones elegidas (sin edición del usuario).</summary>
+    private static NecCustomer ClientFromOptions(Profile p, ClientCodeSpec cc, IReadOnlyDictionary<string, string> selection)
+    {
+        var patch = p.PatchesFor(selection).FirstOrDefault(x => x.Address == cc.Address);
+        return patch is null ? cc.Original : cc.Decode(patch.New) ?? cc.Original;
+    }
+
+    private void UpdateClientPanel()
+    {
+        if (CmbProfile.SelectedItem is not Profile p || p.ClientCode is not { } cc)
+        {
+            PanelClient.Visibility = Visibility.Collapsed;
+            return;
+        }
+        PanelClient.Visibility = Visibility.Visible;
+        if (!_clientEdited)
+        {
+            _settingClient = true;
+            TxtClient.Text = ClientFromOptions(p, cc, CurrentSelection()).ToString();
+            _settingClient = false;
+        }
+        UpdateClientInfo();
+    }
+
+    private void UpdateClientInfo()
+    {
+        if (CmbProfile.SelectedItem is not Profile p || p.ClientCode is not { } cc) return;
+        var fromOptions = ClientFromOptions(p, cc, CurrentSelection());
+        if (!NecCustomer.TryParse(TxtClient.Text, out var c))
+        {
+            TxtClientInfo.Text = "2 bytes en hexadecimal, en el orden de envío (p. ej. 37 78).";
+            TxtClientInfo.Foreground = Brushes.Red;
+            return;
+        }
+        string? why = cc.WhyNot(c);
+        TxtClientInfo.Foreground = why is null ? new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44)) : Brushes.Red;
+        TxtClientInfo.Text = why ?? (c == fromOptions
+            ? $"el de las opciones elegidas (original del TV: {cc.Original})."
+            : $"ELEGIDO: el TV solo obedecerá a un mando con este código (sin probar). Las opciones daban {fromOptions}.");
+    }
+
+    private void OnClientChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_settingClient || CmbProfile.SelectedItem is not Profile p || p.ClientCode is not { } cc) return;
+        _clientEdited = !(NecCustomer.TryParse(TxtClient.Text, out var c) && c == ClientFromOptions(p, cc, CurrentSelection()));
+        UpdateClientInfo();
+    }
+
+    private void OnClientRestore(object sender, RoutedEventArgs e)
+    {
+        _clientEdited = false;
+        UpdateClientPanel();
+    }
+
     // ------------------------------------------------------------------ Visor hexadecimal de cambios
 
     private sealed record ChangeItem(string Label, uint Address, byte[] Original, byte[] New);
@@ -301,7 +386,7 @@ public partial class MainWindow : Window
             .ToList();
         LstChanges.ItemsSource = items;
         TxtChangesInfo.Text = $"{r.Patches.Count} parches en la aplicación ({r.ChangedAppBytes} bytes distintos)." +
-            (r.Logo == LogoAction.Ninguna ? "" : $"  Logo: {(r.Logo == LogoAction.Girar ? "girado 180°" : "propio")}, {r.LogoLength:N0} bytes.") +
+            (r.Logo == LogoAction.Ninguna ? "" : $"  Logo: {(r.Logo == LogoAction.Girar ? "girado 180°" : "propio")}, {r.LogoLength:N0} bytes ({r.LogoDetail})") +
             "  Direcciones = RAM de la app.";
         if (items.Count > 0) LstChanges.SelectedIndex = 0;
         else RtbHex.Document = new System.Windows.Documents.FlowDocument();
@@ -348,6 +433,7 @@ public partial class MainWindow : Window
         CmbProfile.IsEnabled = !busy;
         PanelOptions.IsEnabled = !busy;
         PanelKeyMap.IsEnabled = !busy;
+        PanelClient.IsEnabled = !busy;
         BtnCancel.IsEnabled = busy && _cts is not null;
         TxtBusy.Text = text;
         Cursor = busy ? System.Windows.Input.Cursors.Wait : null;

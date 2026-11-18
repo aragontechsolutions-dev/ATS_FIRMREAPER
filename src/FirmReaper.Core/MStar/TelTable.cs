@@ -31,9 +31,14 @@ public sealed record TelEntry(ushort Id, uint Offset, uint Length, byte Flags, s
 }
 
 /// <summary>
-/// Tabla TEL en 0x22080: magic "TEL\x09X3i\0", u32 BE tamaño reservado, u16 BE nº de entradas,
-/// entradas de 11 bytes y una entrada final de id 0xF000 (terminador).
+/// Tabla TEL en 0x22080: magic "TEL\x09X3i\0", u32 BE fin del área de recursos, u16 BE nº de entradas,
+/// entradas de 11 bytes y una entrada final de id 0xF000 (terminador). Cada recurso termina con un CRC-16
+/// (ver <see cref="Crc16Tel"/>).
 /// </summary>
+/// <param name="ReservedSize">
+/// Dirección de flash donde termina el área de recursos (0x3C0000 en ATEC, Soyea y Konka; 0x370000 en el LG,
+/// donde empieza la zona escribible por el propio TV con el logo capturado y los ajustes).
+/// </param>
 public sealed record TelTable(uint ReservedSize, IReadOnlyList<TelEntry> Entries, bool HasTerminator)
 {
     public const int EntrySize = 11;

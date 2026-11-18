@@ -23,20 +23,44 @@ public sealed class ProfileFile
     public ProfileLogo? Logo { get; init; }
     /// <summary>Opcional: tabla código → función del mando, editable por el usuario.</summary>
     public ProfileKeyTable? TablaMando { get; init; }
+    /// <summary>Opcional: código de cliente del mando, editable por el usuario.</summary>
+    public ProfileClientCode? ClienteMando { get; init; }
 }
 
 public sealed class ProfileKeyTable
 {
-    /// <summary>Dirección (RAM) de la tabla; debe coincidir con un parche del valor <see cref="Opcion"/>=<see cref="Valor"/>.</summary>
+    /// <summary>"lista8" (LG, por defecto), "lista4" (Konka) o "directa256" (ATEC). Ver docs/PERFILES.md.</summary>
+    public string? Formato { get; init; }
+    /// <summary>Dirección (RAM) de la tabla.</summary>
     public required string Direccion { get; init; }
-    /// <summary>Número de entradas de 8 bytes (incluido el terminador).</summary>
-    public required int Entradas { get; init; }
-    /// <summary>Valor que se suma al código del botón en cada entrada (u32), p. ej. "0x0100".</summary>
-    public required string PrefijoCodigo { get; init; }
-    public required string Opcion { get; init; }
-    public required string Valor { get; init; }
+    /// <summary>lista8/lista4: número de entradas (incluido el terminador). No se usa en directa256.</summary>
+    public int? Entradas { get; init; }
+    /// <summary>Solo lista8: valor que se suma al código del botón en cada entrada (u32), p. ej. "0x0100".</summary>
+    public string? PrefijoCodigo { get; init; }
+    /// <summary>
+    /// Tabla ligada a un parche: opción y valor cuyo parche (misma dirección y longitud) es la tabla.
+    /// Sin ellos, la tabla es la del firmware original ("original") y se edita en su sitio.
+    /// </summary>
+    public string? Opcion { get; init; }
+    public string? Valor { get; init; }
+    /// <summary>Tabla en su sitio: bytes originales en hexadecimal (se comprueban al generar).</summary>
+    public string? Original { get; init; }
+    /// <summary>Texto para el usuario en el editor (p. ej. cómo actúa la cruceta).</summary>
+    public string? Nota { get; init; }
     public required List<ProfileKeyFunction> Funciones { get; init; }
     public required List<ProfileKeyButton> Botones { get; init; }
+}
+
+public sealed class ProfileClientCode
+{
+    /// <summary>Dirección (RAM) donde está el código de cliente.</summary>
+    public required string Direccion { get; init; }
+    /// <summary>"bytes-invertidos" o "aeon-sfeqi" (ver docs/PERFILES.md).</summary>
+    public required string Formato { get; init; }
+    /// <summary>Solo aeon-sfeqi: registro de la instrucción (0–31).</summary>
+    public int? Registro { get; init; }
+    /// <summary>Código del original, en el orden de envío: "00 BF".</summary>
+    public required string Original { get; init; }
 }
 
 public sealed class ProfileKeyFunction
@@ -53,12 +77,29 @@ public sealed class ProfileKeyButton
 
 public sealed class ProfileLogo
 {
-    /// <summary>Id del recurso en la tabla TEL ("0x065E").</summary>
-    public required string IdTel { get; init; }
-    /// <summary>Longitud del JPEG original (hasta FFD9). Lo que sigue en el recurso se conserva.</summary>
+    /// <summary>Logo en un recurso de la tabla TEL: su id ("0x065E"). Excluyente con <see cref="ZonaFlash"/>.</summary>
+    public string? IdTel { get; init; }
+    /// <summary>
+    /// Solo con <see cref="IdTel"/>: true si el recurso termina en un CRC-16 que hay que mantener (el JPEG puede
+    /// ocupar todo el recurso menos esos 2 bytes). False: se rellena con ceros hasta <see cref="LongitudJpeg"/>.
+    /// </summary>
+    public bool Crc16 { get; init; }
+    /// <summary>Logo en una zona fija de la flash (fuera de la tabla TEL). Excluyente con <see cref="IdTel"/>.</summary>
+    public ProfileFlashZone? ZonaFlash { get; init; }
+    /// <summary>Longitud del JPEG original (hasta FFD9 incluido).</summary>
     public required int LongitudJpeg { get; init; }
     public required int Ancho { get; init; }
     public required int Alto { get; init; }
+}
+
+public sealed class ProfileFlashZone
+{
+    /// <summary>Dirección de FLASH (posición en el .BIN, no de RAM) donde empieza el JPEG.</summary>
+    public required string Desde { get; init; }
+    /// <summary>Fin de la zona (exclusivo). El JPEG nuevo puede ocupar hasta aquí.</summary>
+    public required string Hasta { get; init; }
+    /// <summary>Byte con el que está (y se deja) relleno el resto de la zona, normalmente "0xFF" (flash borrada).</summary>
+    public required string Relleno { get; init; }
 }
 
 public sealed class ProfileOriginal
@@ -111,7 +152,7 @@ public sealed class ProfileOptionValue
     public required string Id { get; init; }
     public required string Etiqueta { get; init; }
     public required List<ProfilePatch> Parches { get; init; }
-    /// <summary>Opcional: "girar" (180°) o "propio" (JPEG del usuario). Sin el campo: el logo no cambia.</summary>
+    /// <summary>Opcional: "girar" (180°) o "propio" (imagen del usuario). Sin el campo: el logo no cambia.</summary>
     public string? Logo { get; init; }
 }
 

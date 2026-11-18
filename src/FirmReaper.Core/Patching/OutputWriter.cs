@@ -63,7 +63,11 @@ public static class OutputWriter
 
     private static string DefaultName(BuildResult r)
     {
-        var parts = r.Profile.Options.Select(o => $"{o.Id}-{r.Selection[o.Id]}").Prepend(r.Profile.Id);
+        // El nombre dice también si el mando se personalizó (código de cliente o tabla), para no confundirlo con
+        // la versión de las opciones sin cambios.
+        var parts = r.Profile.Options.Select(o => $"{o.Id}-{r.Selection[o.Id]}").Prepend(r.Profile.Id).ToList();
+        if (r.ClientCodeEdited && r.ClientCode is { } c) parts.Add($"cliente-{c.B1:X2}{c.B2:X2}");
+        if (r.KeyMapEdited) parts.Add("tabla-editada");
         return string.Join("_", parts) + ".BIN";
     }
 

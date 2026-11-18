@@ -1,8 +1,8 @@
 {
   "formato": 1,
   "id": "konka-tv4-32k16-mirror",
-  "version": 3,
-  "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — espejo (MIRROR) y logo",
+  "version": 4,
+  "nombre": "Konka TV4-32K16 (TP.VST59S.PB813) — espejo (MIRROR), logo y mando",
   "descripcion": "Espejo H+V de imagen y menús. 'En el menú': opción MIRROR ON/OFF en el menú de fábrica (en lugar de 'Logo'). 'Fijo': siempre activado (primera versión probada). Logo de arranque: girado 180° (se dibuja antes de que actúe el espejo), propio o sin cambios.",
   "estado": "verificado",
   "original": {
@@ -45,6 +45,11 @@
       "desde": "0x33AB66",
       "hasta": "0x33B9A2",
       "motivo": "textos de depuración JPEG sin referencias"
+    },
+    {
+      "desde": "0x38FFA2",
+      "hasta": "0x39005C",
+      "motivo": "código de cliente y lista código→tecla del mando (se copia a RAM al arrancar)"
     }
   ],
   "parchesFijos": [],
@@ -220,6 +225,382 @@
     "longitudJpeg": 131381,
     "ancho": 1366,
     "alto": 768
+  },
+  "clienteMando": {
+    "direccion": "0x38FFA2",
+    "formato": "bytes-invertidos",
+    "original": "07 07"
+  },
+  "tablaMando": {
+    "formato": "lista4",
+    "direccion": "0x38FFA4",
+    "entradas": 46,
+    "original": "02010000011f00006e21000028220000212800002427000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00002c0c00001102000013200000071200000b13000012140000101500001e1c00000f1e00001a1b00002d1a000068110000650f000062100000600d0000610e000047430000461d000045290000482a0000502b00003d2c00003762000041610000355900003e2300001f5d0000445e0000422d0000432e0000ffff0000",
+    "nota": "Máximo 45 teclas (detrás de la tabla hay otros datos). El mando de fábrica (cliente 88 90) usa otras tablas y no cambia. Solo se ofrecen las funciones que ya usa el mando original.",
+    "funciones": [
+      {
+        "indice": "0x01",
+        "nombre": "POWER (encender/apagar)"
+      },
+      {
+        "indice": "0x02",
+        "nombre": "KEY_0"
+      },
+      {
+        "indice": "0x03",
+        "nombre": "KEY_1"
+      },
+      {
+        "indice": "0x04",
+        "nombre": "KEY_2"
+      },
+      {
+        "indice": "0x05",
+        "nombre": "KEY_3"
+      },
+      {
+        "indice": "0x06",
+        "nombre": "KEY_4"
+      },
+      {
+        "indice": "0x07",
+        "nombre": "KEY_5"
+      },
+      {
+        "indice": "0x08",
+        "nombre": "KEY_6"
+      },
+      {
+        "indice": "0x09",
+        "nombre": "KEY_7"
+      },
+      {
+        "indice": "0x0A",
+        "nombre": "KEY_8"
+      },
+      {
+        "indice": "0x0B",
+        "nombre": "KEY_9"
+      },
+      {
+        "indice": "0x0C",
+        "nombre": "DASH (-/--)"
+      },
+      {
+        "indice": "0x0D",
+        "nombre": "ARRIBA"
+      },
+      {
+        "indice": "0x0E",
+        "nombre": "ABAJO"
+      },
+      {
+        "indice": "0x0F",
+        "nombre": "IZQUIERDA"
+      },
+      {
+        "indice": "0x10",
+        "nombre": "DERECHA"
+      },
+      {
+        "indice": "0x11",
+        "nombre": "SELECT (OK)"
+      },
+      {
+        "indice": "0x12",
+        "nombre": "VOLUME_PLUS (en menús: DERECHA)"
+      },
+      {
+        "indice": "0x13",
+        "nombre": "VOLUME_MINUS (en menús: IZQUIERDA)"
+      },
+      {
+        "indice": "0x14",
+        "nombre": "CHANNEL_PLUS (en menús: ARRIBA)"
+      },
+      {
+        "indice": "0x15",
+        "nombre": "CHANNEL_MINUS (en menús: ABAJO)"
+      },
+      {
+        "indice": "0x1A",
+        "nombre": "EXIT"
+      },
+      {
+        "indice": "0x1B",
+        "nombre": "tecla Konka 0x1B (sin identificar)"
+      },
+      {
+        "indice": "0x1C",
+        "nombre": "MENU"
+      },
+      {
+        "indice": "0x1D",
+        "nombre": "CHANNEL_RETURN (canal anterior)"
+      },
+      {
+        "indice": "0x1E",
+        "nombre": "INFO"
+      },
+      {
+        "indice": "0x1F",
+        "nombre": "AUDIO"
+      },
+      {
+        "indice": "0x20",
+        "nombre": "tecla Konka 0x20 (sin identificar)"
+      },
+      {
+        "indice": "0x21",
+        "nombre": "MUTE"
+      },
+      {
+        "indice": "0x22",
+        "nombre": "INPUT_SOURCE (fuente)"
+      },
+      {
+        "indice": "0x23",
+        "nombre": "tecla Konka 0x23 (sin identificar)"
+      },
+      {
+        "indice": "0x27",
+        "nombre": "tecla Konka 0x27 (sin identificar)"
+      },
+      {
+        "indice": "0x28",
+        "nombre": "tecla Konka 0x28 (sin identificar)"
+      },
+      {
+        "indice": "0x29",
+        "nombre": "ROJO"
+      },
+      {
+        "indice": "0x2A",
+        "nombre": "VERDE"
+      },
+      {
+        "indice": "0x2B",
+        "nombre": "AMARILLO"
+      },
+      {
+        "indice": "0x2C",
+        "nombre": "AZUL"
+      },
+      {
+        "indice": "0x2D",
+        "nombre": "tecla Konka 0x2D (sin identificar)"
+      },
+      {
+        "indice": "0x2E",
+        "nombre": "tecla Konka 0x2E (sin identificar)"
+      },
+      {
+        "indice": "0x43",
+        "nombre": "CC"
+      },
+      {
+        "indice": "0x59",
+        "nombre": "tecla Konka 0x59 (sin identificar)"
+      },
+      {
+        "indice": "0x5D",
+        "nombre": "tecla Konka 0x5D (sin identificar)"
+      },
+      {
+        "indice": "0x5E",
+        "nombre": "tecla Konka 0x5E (sin identificar)"
+      },
+      {
+        "indice": "0x61",
+        "nombre": "tecla Konka 0x61 (sin identificar)"
+      },
+      {
+        "indice": "0x62",
+        "nombre": "tecla Konka 0x62 (sin identificar)"
+      }
+    ],
+    "botones": [
+      {
+        "codigo": "0x02",
+        "nombre": "botón POWER (encender/apagar)"
+      },
+      {
+        "codigo": "0x01",
+        "nombre": "botón AUDIO"
+      },
+      {
+        "codigo": "0x6E",
+        "nombre": "botón MUTE"
+      },
+      {
+        "codigo": "0x28",
+        "nombre": "botón INPUT_SOURCE (fuente)"
+      },
+      {
+        "codigo": "0x21",
+        "nombre": "botón tecla Konka 0x28 (sin identificar)"
+      },
+      {
+        "codigo": "0x24",
+        "nombre": "botón tecla Konka 0x27 (sin identificar)"
+      },
+      {
+        "codigo": "0x04",
+        "nombre": "botón KEY_1"
+      },
+      {
+        "codigo": "0x05",
+        "nombre": "botón KEY_2"
+      },
+      {
+        "codigo": "0x06",
+        "nombre": "botón KEY_3"
+      },
+      {
+        "codigo": "0x08",
+        "nombre": "botón KEY_4"
+      },
+      {
+        "codigo": "0x09",
+        "nombre": "botón KEY_5"
+      },
+      {
+        "codigo": "0x0A",
+        "nombre": "botón KEY_6"
+      },
+      {
+        "codigo": "0x0C",
+        "nombre": "botón KEY_7"
+      },
+      {
+        "codigo": "0x0D",
+        "nombre": "botón KEY_8"
+      },
+      {
+        "codigo": "0x0E",
+        "nombre": "botón KEY_9"
+      },
+      {
+        "codigo": "0x2C",
+        "nombre": "botón DASH (-/--)"
+      },
+      {
+        "codigo": "0x11",
+        "nombre": "botón KEY_0"
+      },
+      {
+        "codigo": "0x13",
+        "nombre": "botón tecla Konka 0x20 (sin identificar)"
+      },
+      {
+        "codigo": "0x07",
+        "nombre": "botón VOLUME_PLUS (en menús: DERECHA)"
+      },
+      {
+        "codigo": "0x0B",
+        "nombre": "botón VOLUME_MINUS (en menús: IZQUIERDA)"
+      },
+      {
+        "codigo": "0x12",
+        "nombre": "botón CHANNEL_PLUS (en menús: ARRIBA)"
+      },
+      {
+        "codigo": "0x10",
+        "nombre": "botón CHANNEL_MINUS (en menús: ABAJO)"
+      },
+      {
+        "codigo": "0x1E",
+        "nombre": "botón MENU"
+      },
+      {
+        "codigo": "0x0F",
+        "nombre": "botón INFO"
+      },
+      {
+        "codigo": "0x1A",
+        "nombre": "botón tecla Konka 0x1B (sin identificar)"
+      },
+      {
+        "codigo": "0x2D",
+        "nombre": "botón EXIT"
+      },
+      {
+        "codigo": "0x68",
+        "nombre": "botón SELECT (OK)"
+      },
+      {
+        "codigo": "0x65",
+        "nombre": "botón IZQUIERDA"
+      },
+      {
+        "codigo": "0x62",
+        "nombre": "botón DERECHA"
+      },
+      {
+        "codigo": "0x60",
+        "nombre": "botón ARRIBA"
+      },
+      {
+        "codigo": "0x61",
+        "nombre": "botón ABAJO"
+      },
+      {
+        "codigo": "0x47",
+        "nombre": "botón CC"
+      },
+      {
+        "codigo": "0x46",
+        "nombre": "botón CHANNEL_RETURN (canal anterior)"
+      },
+      {
+        "codigo": "0x45",
+        "nombre": "botón ROJO"
+      },
+      {
+        "codigo": "0x48",
+        "nombre": "botón VERDE"
+      },
+      {
+        "codigo": "0x50",
+        "nombre": "botón AMARILLO"
+      },
+      {
+        "codigo": "0x3D",
+        "nombre": "botón AZUL"
+      },
+      {
+        "codigo": "0x37",
+        "nombre": "botón tecla Konka 0x62 (sin identificar)"
+      },
+      {
+        "codigo": "0x41",
+        "nombre": "botón tecla Konka 0x61 (sin identificar)"
+      },
+      {
+        "codigo": "0x35",
+        "nombre": "botón tecla Konka 0x59 (sin identificar)"
+      },
+      {
+        "codigo": "0x3E",
+        "nombre": "botón tecla Konka 0x23 (sin identificar)"
+      },
+      {
+        "codigo": "0x1F",
+        "nombre": "botón tecla Konka 0x5D (sin identificar)"
+      },
+      {
+        "codigo": "0x44",
+        "nombre": "botón tecla Konka 0x5E (sin identificar)"
+      },
+      {
+        "codigo": "0x42",
+        "nombre": "botón tecla Konka 0x2D (sin identificar)"
+      },
+      {
+        "codigo": "0x43",
+        "nombre": "botón tecla Konka 0x2E (sin identificar)"
+      }
+    ]
   },
   "salidasConocidas": [
     {

@@ -54,7 +54,7 @@ public static class AnalysisReport
 
         if (a.Tel is { } tel)
         {
-            sb.AppendLine($"Recursos TEL ({tel.Entries.Count}; zona reservada 0x{tel.ReservedSize:X}):");
+            sb.AppendLine($"Recursos TEL ({tel.Entries.Count}; fin del área de recursos 0x{tel.ReservedSize:X}):");
             sb.AppendLine("  ID     Offset    Longitud  Compresión     Contenido");
             foreach (var e in tel.Entries)
                 sb.AppendLine($"  {e.Id:X4}   0x{e.Offset:X6}  0x{e.Length:X6}  {e.Compression,-13}  {e.Content}");
