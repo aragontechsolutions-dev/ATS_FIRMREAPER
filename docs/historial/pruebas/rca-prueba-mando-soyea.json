@@ -1,9 +1,9 @@
 {
   "formato": 1,
   "id": "rca-prueba-mando-soyea",
-  "version": 2,
-  "nombre": "RCA (BD_MST030B_10AL8_12052) — PRUEBA mando Soyea v2",
-  "descripcion": "Prueba v2: mando Soyea (cliente 37 78), tecla de encendido desde reposo 0x0C, CH± y flechas con los valores comprobados.",
+  "version": 3,
+  "nombre": "RCA (BD_MST030B_10AL8_12052) — PRUEBA mando Soyea v3",
+  "descripcion": "Prueba v3: como la v2 y, en el reproductor USB, la cruceta del Soyea (VOL±/CH±) funciona como flechas.",
   "estado": "sin-verificar",
   "original": {
     "sha256": "669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307"
@@ -25,6 +25,16 @@
       "desde": "0x2A693E",
       "hasta": "0x2A6940",
       "motivo": "entrada en reposo (0x2A68E3): tecla que enciende el TV (RIU 0x7B64/65/6C/6D)"
+    },
+    {
+      "desde": "0x275411",
+      "hasta": "0x275415",
+      "motivo": "llamada a las teclas rápidas ZUI (0x284EDE) desde 0x2753D3: gancho de la cruceta"
+    },
+    {
+      "desde": "0x341112",
+      "hasta": "0x341160",
+      "motivo": "textos de depuración JPEG/MPO sin referencias: rutina nueva"
     }
   ],
   "parchesFijos": [
@@ -45,6 +55,18 @@
       "original": "98c2",
       "nuevo": "98cc",
       "descripcion": "Entrada en reposo: bt.movi r6,0x2 -> 0xc (tecla de encendido = POWER del Soyea)"
+    },
+    {
+      "direccion": "0x275411",
+      "original": "e401f59a",
+      "nuevo": "e4197a02",
+      "descripcion": "bg.jal 0x284EDE -> bg.jal 0x341112 (rutina de la cruceta)"
+    },
+    {
+      "direccion": "0x341112",
+      "original": "50726f677265737369766520696d6167652073697a6520746f6f206269672e2e2e20646f206e6f742068616e646c652069740041505032005f707538496e5f6275665f6f6673203d20256c780a00",
+      "nuevo": "c0e007a1ece7376a5ce2412000ff5c64e12000375060150c6a08e40000615c61812000375060130c6a08e40000415c61a120003750600e0c6a08e40000215c60a12000275060120c6a08e7e87b05",
+      "descripcion": "Rutina: en el reproductor USB (subestado 0x12) VK 0x27/0x0C/0x0D/0x05 -> DERECHA/IZQUIERDA/ARRIBA/ABAJO; sigue en 0x284EDE"
     }
   ],
   "opciones": [],

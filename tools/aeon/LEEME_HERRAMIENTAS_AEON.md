@@ -6,6 +6,7 @@
 | `aeonasm.py` | Ensamblador inverso: `asm(nombre, {letra: valor}, pc) -> bytes`. Cada instrucción que genera la vuelve a desensamblar y la compara; si no coincide, da error. |
 | `aeon_isa.json` | Tablas de la ISA (opcodes, codificación, letras de operandos con signo, escala, sesgo y relativo al PC). |
 | `build_cave_v2.py` | Ejemplo real de uso: genera la rutina de la v5 del LG (`cave_v2.json`). |
+| `build_cave_rca_v3.py` | Rutina de la prueba v3 del RCA: cruceta del Soyea → flechas en el reproductor USB (`cave_rca_v3.json`). |
 
 ## Origen de las tablas
 

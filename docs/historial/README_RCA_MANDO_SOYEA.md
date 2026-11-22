@@ -1,4 +1,4 @@
-# RCA (BD_MST030B_10AL8_12052) — mando Soyea: análisis y PRUEBAS v1–v2 (2026-11-22)
+# RCA (BD_MST030B_10AL8_12052) — mando Soyea: análisis y PRUEBAS v1–v3 (2026-11-22)
 
 Original: `RCA_letra_roja_fondo_blanco_con_perros.BIN`, SHA-256 `669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307`.
 Contenedor MStar válido; app en RAM `0x200000` (base `0x203800`), misma familia que el Konka (mismo controlador IR,
@@ -156,3 +156,45 @@ original (`98c2`) antes de escribir; si el firmware no es exactamente este, Firm
 
 Sin función en el Soyea: DASH (`0A`), FAV (`20`), TV/RADIO (`25`), MTS (`40`), CH.LIST (`49`), TEMP_DET (`4F`), EPG
 (`51`), `56`, `57`. Se quitaron de la v1 los valores no comprobados `0x19`, `0x18`, `0x57` y `0x40` (sin nombre).
+
+## Prueba v3 (2026-11-22)
+
+**Resultado de la v2 (usuario):** encendido/apagado, OK, VOL y CH (cruceta) funcionan; **en el reproductor USB la
+cruceta sigue cambiando volumen y canal**: no hay forma de moverse por los archivos.
+
+### Cómo recibe las teclas el reproductor USB (comprobado en el código)
+1. La tecla (RAM `0x3CA9C9`) pasa por `0x29908C`, que solo actúa en los estados ZUI 2–3 (`0x3D3764`), y por
+   `0x2850D3`, un `switch` (tabla `0x32DEDC`) que la traduce a la **tecla virtual (VK)** de la interfaz:
+   flechas `0x0D`/`0x0E`/`0x0F`/`0x10` → VK `0x0E`/`0x12`/`0x13`/`0x15`, OK `0x11` → VK `0x14`, dígitos
+   `0x02`–`0x0B` → VK `0x16`–`0x1F`, POWER `0x01` → VK `0x0F`, y **`0x12` → VK `0x27`, `0x13` → VK `0x0C`,
+   `0x14` → VK `0x0D`, `0x15` → VK `0x05`, `0x16` → VK `0x06`**.
+2. La navegación por defecto de la ZUI (`0x2729DF`) mueve el foco solo con VK `0x0E` (arriba), `0x12` (abajo),
+   `0x13` (izquierda) y `0x15` (derecha).
+3. `0x2753D3` recibe el mensaje de tecla (VK en `+8`) y, en el estado 2, llama en `0x275411` a `0x284EDE`, que
+   reparte según el subestado `0x3D3768`. El **subestado `0x12` es el reproductor USB** (`0x2A3619`, textos
+   "VK_VOLUME_PLUS MINUS", "VK_CHANNEL_PLUS or VK_CHANNEL_MINUS"): ahí VK `0x0C`/`0x0D` suben/bajan el volumen
+   (`0x19D` +1/−1) y VK `0x05`/`0x06` son canal. Las flechas siguen su propia lógica del reproductor.
+
+### Cambio de la v3
+- `0x275411`: `bg.jal 0x284EDE` → `bg.jal 0x341112`.
+- `0x341112` (78 bytes): si el subestado es `0x12` (reproductor USB), cambia en el mensaje VK `0x27` → DERECHA
+  (`0x15`), `0x0C` → IZQUIERDA (`0x13`), `0x0D` → ARRIBA (`0x0E`), `0x05` → ABAJO (`0x12`) — los cuatro VK que da
+  la cruceta del Soyea con la tabla de la v2 —; después sigue en `0x284EDE` igual que el original. Solo usa r3 y
+  r7 (`0x284EDE` machaca r7 al entrar); r10 (el mensaje) lo conserva la función que llama.
+- Hueco: textos de depuración del decodificador JPEG/MPO (`"Progressive image size too big..."`, `"APP2"`,
+  `"_pu8In_buf_ofs = %lx"`, `"num of entry = %d"`): **ninguna** instrucción `addi`/`ori` usa sus direcciones y
+  ningún dato de 32 bits apunta a ellos (comprobado en todo el programa). El texto siguiente (`0x341194`) no se toca.
+- Rutina generada y verificada (desensamblada de vuelta) con `tools/aeon/build_cave_rca_v3.py`.
+- Fuera del reproductor USB no cambia nada: viendo la TV y en los menús la cruceta sigue como en la v2.
+
+**Efecto esperado (sin probar):** en el reproductor USB la cruceta solo se desplaza. Durante la reproducción
+izquierda/derecha harán lo que hagan las flechas del mando original en el reproductor, **no el volumen** (mismo
+compromiso que la v3 del LG). Si hace falta el volumen al reproducir, se afinará como la v5 del LG.
+
+**Duda abierta:** según la traducción a VK y la lista de teclas con repetición (`0x2634D0`: flechas, `0x13`–`0x16`,
+`0x1C`), en este firmware VOL+/VOL−/CH+/CH− podrían ser `0x13`/`0x14`/`0x15`/`0x16` y no `0x12`–`0x15` como en el
+Konka. Con la tabla actual, en los menús el botón VOL− del Soyea daría "volumen +" y CH+ "volumen −". Se pide al
+usuario comprobar el sentido de cada botón; si sale cruzado, la v4 corrige la tabla.
+
+Archivo: `rca-prueba-mando-soyea.BIN`, SHA-256 `ee56f24c659d2de4404439184a285c916488f8c4107b9bed8140191fcc9d0190`,
+CRC `0x05D3521E`. Cambian 152 bytes de la app (cliente 2, lista 73, reposo 1, gancho 3, rutina 73); nada más.
