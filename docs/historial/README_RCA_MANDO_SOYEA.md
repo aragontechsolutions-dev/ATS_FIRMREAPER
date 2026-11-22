@@ -356,3 +356,9 @@ archivo**, no lo reproduce. Se pide buscar la función que reproduce.
   `0x3B`). Por qué no funcionaron: **NO SÉ todavía**. Hipótesis: hace falta marcar antes con OK (atributo `0x10`), o
   la tecla rápida del reproductor (`0x2A3A37`) la consume si quedó la bandera de reproducción (`0x3D0460 & 4`).
   Se pide al usuario probar la A marcando antes con OK y decir cómo arranca los vídeos en el Konka.
+
+### Modelo del TV (etiqueta del usuario, 2026-11-22)
+Etiqueta: "RCA RC3202 RV (OK) — TP.VST59S-PB813 — 5". Comprobado en los dos firmwares: el del RCA y el del Konka
+TV4-32K16 dicen `[Board]: BD_V59S_PB813` y `CUS04_ATV_MM_M10`, es decir, **la misma placa TP.VST59S.PB813 y la
+misma rama de software** (por eso la tabla del Konka sirve tal cual). Búsqueda en internet: no hay nada publicado
+sobre "RC3202RV" ni sobre "BD_MST030B_10AL8"; de la placa solo hay firmwares genéricos en foros (sin datos del mando).
