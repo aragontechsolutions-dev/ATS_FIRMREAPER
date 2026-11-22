@@ -249,3 +249,17 @@ CRC `0x3C027F55`, 80 bytes cambiados (cliente, lista y tecla de reposo).
 Lectura esperada: si la cruceta da derecha=SUBE, izquierda=BAJA, arriba=APAGA, abajo=NADA, envía los códigos del
 Soyea `15`–`18`. Si VOL±/CH± dan lo mismo, **son los mismos códigos** y el TV no puede separarlos. Si dan NADA,
 son otros códigos y se buscarán en el diagnóstico siguiente.
+
+**Resultado del diagnóstico 2 (usuario):** VOL+/VOL− y derecha/izquierda de la cruceta mueven la barra de volumen;
+abajo de la cruceta no hace nada; arriba apaga el TV (y no lo enciende: normal, en reposo solo despierta el código
+`0C`); PLAY no hace nada (normal, no estaba en la lista). CH+/CH−: sin dato.
+
+Conclusión: con el código **010** del KT1440, la cruceta envía los códigos del Soyea: derecha `15`, izquierda `16`
+(**los mismos que VOL+/VOL−**), arriba `17`, abajo `18` (casi seguro los mismos que CH+/CH−, falta confirmarlo).
+El TV recibe exactamente lo mismo, así que **no puede distinguir la cruceta de VOL/CH**: lo pedido no es posible
+con el código 010.
+
+Siguiente paso propuesto: probar el KT1440 en el código **004/005 (Konka)**. El mando Konka original (cliente
+`07 07`, igual que el RCA original) tiene códigos propios para las flechas (`60 61 65 62`), OK (`68`), VOL (`07 0B`)
+y CH (`12 10`). La lista del RCA original ya usa `60 61 65 62 68 07 0B` con ese mismo cliente, así que la prueba
+se hace con el **firmware original**, sin modificar.
