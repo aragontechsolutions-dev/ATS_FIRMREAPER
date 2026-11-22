@@ -117,7 +117,9 @@ public static class FirmwareBuilder
             }
         }
 
-        // Código de cliente del mando: el que dan las opciones, salvo que el usuario elija otro.
+        // Código de cliente del mando: el que dan las opciones, salvo que el usuario elija otro. Se escriben TODOS
+        // sus campos: el principal (el que compara el programa encendido) y los de reposo (el filtro IR por hardware
+        // que decide qué mando enciende el TV desde reposo).
         NecCustomer? finalClient = null;
         bool clientEdited = false;
         if (profile.ClientCode is { } cc)
@@ -128,13 +130,21 @@ public static class FirmwareBuilder
             if (clientCode is { } want && want != fromOptions)
             {
                 if (cc.WhyNot(want) is { } why) throw new BuildException("Código de cliente: " + why);
-                var bytes = cc.Encode(want);
-                string desc = $"Código de cliente del mando: {cc.Original} → {want} [ELEGIDO]";
-                if (ci >= 0) patches.RemoveAt(ci);
-                if (want != cc.Original) patches.Add(new Patch(cc.Address, cc.OriginalBytes, bytes, desc));
+                var fields = new List<(uint Addr, byte[] Orig, byte[] New, string Desc)>
+                {
+                    (cc.Address, cc.OriginalBytes, cc.Encode(want), $"Código de cliente del mando: {cc.Original} → {want} [ELEGIDO]"),
+                };
+                fields.AddRange(cc.Standby.Select(f => (f.Address, cc.EncodeStandby(f, cc.Original), cc.EncodeStandby(f, want),
+                    $"Código de cliente para encender desde reposo (registro IR 0x{0x3DA3 + f.Which:X4}, byte {f.Which}) [ELEGIDO]")));
+                foreach (var (addr, orig, bytes, desc) in fields)
+                {
+                    patches.RemoveAll(p => p.Address == addr);
+                    if (!bytes.AsSpan().SequenceEqual(orig)) patches.Add(new Patch(addr, orig, bytes, desc));
+                }
                 finalClient = want;
                 clientEdited = true;
-                Ok($"Código de cliente del mando elegido: {want} (las opciones daban {fromOptions}).");
+                Ok($"Código de cliente del mando elegido: {want} (las opciones daban {fromOptions}); " +
+                   (cc.Standby.Count > 0 ? "también para encender desde reposo." : "el de reposo lo calcula el firmware a partir de este."));
             }
         }
         else if (clientCode is not null)

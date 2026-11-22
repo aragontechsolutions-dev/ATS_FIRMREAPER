@@ -1,7 +1,7 @@
 {
   "formato": 1,
   "id": "atec-32l18d-lp141wx1",
-  "version": 4,
+  "version": 5,
   "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
   "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV (necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó. Espejo de imagen y menús: ya existe en el menú de fábrica (Mirror Enable), no hace falta parche.",
   "estado": "verificado",
@@ -20,6 +20,11 @@
       "desde": "0x3233D5",
       "hasta": "0x3233D9",
       "motivo": "comparación del código de cliente del mando (rutina IR 0x3233AA)"
+    },
+    {
+      "desde": "0x32394C",
+      "hasta": "0x32395A",
+      "motivo": "código de cliente para encender desde reposo (registros IR 0x3DA4/0x3DA5)"
     },
     {
       "desde": "0x4E3A78",
@@ -79,13 +84,25 @@
         },
         {
           "id": "soyea",
-          "etiqueta": "Soyea LKK32CMB (cliente 0x7837) — sin probar en el TV",
+          "etiqueta": "Soyea LKK32CMB (cliente 37 78), también para encender desde reposo",
           "parches": [
             {
               "direccion": "0x3233D5",
               "original": "c0eee6c0",
               "nuevo": "c0ef06e0",
               "descripcion": "IR: bg.sfeqi r7,0x7736 -> bg.sfeqi r7,0x7837 (código de cliente del mando Soyea)"
+            },
+            {
+              "direccion": "0x32394C",
+              "original": "508036",
+              "nuevo": "508037",
+              "descripcion": "IR reposo: bn.ori r4,r0,0x36 -> 0x37 (registro 0x3DA4, 1.er byte del cliente)"
+            },
+            {
+              "direccion": "0x323957",
+              "original": "508077",
+              "nuevo": "508078",
+              "descripcion": "IR reposo: bn.ori r4,r0,0x77 -> 0x78 (registro 0x3DA5, 2.º byte del cliente)"
             }
           ]
         }
@@ -128,7 +145,19 @@
     "direccion": "0x3233D5",
     "formato": "aeon-sfeqi",
     "registro": 7,
-    "original": "36 77"
+    "original": "36 77",
+    "reposo": [
+      {
+        "direccion": "0x32394C",
+        "byte": 1,
+        "registro": 4
+      },
+      {
+        "direccion": "0x323957",
+        "byte": 2,
+        "registro": 4
+      }
+    ]
   },
   "tablaMando": {
     "formato": "directa256",

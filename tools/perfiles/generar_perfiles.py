@@ -310,7 +310,7 @@ else:
     guardar("atec-32l18d-lp141wx1.json", {
         "formato": 1,
         "id": "atec-32l18d-lp141wx1",
-        "version": 4,
+        "version": 5,
         "nombre": "ATEC 32L18D (BD_MST061B_10AZU_14014) — panel LP141WX1 1280x800, mando y logo",
         "descripcion": "Adapta la tabla del panel a 1280x800 un canal LVDS. La salida de 8 bits funcionó en el TV "
                        "(necesita mapeo JEIDA; el par 3 queda sin conectar); la de 6 bits + dither NO funcionó. "
@@ -321,6 +321,7 @@ else:
         "compresion": {"metodo": "zlib", "nivel": 9},
         "zonasPermitidas": [
             zona(0x3233D5, 0x3233D9, "comparación del código de cliente del mando (rutina IR 0x3233AA)"),
+            zona(0x32394C, 0x32395A, "código de cliente para encender desde reposo (registros IR 0x3DA4/0x3DA5)"),
             zona(base + o, base + o + at.ENTRY_SIZE, "entrada #1 de la tabla de paneles (la que usa este TV)"),
             zona(0x422090, 0x422190, "tabla código→función del mando (256 bytes; rutina IR 0x3233AA)"),
         ],
@@ -339,9 +340,16 @@ else:
             {"id": "mando", "etiqueta": "Mando", "tipo": "lista", "porDefecto": "atec",
              "valores": [
                  {"id": "atec", "etiqueta": "ATEC original (cliente 0x7736)", "parches": []},
-                 {"id": "soyea", "etiqueta": "Soyea LKK32CMB (cliente 0x7837) — sin probar en el TV",
+                 # v5 del perfil: además del cliente que compara el programa encendido (0x3233D5), el filtro IR por
+                 # hardware que usa el chip EN REPOSO (registros 0x3DA4/0x3DA5, escritos en 0x32394C/0x323957). La v2
+                 # no lo cambiaba: el mando Soyea funcionaba, pero no encendía el TV desde reposo (probado por el usuario).
+                 {"id": "soyea", "etiqueta": "Soyea LKK32CMB (cliente 37 78), también para encender desde reposo",
                   "parches": [parche(0x3233D5, "c0eee6c0", "c0ef06e0",
-                                     "IR: bg.sfeqi r7,0x7736 -> bg.sfeqi r7,0x7837 (código de cliente del mando Soyea)")]},
+                                     "IR: bg.sfeqi r7,0x7736 -> bg.sfeqi r7,0x7837 (código de cliente del mando Soyea)"),
+                              parche(0x32394C, "508036", "508037",
+                                     "IR reposo: bn.ori r4,r0,0x36 -> 0x37 (registro 0x3DA4, 1.er byte del cliente)"),
+                              parche(0x323957, "508077", "508078",
+                                     "IR reposo: bn.ori r4,r0,0x77 -> 0x78 (registro 0x3DA5, 2.º byte del cliente)")]},
              ]},
             # Logo: el programa (0x2E350F) carga SIEMPRE el recurso TEL 0x0300; la búsqueda de recursos
             # (0x322A4A) no comprueba el CRC-16, pero se mantiene correcto.
@@ -356,7 +364,9 @@ else:
         "logo": {"idTel": "0x0300", "crc16": True, "longitudJpeg": 49128, "ancho": 2167, "alto": 1228},
         # Código de cliente: inmediato con signo de bg.sfeqi r7 (solo hasta 0x7FFF). La opción "Mando = Soyea" lo
         # cambia a 37 78; el usuario puede poner otro. El segundo mando aceptado (A0 5F) no se toca.
-        "clienteMando": {"direccion": "0x3233D5", "formato": "aeon-sfeqi", "registro": 7, "original": "36 77"},
+        "clienteMando": {"direccion": "0x3233D5", "formato": "aeon-sfeqi", "registro": 7, "original": "36 77",
+                         "reposo": [{"direccion": "0x32394C", "byte": 1, "registro": 4},
+                                    {"direccion": "0x323957", "byte": 2, "registro": 4}]},
         "tablaMando": {
             "formato": "directa256",
             "direccion": "0x422090",

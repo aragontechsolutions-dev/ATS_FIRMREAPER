@@ -62,7 +62,7 @@ leen de los scripts de referencia; no se copian a mano).
 | valor `.logo` (opcional) | `"girar"` (180°, re-codificado en el formato del original, idéntico a Pillow) o `"propio"` (imagen del usuario: JPEG, PNG o BMP). Sin el campo, el logo no cambia. Solo UNA opción puede actuar sobre el logo. |
 
 | `tablaMando` (opcional) | Tabla botón → función editable: `formato` (`lista8` por defecto, `lista4`, `directa256`), `direccion`, `entradas` (listas), `prefijoCodigo` (solo `lista8`), **o bien** `opcion`/`valor` (la tabla es el parche de ese valor) **o bien** `original` (hex de la tabla del firmware: se edita en su sitio), `funciones` (`indice` + `nombre`, las únicas permitidas), `botones` (`codigo` + `nombre`) y `nota` opcional para el editor. |
-| `clienteMando` (opcional) | Código de cliente del mando editable: `direccion`, `formato` (`bytes-invertidos` o `aeon-sfeqi`, este con `registro`), `original` (en el orden de envío, p. ej. `"00 BF"`). |
+| `clienteMando` (opcional) | Código de cliente del mando editable: `direccion`, `formato` (`bytes-invertidos` o `aeon-sfeqi`, este con `registro`), `original` (en el orden de envío, p. ej. `"00 BF"`) y `reposo` opcional: copias para encender desde reposo, cada una `{"direccion","byte":1|2,"registro"}` = instrucción `bn.ori rN,r0,byte`. |
 
 ### La tabla del mando
 
@@ -98,6 +98,10 @@ Tres formatos (análisis en `docs/historial/README_MANDO_GENERICO.md`):
   códigos con `b2 ≤ 7F`; otro código se rechaza con un mensaje que lo explica.
 - Al cargar: debe estar dentro de una zona permitida, no solaparse con la tabla, y todo parche de las opciones que lo
   toque debe ser EXACTAMENTE ese campo, partir del `original` declarado y contener un código válido.
+- `reposo` (ATEC): copias del código que el firmware escribe en el receptor IR por hardware (registros `0x3DA4` =
+  byte 1, `0x3DA5` = byte 2), que es lo que decide qué mando enciende el TV **desde reposo**. Si el firmware los
+  calcula a partir del campo principal (LG, Konka), no se declaran. Todo parche de una opción que toque cualquier
+  campo del cliente debe cambiar **todos** (principal y reposo) al **mismo** código; si no, el perfil se rechaza.
 - Al generar: el código de las opciones (p. ej. "Mando Soyea" → `37 78`) se sustituye por el elegido; si el elegido
   es el original, el campo queda como en el original. Nombre del archivo: `_cliente-XXXX`.
 

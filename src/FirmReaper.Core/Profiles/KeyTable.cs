@@ -283,6 +283,15 @@ public enum ClientCodeFormat
     AeonSfeqi,
 }
 
+/// <summary>
+/// Copia de un byte del código de cliente que el firmware escribe en el receptor IR por hardware (registros
+/// 0x3DA4 = 1.er byte, 0x3DA5 = 2.º byte). Es el filtro que usa el chip EN REPOSO para saber qué mando lo enciende.
+/// En el ATEC está fijo en una instrucción "bn.ori rD,r0,N" (3 bytes); en LG y Konka se calcula a partir del campo
+/// principal, así que no necesitan campos de reposo.
+/// </summary>
+/// <param name="Which">1 = primer byte enviado (B1), 2 = segundo (B2).</param>
+public sealed record ClientStandbyField(uint Address, int Which, int Register);
+
 /// <summary>Dónde y cómo está el código de cliente del mando en un firmware.</summary>
 public sealed class ClientCodeSpec
 {
@@ -292,6 +301,32 @@ public sealed class ClientCodeSpec
     public int Register { get; init; }
     /// <summary>El del firmware original.</summary>
     public required NecCustomer Original { get; init; }
+    /// <summary>Copias del código para el encendido desde reposo (ver <see cref="ClientStandbyField"/>).</summary>
+    public IReadOnlyList<ClientStandbyField> Standby { get; init; } = [];
+
+    public const int StandbyFieldLength = 3;
+
+    public byte[] EncodeStandby(ClientStandbyField f, NecCustomer c) => EncodeOri(f.Register, f.Which == 1 ? c.B1 : c.B2);
+
+    /// <summary>Byte del código contenido en un campo de reposo (null si no es "bn.ori rD,r0,N").</summary>
+    public static byte? DecodeStandby(ClientStandbyField f, ReadOnlySpan<byte> b)
+    {
+        if (b.Length != StandbyFieldLength) return null;
+        uint w = (uint)(b[0] << 16 | b[1] << 8 | b[2]);
+        if (w >> 18 != 0x14 || ((w >> 13) & 31) != f.Register || ((w >> 8) & 31) != 0) return null;
+        return (byte)w;
+    }
+
+    /// <summary>
+    /// bn.ori rD,rA,N (aeon_isa.json, AEON R2): "010 100 DDDDD AAAAA NNNNNNNN", 3 bytes big-endian; N sin signo.
+    /// Aquí siempre rA = r0, es decir, rD = N.
+    /// </summary>
+    public static byte[] EncodeOri(int reg, byte imm)
+    {
+        if (reg is < 0 or > 31) throw new ArgumentOutOfRangeException(nameof(reg));
+        uint w = (0x14u << 18) | ((uint)reg << 13) | imm;
+        return [(byte)(w >> 16), (byte)(w >> 8), (byte)w];
+    }
 
     public int ByteLength => Format == ClientCodeFormat.AeonSfeqi ? 4 : 2;
 

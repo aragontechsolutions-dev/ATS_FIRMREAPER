@@ -61,6 +61,20 @@ public sealed class ProfileClientCode
     public int? Registro { get; init; }
     /// <summary>Código del original, en el orden de envío: "00 BF".</summary>
     public required string Original { get; init; }
+    /// <summary>
+    /// Opcional: copias del código para el encendido desde reposo, cada una una instrucción "bn.ori rN,r0,byte"
+    /// (ATEC: registros IR 0x3DA4/0x3DA5). Ver docs/PERFILES.md.
+    /// </summary>
+    public List<ProfileClientByte>? Reposo { get; init; }
+}
+
+public sealed class ProfileClientByte
+{
+    public required string Direccion { get; init; }
+    /// <summary>1 = primer byte enviado, 2 = segundo.</summary>
+    public required int Byte { get; init; }
+    /// <summary>Registro destino de "bn.ori" (0–31).</summary>
+    public required int Registro { get; init; }
 }
 
 public sealed class ProfileKeyFunction

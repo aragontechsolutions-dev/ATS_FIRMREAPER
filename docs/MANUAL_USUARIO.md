@@ -1,4 +1,4 @@
-# FirmReaper 1.2 — Manual de usuario
+# FirmReaper 1.2.1 — Manual de usuario
 
 Programa para Windows que **analiza** volcados de firmware de placas de TV MStar (memoria SPI de 4 MB) y
 **genera versiones modificadas** de los firmwares que conoce, verificando todo antes de escribir.
@@ -189,7 +189,7 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 | Opción | Valores |
 |---|---|
 | Salida LVDS | **8 bits (probado: FUNCIONÓ)** / 6 bits + dither (probado: NO funcionó) |
-| Mando | **ATEC original** / Soyea LKK32CMB (sin probar en el TV) |
+| Mando | **ATEC original** / Soyea LKK32CMB (también para encender desde reposo; ver nota) |
 | Logo de arranque | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 | Código de cliente / Tabla del mando | Ver 4.4 |
 
@@ -199,7 +199,11 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
   panel anterior.
 - **Mando Soyea:** el firmware del ATEC es el mismo que el del Soyea (misma placa) y su tabla de botones es
   idéntica; solo cambia el código del mando. Con esta opción el TV obedece al mando Soyea **y deja de obedecer
-  al mando original del ATEC**. Encender desde reposo con el mando Soyea no está comprobado.
+  al mando original del ATEC**.
+- **Corregido en la 1.2.1:** con la 1.1.0 y la 1.2.0, el mando Soyea funcionaba recién grabado pero **no encendía el
+  TV desde reposo** (el firmware guarda una segunda copia del código para el reposo, que no se cambiaba). Si grabaste
+  un archivo del ATEC con "Mando: Soyea" o con un código de cliente elegido, genera y graba de nuevo con la 1.2.1. Encender desde reposo con el
+  archivo corregido está **pendiente de probar**.
 - **Espejo:** no hace falta modificar el firmware: el menú de fábrica del ATEC ya tiene **"Mirror Enable"**, que
   espeja imagen y menús (sin probar en el TV; no sé el código de entrada de este modelo). Con el panel montado al
   revés, usa además "Logo de arranque: girado".
@@ -413,5 +417,5 @@ El programa no guarda ajustes. Solo crea `%LOCALAPPDATA%\FirmReaper\errores.log`
 
 ---
 
-*FirmReaper 1.2.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
+*FirmReaper 1.2.1 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
 tablas AEON).*

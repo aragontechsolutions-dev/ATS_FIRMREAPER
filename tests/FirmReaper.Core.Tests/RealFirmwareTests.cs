@@ -329,9 +329,19 @@ public class RealFirmwareTests
         var r = FirmwareBuilder.Build(fw, profile, new Dictionary<string, string> { ["bits"] = "8", ["mando"] = "soyea" },
             cancel: TestContext.Current.CancellationToken);
         Assert.Null(r.Known);
-        Assert.Equal(25 + 3, r.ChangedAppBytes); // panel (25) + inmediato de sfeqi (3)
+        Assert.Equal(25 + 3 + 2, r.ChangedAppBytes); // panel (25) + inmediato de sfeqi (3) + reposo 0x3DA4/0x3DA5 (2)
         var a = FirmwareAnalyzer.Analyze(r.Output);
         Assert.True(a.App.AsSpan(0x3233D5 - 0x243800, 4).SequenceEqual(Convert.FromHexString("c0ef06e0")));
+        // Encendido desde reposo: las mismas instrucciones que el firmware del Soyea (0x3257A1 / 0x3257AC).
+        Assert.True(a.App.AsSpan(0x32394C - 0x243800, 3).SequenceEqual(Convert.FromHexString("508037")));
+        Assert.True(a.App.AsSpan(0x323957 - 0x243800, 3).SequenceEqual(Convert.FromHexString("508078")));
+        var soyea = FindFirmware("MST_EXT_SPI_ISP_20230301_153737.BIN");
+        if (soyea is not null)
+        {
+            var sa = FirmwareAnalyzer.Analyze(File.ReadAllBytes(soyea)).App!;
+            Assert.True(sa.AsSpan(0x3257A1 - 0x243800, 3).SequenceEqual(Convert.FromHexString("508037")));
+            Assert.True(sa.AsSpan(0x3257AC - 0x243800, 3).SequenceEqual(Convert.FromHexString("508078")));
+        }
     }
 
     // ------------------------------------------------------------------ mando genérico (etapa 8)
@@ -356,9 +366,11 @@ public class RealFirmwareTests
         Assert.Null(r.Known);
         var app = FirmwareAnalyzer.Analyze(r.Output).App!;
         Assert.Equal("c0e68240", Convert.ToHexStringLower(app.AsSpan(0x3233D5 - 0x243800, 4))); // sfeqi r7,0x3412
+        Assert.Equal("508012", Convert.ToHexStringLower(app.AsSpan(0x32394C - 0x243800, 3)));   // reposo: 1.er byte
+        Assert.Equal("508034", Convert.ToHexStringLower(app.AsSpan(0x323957 - 0x243800, 3)));   // reposo: 2.º byte
         Assert.Equal(0x22, app[0x422090 - 0x243800 + 0x45]);
-        // Respecto al original: panel (25) + 3 bytes del inmediato + 1 de la tabla.
-        Assert.Equal(25 + 3 + 1, r.ChangedAppBytes);
+        // Respecto al original: panel (25) + 3 bytes del inmediato + 2 de reposo + 1 de la tabla.
+        Assert.Equal(25 + 3 + 2 + 1, r.ChangedAppBytes);
         // Un código con el 2.º byte > 7F no se puede poner en el ATEC.
         Assert.Throws<BuildException>(() => FirmwareBuilder.Build(fw, p, new Dictionary<string, string>(),
             cancel: TestContext.Current.CancellationToken, clientCode: new NecCustomer(0x00, 0xBF)));

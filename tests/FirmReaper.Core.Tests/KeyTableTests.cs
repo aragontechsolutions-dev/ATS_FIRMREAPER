@@ -175,6 +175,74 @@ public class KeyTableTests
         Assert.Equal(hex, Convert.ToHexStringLower(ClientCodeSpec.EncodeSfeqi(reg, (ushort)imm)));
     }
 
+    /// <summary>Vectores de tools/aeon/aeonasm.py: asm("bn.ori", {"D": r, "A": 0, "N": v}).</summary>
+    [Theory]
+    [InlineData(4, 0x36, "508036")]
+    [InlineData(4, 0x77, "508077")]
+    [InlineData(4, 0x37, "508037")]
+    [InlineData(4, 0x78, "508078")]
+    [InlineData(4, 0x9F, "50809f")]
+    [InlineData(4, 0xFF, "5080ff")]
+    [InlineData(4, 0x00, "508000")]
+    [InlineData(7, 0x12, "50e012")]
+    public void OriIgualQueElEnsambladorDeReferencia(int reg, int imm, string hex)
+    {
+        var b = ClientCodeSpec.EncodeOri(reg, (byte)imm);
+        Assert.Equal(hex, Convert.ToHexStringLower(b));
+        Assert.Equal((byte)imm, ClientCodeSpec.DecodeStandby(new ClientStandbyField(0, 1, reg), b));
+    }
+
+    [Fact]
+    public void AtecTieneElCodigoDeReposo()
+    {
+        var cc = ProfileLoader.LoadBuiltin().Single(p => p.Id == "atec-32l18d-lp141wx1").ClientCode!;
+        Assert.Equal(2, cc.Standby.Count);
+        var soyea = new NecCustomer(0x37, 0x78);
+        Assert.Equal("508037", Convert.ToHexStringLower(cc.EncodeStandby(cc.Standby.Single(f => f.Which == 1), soyea)));
+        Assert.Equal("508078", Convert.ToHexStringLower(cc.EncodeStandby(cc.Standby.Single(f => f.Which == 2), soyea)));
+    }
+
+    [Theory]
+    [InlineData("opcion sin reposo")]
+    [InlineData("reposo distinto")]
+    [InlineData("byte invalido")]
+    public void PerfilConReposoIncoherenteSeRechaza(string caso)
+    {
+        // Zona 0x250000–0x250100; cliente principal en 0x250020 (b2 b1) y reposo en 0x250030 / 0x250034.
+        var j = ProfileTests.Minimal();
+        j["clienteMando"] = System.Text.Json.Nodes.JsonNode.Parse("""
+            {"direccion":"0x250020","formato":"bytes-invertidos","original":"36 77",
+             "reposo":[{"direccion":"0x250030","byte":1,"registro":4},{"direccion":"0x250034","byte":2,"registro":4}]}
+            """);
+        var b = j["opciones"]![0]!["valores"]![1]!["parches"]!.AsArray();
+        b.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"direccion":"0x250020","original":"7736","nuevo":"7837","descripcion":"c"}"""));
+        switch (caso)
+        {
+            case "opcion sin reposo": break; // cambia el principal pero no los de reposo
+            case "reposo distinto":
+                b.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"direccion":"0x250030","original":"508036","nuevo":"508037","descripcion":"r1"}"""));
+                b.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"direccion":"0x250034","original":"508077","nuevo":"508079","descripcion":"r2"}"""));
+                break;
+            case "byte invalido": j["clienteMando"]!["reposo"]![0]!["byte"] = 3; break;
+        }
+        Assert.Throws<InvalidDataException>(() => ProfileTests.Parse(j));
+    }
+
+    [Fact]
+    public void PerfilConReposoCoherenteSeAcepta()
+    {
+        var j = ProfileTests.Minimal();
+        j["clienteMando"] = System.Text.Json.Nodes.JsonNode.Parse("""
+            {"direccion":"0x250020","formato":"bytes-invertidos","original":"36 77",
+             "reposo":[{"direccion":"0x250030","byte":1,"registro":4},{"direccion":"0x250034","byte":2,"registro":4}]}
+            """);
+        var b = j["opciones"]![0]!["valores"]![1]!["parches"]!.AsArray();
+        b.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"direccion":"0x250020","original":"7736","nuevo":"7837","descripcion":"c"}"""));
+        b.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"direccion":"0x250030","original":"508036","nuevo":"508037","descripcion":"r1"}"""));
+        b.Add(System.Text.Json.Nodes.JsonNode.Parse("""{"direccion":"0x250034","original":"508077","nuevo":"508078","descripcion":"r2"}"""));
+        Assert.Equal(2, ProfileTests.Parse(j).ClientCode!.Standby.Count);
+    }
+
     [Fact]
     public void FormatosDelCodigoDeCliente()
     {

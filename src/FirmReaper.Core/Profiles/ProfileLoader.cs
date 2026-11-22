@@ -479,18 +479,60 @@ public static partial class ProfileLoader
                 Original = orig,
             };
             if (spec.WhyNot(orig) is { } why) Fail("clienteMando.original: " + why);
-            if (!InZones(spec.Address, spec.ByteLength)) Fail("clienteMando: no está dentro de una zona permitida.");
-            if (keyTable is not null && spec.Address < keyTable.Address + (uint)keyTable.ByteLength && keyTable.Address < spec.Address + (uint)spec.ByteLength)
-                Fail("clienteMando: se solapa con la tabla del mando.");
+            // Campos de reposo (copias del código que el chip usa para encender desde reposo).
+            var standby = new List<ClientStandbyField>();
+            foreach (var r in cm.Reposo ?? [])
+            {
+                if (r.Byte is not (1 or 2)) Fail("clienteMando.reposo.byte debe ser 1 o 2.");
+                if (r.Registro is < 0 or > 31) Fail("clienteMando.reposo.registro fuera de rango (0–31).");
+                standby.Add(new ClientStandbyField(ParseAddr(r.Direccion, "clienteMando.reposo.direccion"), r.Byte, r.Registro));
+            }
+            if (standby.Count > 2 || standby.Select(x => x.Which).Distinct().Count() != standby.Count)
+                Fail("clienteMando.reposo: como mucho un campo por byte.");
+            spec = new ClientCodeSpec
+            {
+                Address = spec.Address, Format = spec.Format, Register = spec.Register, Original = orig, Standby = standby,
+            };
+
+            // Todos los campos (principal + reposo): en zona, sin solaparse entre sí ni con la tabla.
+            var fields = new List<(uint Addr, int Len, string Name)> { (spec.Address, spec.ByteLength, "principal") };
+            fields.AddRange(standby.Select(x => (x.Address, ClientCodeSpec.StandbyFieldLength, $"reposo (byte {x.Which})")));
+            foreach (var (fa, fl, fn) in fields)
+            {
+                if (!InZones(fa, fl)) Fail($"clienteMando: el campo {fn} no está dentro de una zona permitida.");
+                if (keyTable is not null && fa < keyTable.Address + (uint)keyTable.ByteLength && keyTable.Address < fa + (uint)fl)
+                    Fail($"clienteMando: el campo {fn} se solapa con la tabla del mando.");
+                foreach (var (ga, gl, gn) in fields)
+                    if (gn != fn && fa < ga + (uint)gl && ga < fa + (uint)fl) Fail($"clienteMando: los campos {fn} y {gn} se solapan.");
+            }
+
+            // Parches de las opciones que tocan algún campo: deben ser exactamente ese campo, partir del original y,
+            // dentro de un mismo valor de opción, cambiar TODOS los campos al MISMO código (si no, el TV obedecería
+            // a un mando encendido y a otro en reposo).
+            byte[] OrigOf(int k) => k == 0 ? spec.OriginalBytes : spec.EncodeStandby(standby[k - 1], orig);
+            var byOwner = new Dictionary<string, Dictionary<int, byte[]>>();
             foreach (var (owner, p) in AllPatches())
             {
-                if (p.Address >= spec.Address + (uint)spec.ByteLength || spec.Address >= p.End) continue;
-                if (p.Address != spec.Address || p.Original.Length != spec.ByteLength)
-                    Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) toca el código de cliente sin ser exactamente ese campo.");
-                if (!p.Original.AsSpan().SequenceEqual(spec.OriginalBytes))
-                    Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) no parte del código original declarado.");
-                if (spec.Decode(p.New) is null)
-                    Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) no contiene un código de cliente válido.");
+                for (int k = 0; k < fields.Count; k++)
+                {
+                    var (fa, fl, fn) = fields[k];
+                    if (p.Address >= fa + (uint)fl || fa >= p.End) continue;
+                    if (p.Address != fa || p.Original.Length != fl)
+                        Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) toca el campo {fn} del código de cliente sin ser exactamente ese campo.");
+                    if (!p.Original.AsSpan().SequenceEqual(OrigOf(k)))
+                        Fail($"clienteMando: el parche 0x{p.Address:X} ({owner}) no parte del código original declarado.");
+                    if (!byOwner.TryGetValue(owner, out var m)) byOwner[owner] = m = [];
+                    m[k] = p.New;
+                }
+            }
+            foreach (var (owner, m) in byOwner)
+            {
+                if (m.Count != fields.Count)
+                    Fail($"clienteMando: la opción {owner} cambia solo una parte del código de cliente (faltan campos de reposo o el principal).");
+                var main = spec.Decode(m[0]) ?? throw new InvalidDataException($"clienteMando: el parche de {owner} no contiene un código de cliente válido.");
+                for (int k = 1; k < fields.Count; k++)
+                    if (!m[k].AsSpan().SequenceEqual(spec.EncodeStandby(standby[k - 1], main)))
+                        Fail($"clienteMando: en {owner} el campo de reposo no coincide con el código principal ({main}).");
             }
             clientCode = spec;
         }
