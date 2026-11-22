@@ -21,6 +21,17 @@
       "notas": "Regenerado con patch_panel.py (zlib 1.3, nivel 9). Según el usuario, la variante de 6 bits NO funcionó en el TV. Sin confirmar que el archivo grabado tuviera esta misma huella."
     },
     {
+      "sha256": "8e797d5dbb8056ec36630b3653eb194a35e08a515e86d404f6a4706ef92aaecd",
+      "tipo": "generado",
+      "origen": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
+      "modelo": "ATEC 32L18D",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "ATEC 32L18D + panel LP141WX1 1280x800 8 bits + mando Soyea LKK32CMB",
+      "variante": "8bit-soyea",
+      "estadoPrueba": "funciono",
+      "notas": "Probado por el usuario (2026-11-22): el mando Soyea funciona, apaga y enciende desde reposo. Cambia el código de cliente en 5 sitios (0x3233D5, 0x32394C, 0x323957 y, en el código de arranque sin comprimir, 0x243115 / 0x243120)."
+    },
+    {
       "sha256": "ab3d3485707e3c271e129ae9be633ad6ca3d63aa2051c5ef16596dbc727c918c",
       "tipo": "generado",
       "origen": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",

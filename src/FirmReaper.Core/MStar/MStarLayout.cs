@@ -22,6 +22,12 @@ public static class MStarLayout
     /// <summary>Inicio del deflate crudo = AppFlashStart + UncompressedPrefix.</summary>
     public const int DeflateOffset = AppFlashStart + UncompressedPrefix; // 0x023880
 
+    /// <summary>
+    /// Código de arranque sin comprimir (últimos 0x800 bytes antes del deflate, flash 0x23080–0x23880). Es la única
+    /// parte de la zona sin comprimir que un perfil puede modificar: antes están MS_IMG_INFO y la tabla TEL.
+    /// </summary>
+    public const int StubCodeOffset = 0x023080;
+
     /// <summary>Tabla TEL de recursos (magic "TEL\x09X3i\0").</summary>
     public const int TelOffset = 0x022080;
 

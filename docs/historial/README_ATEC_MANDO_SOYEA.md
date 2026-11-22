@@ -107,3 +107,9 @@ LG, Konka y RCA leen el código de reposo del campo principal (LG `0x243124` ←
 `0x38FFA2`; RCA `0x2A6918` ← `0x398AB0`): no tienen este problema.
 
 **Pendiente de probar:** encender desde reposo con el mando Soyea.
+
+**Confirmado por el usuario (2026-11-22):** con `8e797d5d…` el mando Soyea funciona, apaga y **enciende desde
+reposo**. Integrado en FirmReaper 1.3.0 (perfil ATEC v6): "Mando = Soyea" cambia los 5 sitios y el código de cliente
+elegido también (4 campos de reposo). Para escribir en el código de arranque sin comprimir, el generador admite
+ahora parches en flash `0x23080`–`0x23880` (ver `docs/PERFILES.md`). Con 1280x800 + 8 bits + Soyea, el programa
+genera exactamente `8e797d5d…`.

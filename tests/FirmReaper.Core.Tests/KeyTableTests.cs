@@ -196,10 +196,14 @@ public class KeyTableTests
     public void AtecTieneElCodigoDeReposo()
     {
         var cc = ProfileLoader.LoadBuiltin().Single(p => p.Id == "atec-32l18d-lp141wx1").ClientCode!;
-        Assert.Equal(2, cc.Standby.Count);
+        // Inicialización del receptor IR (bn.ori r4) y entrada en reposo (bn.ori r7, código de arranque sin comprimir).
+        Assert.Equal(4, cc.Standby.Count);
         var soyea = new NecCustomer(0x37, 0x78);
-        Assert.Equal("508037", Convert.ToHexStringLower(cc.EncodeStandby(cc.Standby.Single(f => f.Which == 1), soyea)));
-        Assert.Equal("508078", Convert.ToHexStringLower(cc.EncodeStandby(cc.Standby.Single(f => f.Which == 2), soyea)));
+        var got = cc.Standby.ToDictionary(f => f.Address, f => Convert.ToHexStringLower(cc.EncodeStandby(f, soyea)));
+        Assert.Equal("508037", got[0x32394C]);
+        Assert.Equal("508078", got[0x323957]);
+        Assert.Equal("50e037", got[0x243115]);
+        Assert.Equal("50e078", got[0x243120]);
     }
 
     [Theory]

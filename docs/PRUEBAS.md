@@ -82,7 +82,10 @@ Vectores de Zopfli (Python, `pip install zopfli==0.4.3`): ver el generador en el
 
 ## Resultado actual
 
-243 pruebas, 243 superadas (con firmwares, Linux). Nuevas (2026-11-22): 8 vectores de `bn.ori` de `aeonasm.py`;
+252 pruebas, 252 superadas (con firmwares, Linux). Nuevas en la 1.3.0: ATEC + Soyea = archivo probado `8e797d5d…`
+(5 sitios del cliente, también en el código de arranque sin comprimir, iguales que en el Soyea); 4 resoluciones del
+ATEC con sus tiempos en la entrada del panel; parche sintético en el código de arranque (CRC, app sin recomprimir);
+original distinto rechazado; 3 zonas prohibidas (MS_IMG_INFO, TEL, cruce con la app). Antes: 243. Nuevas (2026-11-22): 8 vectores de `bn.ori` de `aeonasm.py`;
 campos de reposo del ATEC; 3 perfiles con reposo incoherente rechazados y 1 coherente aceptado; ATEC + Soyea con
 las 3 instrucciones idénticas a las del firmware Soyea. En GitHub Actions (Windows, sin firmwares) se omiten las
 que necesitan los `.BIN`.
