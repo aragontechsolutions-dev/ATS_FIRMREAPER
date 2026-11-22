@@ -263,3 +263,30 @@ Siguiente paso propuesto: probar el KT1440 en el código **004/005 (Konka)**. El
 `07 07`, igual que el RCA original) tiene códigos propios para las flechas (`60 61 65 62`), OK (`68`), VOL (`07 0B`)
 y CH (`12 10`). La lista del RCA original ya usa `60 61 65 62 68 07 0B` con ese mismo cliente, así que la prueba
 se hace con el **firmware original**, sin modificar.
+
+## Cambio de enfoque: mando KT1440 en el código 005 (Konka) — prueba 2026-11-22
+
+**Dato del usuario:** con el firmware original del Konka TV4-32K16 y el KT1440 en el código **005**, funciona todo
+menos PLAY. Se pide replicar esa configuración en el RCA.
+
+### Comparación Konka ↔ RCA (comprobado en el código)
+- Código de cliente: **`07 07` en los dos** (Konka `0x38FFA2`, RCA `0x398AB0`). La tecla que enciende desde
+  reposo en el RCA (`0x2A693E`, `02`) es el POWER del mando Konka (código `02`). **No hace falta tocar ninguna de
+  las dos**.
+- Traducción tecla → VK de la interfaz: Konka `0x2823B3` (tabla `0x32BA14`), RCA `0x2850D3` (tabla `0x32DEDC`).
+  Para todas las teclas `0x01`–`0x28` (POWER, dígitos, flechas, OK, VOL, CH, MENU, EXIT, MUTE, SOURCE…) **dan el
+  mismo VK**; desde `0x29` el RCA tiene la numeración de VK desplazada en algunos (otra versión del software).
+  Por tanto, los valores de la lista del Konka significan lo mismo en el RCA.
+- Lista código→tecla del Konka (`0x38FFA4`): 45 teclas; el RCA admite 39. Se quitan las 6 con menos seguridad:
+  `0x0C` (código `2C`), `0x59` (`35`), `0x5D` (`1F`), `0x61` (`41`), `0x62` (`37`) — sin VK en ninguno de los dos
+  y sin uso en el RCA original — y `0x2E` (`43`), cuyo VK es distinto en el RCA (`0x48` frente a `0x4D`).
+- Listas del campo `+2` (las usa `0x262FC3` en el "contexto 2", el reproductor): en el Konka (`0x39005C`) rojo,
+  verde, amarillo y azul pasan a `0x52`–`0x55` (PLAY, STOP, REW, FF), `0x43`→`0x63`, `0x1D`→`0x57`, `0x23`→`0x24`.
+  En el RCA esa lista empieza en `0x398B54` y la del campo `+1` en `0x398B58`, así que solo cabe **una** entrada:
+  se pone la primera del Konka, **ROJO (`0x29`) → PLAY (`0x52`)**. Las listas `+1`, `+3`, `+4` siguen vacías.
+
+### Archivo
+Perfil `docs/historial/pruebas/rca-prueba-mando-konka.json` (id `rca-prueba-mando-konka`).
+`rca-prueba-mando-konka.BIN`, SHA-256 `0f41c3450c39efd65460ef6ae59178233f2fa308ab73230486fb4b6d903a4bdc`,
+CRC `0x6D1EBDC2`. Cambian 78 bytes de la app, todos entre `0x398AB8` y `0x398B55`; cliente y tecla de reposo
+quedan como en el original. Sin rutinas nuevas.
