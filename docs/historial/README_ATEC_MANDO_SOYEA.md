@@ -73,4 +73,7 @@ de cliente debe cambiar **todos** sus campos (principal y de reposo) al mismo c�
 LG y Konka: su receptor IR toma el código de reposo del mismo campo que FirmReaper ya cambia (LG `0x2F6F35` lee
 `0x39DEFE`; Konka `0x2A660F` lee `0x38FFA2`), así que no tienen este problema.
 
+La 1.2.0 (publicada el 2026-11-18) también tenía el fallo; se corrige en la **1.2.1**.
+Archivo corregido con las mismas opciones (8 bits + Soyea): SHA-256 `0b1bd2019841865cc875d8472eb9affb515d971dcbdc0759f35e2314915d0532`.
+
 **Pendiente de probar:** el archivo corregido (encender desde reposo con el mando Soyea).

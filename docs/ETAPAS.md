@@ -209,7 +209,7 @@ Análisis: `docs/historial/README_ESPEJO_ATEC_LG.md`.
 
 ## Corrección (2026-11-22): ATEC + mando Soyea no encendía desde reposo
 
-Probado por el usuario con el archivo de la 1.1.0: el mando funcionaba recién grabado pero no encendía el TV tras
+Probado por el usuario con el archivo de la 1.1.0 (la 1.2.0 tenía el mismo fallo): el mando funcionaba recién grabado pero no encendía el TV tras
 apagarlo. Causa: el código de cliente también está, byte a byte, en la inicialización del receptor IR por hardware
 (registros `0x3DA4`/`0x3DA5`, filtro de reposo), y no se cambiaba. Corregido: perfil ATEC v5 (2 bytes más:
 `0x32394C`/`0x323957`, iguales que en el Soyea), campos `reposo` en `clienteMando` y nueva regla de coherencia al
@@ -217,4 +217,9 @@ cargar perfiles. LG y Konka no tienen el problema. Detalle: `docs/historial/READ
 243 pruebas.
 
 ## Versión 1.2.0
-- Etapas 6, 8 y 9 (la 1.2.0 aún no se había publicado). Notas: `docs/NOTAS_VERSION_1.2.0.md`.
+- Etapas 6, 8 y 9. Publicada al fusionar el PR #3 (2026-11-18), antes de la corrección del reposo del ATEC.
+  Notas: `docs/NOTAS_VERSION_1.2.0.md`.
+
+## Versión 1.2.1
+- Corrección del encendido desde reposo con el mando Soyea (o un código elegido) en el ATEC (ver arriba).
+  Notas: `docs/NOTAS_VERSION_1.2.1.md`.
