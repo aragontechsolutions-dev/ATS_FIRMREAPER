@@ -290,3 +290,15 @@ Perfil `docs/historial/pruebas/rca-prueba-mando-konka.json` (id `rca-prueba-mand
 `rca-prueba-mando-konka.BIN`, SHA-256 `0f41c3450c39efd65460ef6ae59178233f2fa308ab73230486fb4b6d903a4bdc`,
 CRC `0x6D1EBDC2`. Cambian 78 bytes de la app, todos entre `0x398AB8` y `0x398B55`; cliente y tecla de reposo
 quedan como en el original. Sin rutinas nuevas.
+
+**Resultado (usuario):** la prueba con la tabla del Konka **funciona**; solo el botón ►II del KT1440 hace
+"caption" (subtítulos) en vez de PLAY.
+
+### Prueba Konka v2 (botón PLAY)
+- En la lista del Konka el código `47` lleva a `0x43`, que es la única tecla de la lista con ese valor, y ►II hace
+  "caption". Por eso ►II envía el código `47`.
+- El mando original del RCA usa justo ese código para PLAY: `47` → `0x52` (lista original, entrada `0x398B40`).
+  Se cambia `47` → `0x52`. Consecuencia: ningún botón queda en `0x43` (subtítulos), salvo que el botón SUB del
+  KT1440 envíe otro código (se pregunta).
+- `rca-prueba-mando-konka.BIN` v2, SHA-256 `0183c1df2fe92ecac08080331434c6c739af3bcb7e2f937ec4e3041dbd6edaf1`,
+  CRC `0xA189DB6A`, 78 bytes cambiados (lista y entrada `+2`).
