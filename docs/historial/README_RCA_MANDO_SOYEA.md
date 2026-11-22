@@ -1,4 +1,4 @@
-# RCA (BD_MST030B_10AL8_12052) — mando Soyea: análisis y PRUEBA v1 (2026-11-22)
+# RCA (BD_MST030B_10AL8_12052) — mando Soyea: análisis y PRUEBAS v1–v2 (2026-11-22)
 
 Original: `RCA_letra_roja_fondo_blanco_con_perros.BIN`, SHA-256 `669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307`.
 Contenedor MStar válido; app en RAM `0x200000` (base `0x203800`), misma familia que el Konka (mismo controlador IR,
@@ -10,6 +10,7 @@ textos "IR:%02dh", "<Ir Resend…>"). Direcciones = RAM de la app.
 |---|---|---|
 | Código de cliente (en memoria `b2 b1`, como el Konka) | `0x398AB0` | `07 07` |
 | Reposo (registros IR `0x3DA4`/`0x3DA5`) | `0x2A798A` / `0x2A7BC5` los calculan **desde `0x398AB0`** | — |
+| Tecla que enciende desde reposo (RIU `0x7B64/65/6C/6D`) | `0x2A693E` `bt.movi r6,0x2` (fija) | `02` (v2: `0C`) |
 | Lista código→tecla `[código, tecla, 0, 0]`, fin en tecla `FF` | `0x398AB4`; cargador `0x262AEF` (copia a RAM `0x3EBEE4`) | 39 teclas |
 | Detrás de la lista | `0x398B54`, `0x398B58`, `0x398B5C`, `0x398B60`: otras listas (las usa `0x262B5A`…) | **no se tocan** → máximo 39 teclas |
 
@@ -78,3 +79,80 @@ comprobadas van a su botón; las demás, al botón más probable ("supuesto"). B
 encender con el Soyea; (3) en el menú: ¿VOL+/VOL− mueven a derecha/izquierda? ¿CH+/CH− mueven arriba/abajo?
 
 Con los resultados se hará la v2 (definitiva) y, si funciona, el perfil integrado del RCA.
+
+
+## Prueba v2 (2026-11-22)
+
+**Resultado de la v1 (usuario):** el Soyea apaga el TV pero **no lo enciende** desde reposo; las flechas, OK y otras
+teclas no funcionan.
+
+### Causas encontradas
+1. **Encendido desde reposo.** La rutina de entrada en reposo (`0x2A68E3`, la que escribe "=> StandBy") copia bien el
+   cliente desde `0x398AB0`, pero la **tecla que despierta el TV** (registros RIU `0x7B64`/`0x7B65`/`0x7B6C`/`0x7B6D`)
+   está fija: `bt.movi r6,0x2` en `0x2A693E` (bytes `98 c2`) = código `02`, el POWER del mando RCA. El POWER del Soyea
+   es `0C` → se cambia a `bt.movi r6,0xc` (`98 cc`, codificación comprobada con `tools/aeon/aeonasm.py`). Es el mismo
+   tipo de fallo que tuvo el ATEC (allí era el cliente; aquí, la tecla).
+2. **CH± con valores equivocados.** En la v1 CH+/CH− llevaban `0x19`/`0x18` (los de los botones arriba/abajo del mando
+   RCA). La rutina `0x262F9B` (igual que en el Konka) usa `0x14`/`0x15` para CH± y `0x0D`–`0x10` para las flechas.
+3. **Flechas.** El Soyea no tiene flechas propias: su cruceta envía VOL+ (`15`), VOL− (`16`), CH+ (`17`) y CH− (`18`).
+   La conversión flecha↔VOL/CH del firmware (`0x262F9B`) solo se ejecuta en otro modo de entrada (modo 2), no con el
+   mando normal. En la v2 la cruceta da VOL±/CH± y las **flechas de verdad** (`0x0D`–`0x10`) van en PAGE UP/PAGE DOWN
+   (arriba/abajo) y PREV/NEXT (izquierda/derecha). La prueba dirá si los menús se mueven con la cruceta o solo con esos
+   cuatro botones; si es lo segundo, la v3 pondrá las flechas en la cruceta.
+4. **OK** ya tenía en la v1 el valor comprobado `0x11`; si sigue sin funcionar hace falta el resultado botón a botón
+   (NO SÉ todavía por qué falló: puede que pareciera no funcionar porque el cursor no se movía).
+
+### Archivo
+Perfil: `docs/historial/pruebas/rca-prueba-mando-soyea.json` (versión 2). `rca-prueba-mando-soyea.BIN`, SHA-256
+`e372b6066ddb28cb64bf5df10697fe6b45d38fbb256094c70ec3c4e2025b6d75`, CRC `0xE6BDA94A`. Cambian 76 bytes de la app:
+cliente (2), lista (72 dentro de `0x398AB4`–`0x398B53`) y tecla de reposo (1 byte real de la instrucción). Las listas
+de `0x398B54` en adelante, SBOOT, PM, TEL, recursos y base de datos quedan idénticos (verificado por FirmReaper y por
+una comparación independiente en Python). Zopfli 5: 17 489 bytes libres.
+
+Seguridad: el parche de reposo está en una zona permitida de 2 bytes (`0x2A693E`–`0x2A6940`) y se comprueba el valor
+original (`98c2`) antes de escribir; si el firmware no es exactamente este, FirmReaper no genera nada.
+
+| Código Soyea | Botón Soyea | Valor RCA | Por qué | Qué hace en el TV (rellenar) |
+|---|---|---|---|---|
+| `00` | 0 | `0x02` | comprobado | |
+| `01` | 1 | `0x03` | comprobado | |
+| `02` | 2 | `0x04` | comprobado | |
+| `03` | 3 | `0x05` | comprobado | |
+| `04` | 4 | `0x06` | comprobado | |
+| `05` | 5 | `0x07` | comprobado | |
+| `06` | 6 | `0x08` | comprobado | |
+| `07` | 7 | `0x09` | comprobado | |
+| `08` | 8 | `0x0A` | comprobado | |
+| `09` | 9 | `0x0B` | comprobado | |
+| `0B` | RETURN | `0x20` | supuesto | |
+| `0C` | POWER | `0x01` | comprobado | |
+| `0D` | SOURCE | `0x1F` | supuesto | |
+| `0E` | MUTE | `0x1E` | supuesto | |
+| `0F` | MENU | `0x1C` | supuesto | |
+| `14` | OK | `0x11` | comprobado | |
+| `15` | VOL+ (cruceta derecha) | `0x12` | comprobado | |
+| `16` | VOL- (cruceta izquierda) | `0x13` | comprobado | |
+| `17` | CH+ (cruceta arriba) | `0x14` | comprobado | |
+| `18` | CH- (cruceta abajo) | `0x15` | comprobado | |
+| `19` | PICTURE | `0x28` | supuesto | |
+| `1A` | AUDIO | `0x23` | supuesto | |
+| `1C` | INFO | `0x1B` | supuesto | |
+| `1D` | EXIT | `0x1A` | supuesto | |
+| `21` | ROJO | `0x29` | supuesto | |
+| `22` | VERDE | `0x2A` | supuesto | |
+| `23` | AMARILLO | `0x2B` | supuesto | |
+| `24` | AZUL | `0x2C` | supuesto | |
+| `28` | PAGE UP | `0x0D` | ARRIBA (comprobado) | |
+| `29` | PAGE DOWN | `0x0E` | ABAJO (comprobado) | |
+| `45` | SLEEP | `0x5E` | supuesto | |
+| `46` | CC | `0x43` | supuesto | |
+| `47` | SUBTITLE | `0x63` | supuesto | |
+| `4B` | PLAY | `0x52` | supuesto | |
+| `4C` | STOP | `0x53` | supuesto | |
+| `4E` | PREV | `0x0F` | IZQUIERDA (comprobado) | |
+| `53` | NEXT | `0x10` | DERECHA (comprobado) | |
+| `54` | REW | `0x54` | supuesto | |
+| `55` | FF | `0x55` | supuesto | |
+
+Sin función en el Soyea: DASH (`0A`), FAV (`20`), TV/RADIO (`25`), MTS (`40`), CH.LIST (`49`), TEMP_DET (`4F`), EPG
+(`51`), `56`, `57`. Se quitaron de la v1 los valores no comprobados `0x19`, `0x18`, `0x57` y `0x40` (sin nombre).
