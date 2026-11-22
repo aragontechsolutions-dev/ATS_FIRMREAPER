@@ -198,3 +198,35 @@ usuario comprobar el sentido de cada botón; si sale cruzado, la v4 corrige la t
 
 Archivo: `rca-prueba-mando-soyea.BIN`, SHA-256 `ee56f24c659d2de4404439184a285c916488f8c4107b9bed8140191fcc9d0190`,
 CRC `0x05D3521E`. Cambian 152 bytes de la app (cliente 2, lista 73, reposo 1, gancho 3, rutina 73); nada más.
+
+## Resultado de la v3 y diagnóstico v4 (2026-11-22)
+
+**El mando real no es el Soyea LKK32CMB:** es un universal **GSSG KT1440** (foto del usuario), que tiene cruceta
+propia **y** botones VOL±/CH± aparte. El usuario quiere la cruceta solo como flechas y VOL/CH en sus botones.
+
+**Resultado de la v3 (usuario):** PLAY no funciona; la flecha arriba hace de abajo, la derecha hace de izquierda;
+abajo e izquierda no hacen nada.
+
+Interpretación (sin confirmar):
+- Con la v3, arriba llega al reproductor como VK `0x0E` y derecha como VK `0x15`, tanto si la cruceta envía los
+  códigos de VOL/CH (rutina) como si envía PAGE UP/NEXT (tabla). Que arriba baje y derecha vaya a la izquierda
+  indica que **los nombres de dirección que di a la navegación (`0x2729DF`) están invertidos**: probablemente VK
+  `0x0E` = abajo, `0x12` = arriba, `0x13` = derecha, `0x15` = izquierda ("no funcionaron" = el cursor ya estaba en
+  el borde). Esto también afecta a la numeración de las flechas en la lista (`0x0D`–`0x10`).
+- No se sabe si la cruceta del KT1440 envía los mismos códigos que VOL±/CH± (como el Soyea LKK32CMB, que no tiene
+  flechas) o códigos propios. **Si son los mismos, el TV no puede distinguirlos** y lo pedido no es posible.
+
+**Diagnóstico v4** (`docs/historial/pruebas/rca-diagnostico-mando-v4.json`, `rca-DIAGNOSTICO-mando.BIN`,
+SHA-256 `bde10ef79e19629dbb263d5ce8466bf9bd2e1a043537952d7e5d0e82ac5980a2`, CRC `0x87F71F82`, 80 bytes
+cambiados): sin la rutina de la v3. La lista solo deja POWER, OK, MENU y EXIT, y convierte los códigos dudosos en
+dígitos (el TV muestra el número):
+
+| Código | Número | Código | Número |
+|---|---|---|---|
+| `15` (VOL+ Soyea) | 1 | `29` (PAGE DOWN) | 6 |
+| `16` (VOL−) | 2 | `4E` (PREV) | 7 |
+| `17` (CH+) | 3 | `53` (NEXT) | 8 |
+| `18` (CH−) | 4 | `4B` (PLAY) | 9 |
+| `28` (PAGE UP) | 5 | los otros 25 códigos Soyea conocidos | 0 |
+
+Los dígitos del mando (`00`–`09`) no están en la lista para no confundir. Con el resultado se hará la v5.
