@@ -1,5 +1,12 @@
 # FirmReaper 1.2.0
 
+## Corrección importante (ATEC + mando Soyea)
+
+Con la 1.1.0, el ATEC con "Mando: Soyea" obedecía al mando recién grabado, pero **no se podía encender desde reposo**
+con él. El firmware guarda una segunda copia del código del mando para el reposo, que no se cambiaba. La 1.2.0 la
+cambia también (2 bytes más, iguales que en el firmware del Soyea). **Si grabaste ese archivo, genera y graba de
+nuevo con la 1.2.0.** Pendiente de probar en el TV.
+
 ## Novedades
 
 - **Logo de arranque en el ATEC y en el LG** (nueva opción **Logo de arranque**: sin cambios / girado 180° /

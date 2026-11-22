@@ -22,6 +22,12 @@ Un mando NEC envía 4 bytes: cliente 1, cliente 2, comando, ~comando. FirmReaper
 | ATEC | `0x3233D5` `bg.sfeqi r7,Y` | `aeon-sfeqi` (Y = b2·256 + b1) | `36 77` |
 | Konka | `0x38FFA2` (dato) | `bytes-invertidos` | `07 07` |
 
+**Encendido desde reposo:** el chip filtra en reposo con los registros IR `0x3DA4` (1.er byte) y `0x3DA5`
+(2.º). LG (`0x2F6F35`) y Konka (`0x2A660F`) los rellenan desde el campo principal; el ATEC los tiene fijos en
+`bn.ori r4,r0,0x36` (`0x32394C`) y `bn.ori r4,r0,0x77` (`0x323957`): son los campos `reposo` de su perfil y se
+cambian junto con el principal (corregido el 2026-11-22 tras la prueba del usuario; ver
+`README_ATEC_MANDO_SOYEA.md`).
+
 **Límite del ATEC:** `Y` es un inmediato de 16 bits **con signo** (`aeon_isa.json`, letra Y, flags 2) y el cliente
 recibido se carga sin signo (`exthz`), así que solo funcionan códigos con `b2 ≤ 7F` (por ejemplo, el del LG `00 BF`
 no). Ampliarlo necesitaría cambiar más código: no se hace. El segundo cliente aceptado por el ATEC (`A0 5F`) y los

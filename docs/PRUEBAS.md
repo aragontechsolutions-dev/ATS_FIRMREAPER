@@ -82,5 +82,7 @@ Vectores de Zopfli (Python, `pip install zopfli==0.4.3`): ver el generador en el
 
 ## Resultado actual
 
-230 pruebas, 230 superadas (con firmwares, Linux). En GitHub Actions (Windows, sin firmwares) se omiten las
+243 pruebas, 243 superadas (con firmwares, Linux). Nuevas (2026-11-22): 8 vectores de `bn.ori` de `aeonasm.py`;
+campos de reposo del ATEC; 3 perfiles con reposo incoherente rechazados y 1 coherente aceptado; ATEC + Soyea con
+las 3 instrucciones idénticas a las del firmware Soyea. En GitHub Actions (Windows, sin firmwares) se omiten las
 que necesitan los `.BIN`.

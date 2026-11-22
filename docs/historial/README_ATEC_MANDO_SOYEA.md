@@ -49,3 +49,28 @@ Por eso, para que el ATEC obedezca al mando Soyea basta **una instrucción**:
 
 Perfil `atec-32l18d-lp141wx1` v2, opción **Mando**: "ATEC original" (por defecto) / "Soyea LKK32CMB". Se combina
 con la opción del panel (8/6 bits).
+
+## Corrección del 2026-11-22: encender desde reposo
+
+**Probado por el usuario** con el archivo de la v1.1.0 (`atec-32l18d-lp141wx1_bits-8_mando-soyea.BIN`,
+SHA-256 `6c09f69b…440205e1a`): recién grabado, el mando Soyea funcionaba; tras apagar, **no volvía a encenderlo**.
+
+**Causa.** Hay DOS sitios con el código de cliente:
+1. `0x3233D5` (`bg.sfeqi`): lo compara el programa con el TV encendido (lee la trama completa). Este sí se cambiaba.
+2. La inicialización del receptor IR por hardware (`0x3238F0…`): escribe el código byte a byte en los registros
+   `0x3DA4` (`bn.ori r4,r0,0x36` en `0x32394C`) y `0x3DA5` (`bn.ori r4,r0,0x77` en `0x323957`). Ese filtro es el
+   que usa el chip **en reposo** para decidir qué mando lo enciende. **No se cambiaba**, así que en reposo solo el
+   mando ATEC (`36 77`) podía encenderlo.
+
+El firmware del Soyea tiene la misma rutina con `0x37` / `0x78` (`0x3257A1` / `0x3257AC`). El análisis anterior
+buscó el código solo como valor de 16 bits y por eso no vio estas dos cargas de 1 byte.
+
+**Corrección (perfil ATEC v5).** "Mando = Soyea" cambia también esas dos instrucciones (`508036`→`508037`,
+`508077`→`508078`), igual que el Soyea. El código de cliente elegido por el usuario también las cambia. Respecto al
+archivo grabado solo cambian esos 2 bytes de la app. Nueva regla al cargar perfiles: una opción que toque el código
+de cliente debe cambiar **todos** sus campos (principal y de reposo) al mismo código.
+
+LG y Konka: su receptor IR toma el código de reposo del mismo campo que FirmReaper ya cambia (LG `0x2F6F35` lee
+`0x39DEFE`; Konka `0x2A660F` lee `0x38FFA2`), así que no tienen este problema.
+
+**Pendiente de probar:** el archivo corregido (encender desde reposo con el mando Soyea).

@@ -122,6 +122,7 @@ byte a byte los de Pillow.
 | Riesgo | Medida |
 |---|---|
 | Código de cliente mal escrito | Solo se acepta exactamente 2 bytes hexadecimales; en el ATEC se rechaza `b2 > 7F` (el inmediato con signo nunca coincidiría y el TV dejaría de obedecer a cualquier mando de ese tipo) |
+| Código de cliente cambiado solo en parte (lo que pasó en el ATEC de la 1.1.0: encendido sí, reposo no) | Los campos de reposo se declaran en el perfil y se escriben siempre junto al principal; al cargar, una opción que toque el cliente debe cambiar TODOS sus campos al mismo código |
 | Escribir fuera del campo del cliente | El perfil fija dirección y formato; al cargar se exige que esté en una zona permitida y que todo parche que lo toque sea EXACTAMENTE ese campo y parta del original declarado; al generar se comprueban los bytes originales y que solo cambió lo previsto |
 | Tabla editada que desborde | Tamaño fijo por formato; en las listas, máximo `entradas − 1` teclas (Konka: 45, porque detrás hay otros datos); funciones solo de la lista cerrada del perfil (`0xFF` reservada); sin botones repetidos |
 | Tabla en su sitio | Sus bytes originales van en el perfil y se comprueban en el firmware; debe estar en una zona permitida y ningún parche de ninguna opción puede tocarla; si no se edita, no se escribe |
