@@ -167,13 +167,34 @@ public static class FirmwareBuilder
         var app = a.App;
         var newApp = app;
 
-        if (patches.Count > 0)
+        // Los parches anteriores a la base de la app van al código de arranque SIN comprimir (se escriben directamente
+        // en la flash); el resto, a la app comprimida.
+        var stubPatches = patches.Where(p => p.Address < profile.AppBaseRam).ToList();
+        var appPatches = patches.Where(p => p.Address >= profile.AppBaseRam).ToList();
+        int StubFlash(uint addr) => MStarLayout.DeflateOffset - (int)(profile.AppBaseRam - addr);
+        int telEnd = MStarLayout.TelOffset + 14 + (a.Tel.Entries.Count + 1) * TelTable.EntrySize;
+        foreach (var p in stubPatches)
+        {
+            int fo = StubFlash(p.Address);
+            if (fo < MStarLayout.StubCodeOffset || fo + p.Original.Length > MStarLayout.DeflateOffset || fo < telEnd)
+                throw new BuildException($"Parche 0x{p.Address:X} fuera del código de arranque sin comprimir.");
+            var cur = fw.AsSpan(fo, p.Original.Length);
+            if (!cur.SequenceEqual(p.Original))
+                throw new BuildException(cur.SequenceEqual(p.New)
+                    ? $"Parche 0x{p.Address:X}: el archivo YA tiene este cambio."
+                    : $"Parche 0x{p.Address:X}: los bytes originales no coinciden.");
+            p.New.CopyTo(outFw, fo);
+        }
+        if (stubPatches.Count > 0)
+            Ok($"Código de arranque sin comprimir: bytes originales correctos en {stubPatches.Count} parches (flash 0x{StubFlash(stubPatches[0].Address):X6}…).");
+
+        if (appPatches.Count > 0)
         {
             // 2. Bytes originales
-            foreach (var p in patches)
+            foreach (var p in appPatches)
             {
                 long off = (long)p.Address - profile.AppBaseRam;
-                if (off < 0 || off + p.Original.Length > app.Length)
+                if (off + p.Original.Length > app.Length)
                     throw new BuildException($"Parche 0x{p.Address:X} fuera de la aplicación.");
                 var cur = app.AsSpan((int)off, p.Original.Length);
                 if (!cur.SequenceEqual(p.Original))
@@ -181,11 +202,11 @@ public static class FirmwareBuilder
                         ? $"Parche 0x{p.Address:X}: el archivo YA tiene este cambio."
                         : $"Parche 0x{p.Address:X}: los bytes originales no coinciden.");
             }
-            Ok($"Bytes originales correctos en los {patches.Count} parches.");
+            Ok($"Bytes originales correctos en los {appPatches.Count} parches de la app.");
 
             // 3. Aplicar (sobre una copia)
             newApp = (byte[])app.Clone();
-            foreach (var p in patches)
+            foreach (var p in appPatches)
                 p.New.CopyTo(newApp, (int)(p.Address - profile.AppBaseRam));
 
             // 4. Recomprimir
@@ -209,10 +230,20 @@ public static class FirmwareBuilder
                 throw new BuildException($"La app recomprimida no cabe: termina en 0x{newEnd:X} y el primer recurso está en 0x{limit:X}.");
             Ok($"Cabe: fin 0x{newEnd:X6}, primer recurso 0x{limit:X6}, libres {Fmt.N(limit - newEnd)} bytes.");
 
-            // 6. Montar la app y la cabecera
+            // 6. Montar la app
             outFw.AsSpan(MStarLayout.DeflateOffset, (int)(limit - MStarLayout.DeflateOffset)).Clear();
             comp.CopyTo(outFw, MStarLayout.DeflateOffset);
             newTail.CopyTo(outFw, MStarLayout.DeflateOffset + comp.Length);
+            compressedSize = comp.Length;
+        }
+        else
+        {
+            Ok("La aplicación comprimida no cambia: no se recomprime.");
+        }
+
+        // 6b. Cabecera: fin y CRC-32 (cubre también el código de arranque sin comprimir).
+        if (patches.Count > 0)
+        {
             uint crc = Crc32Msb.Compute(outFw.AsSpan(MStarLayout.AppFlashStart, (int)(newEnd - MStarLayout.AppFlashStart)));
             nh = h with
             {
@@ -224,11 +255,6 @@ public static class FirmwareBuilder
             BinaryPrimitives.WriteUInt32LittleEndian(hs[0x08..], nh.RamEnd);
             BinaryPrimitives.WriteUInt32LittleEndian(hs[0x0C..], nh.FlashEnd);
             BinaryPrimitives.WriteUInt32LittleEndian(hs[0x14..], nh.Crc);
-            compressedSize = comp.Length;
-        }
-        else
-        {
-            Ok("La aplicación no cambia (solo el logo): no se recomprime.");
         }
 
         // 7. Logo
@@ -289,7 +315,7 @@ public static class FirmwareBuilder
 
         // Solo pueden cambiar los bytes de los parches, y con el valor nuevo.
         var allowed = new bool[app.Length];
-        foreach (var p in patches)
+        foreach (var p in appPatches)
             for (int i = 0; i < p.Original.Length; i++) allowed[p.Address - profile.AppBaseRam + i] = true;
         int changed = 0;
         for (int i = 0; i < app.Length; i++)
@@ -299,18 +325,39 @@ public static class FirmwareBuilder
                 throw new BuildException($"Cambio NO previsto en la app (0x{profile.AppBaseRam + i:X}).");
             changed++;
         }
-        foreach (var p in patches)
+        foreach (var p in appPatches)
             if (!b.App.AsSpan((int)(p.Address - profile.AppBaseRam), p.New.Length).SequenceEqual(p.New))
                 throw new BuildException($"El parche 0x{p.Address:X} no quedó aplicado.");
+        foreach (var p in stubPatches)
+        {
+            int fo = StubFlash(p.Address);
+            if (!outFw.AsSpan(fo, p.New.Length).SequenceEqual(p.New))
+                throw new BuildException($"El parche 0x{p.Address:X} no quedó aplicado.");
+            for (int i = 0; i < p.New.Length; i++)
+                if (fw[fo + i] != outFw[fo + i]) changed++;
+        }
         if (patches.Count > 0)
-            Ok($"Solo cambiaron los bytes previstos ({changed} bytes en la app).");
+            Ok($"Solo cambiaron los bytes previstos ({changed} bytes en el programa" +
+               (stubPatches.Count > 0 ? ", incluido el código de arranque sin comprimir)." : ")."));
 
         // Fuera de la app el archivo debe ser idéntico, salvo el hueco del logo (si se cambió).
         bool SameRange(int from, int to) => fw.AsSpan(from, to - from).SequenceEqual(outFw.AsSpan(from, to - from));
         bool outsideOk = SameRange(0, MStarLayout.HeaderOffset)
             && SameRange(MStarLayout.HeaderOffset, MStarLayout.HeaderOffset + 8)
             && SameRange(MStarLayout.HeaderOffset + 0x10, MStarLayout.HeaderOffset + 0x14)
-            && SameRange(MStarLayout.HeaderOffset + AppHeader.Size, MStarLayout.DeflateOffset);
+            && StubSame();
+        // Zona sin comprimir (MS_IMG_INFO, TEL, código de arranque): idéntica salvo los bytes de los parches del arranque.
+        bool StubSame()
+        {
+            int from = MStarLayout.HeaderOffset + AppHeader.Size;
+            foreach (var p in stubPatches.OrderBy(x => x.Address))
+            {
+                int fo = StubFlash(p.Address);
+                if (!SameRange(from, fo)) return false;
+                from = fo + p.New.Length;
+            }
+            return SameRange(from, MStarLayout.DeflateOffset);
+        }
         if (slot is null)
         {
             outsideOk &= SameRange((int)limit, fw.Length);

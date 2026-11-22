@@ -311,7 +311,8 @@ public class RealFirmwareTests
         if (path is null)
             Assert.Skip("No está el original del ATEC.");
         var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "atec-32l18d-lp141wx1");
-        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile, new Dictionary<string, string> { ["bits"] = bits },
+        var r = FirmwareBuilder.Build(File.ReadAllBytes(path), profile,
+            new Dictionary<string, string> { ["resolucion"] = "1280x800", ["bits"] = bits },
             cancel: TestContext.Current.CancellationToken);
         Assert.Equal(expectedSha, r.OutputSha256);
         Assert.True(r.MatchesKnown);
@@ -319,29 +320,62 @@ public class RealFirmwareTests
     }
 
     [Fact]
-    public void AtecConMandoSoyeaSoloCambiaLaComparacionDelCliente()
+    public void AtecConMandoSoyeaEsElArchivoProbadoQueEnciendeDesdeReposo()
     {
         var path = FindFirmware("Atec_32_KPC_Salva.BIN");
         if (path is null)
             Assert.Skip("No está el original del ATEC.");
         var profile = ProfileLoader.LoadBuiltin().Single(p => p.Id == "atec-32l18d-lp141wx1");
         var fw = File.ReadAllBytes(path);
-        var r = FirmwareBuilder.Build(fw, profile, new Dictionary<string, string> { ["bits"] = "8", ["mando"] = "soyea" },
+        var r = FirmwareBuilder.Build(fw, profile,
+            new Dictionary<string, string> { ["resolucion"] = "1280x800", ["bits"] = "8", ["mando"] = "soyea" },
             cancel: TestContext.Current.CancellationToken);
-        Assert.Null(r.Known);
-        Assert.Equal(25 + 3 + 2, r.ChangedAppBytes); // panel (25) + inmediato de sfeqi (3) + reposo 0x3DA4/0x3DA5 (2)
+        // = ATEC_8bit_mando_Soyea_PRUEBA_reposo.BIN, probado en el TV (2026-11-22): mando, apagar y encender.
+        Assert.Equal("8e797d5dbb8056ec36630b3653eb194a35e08a515e86d404f6a4706ef92aaecd", r.OutputSha256);
+        Assert.True(r.MatchesKnown);
+        // panel (25) + sfeqi (3) + inicialización IR (2) + entrada en reposo, código de arranque sin comprimir (2)
+        Assert.Equal(25 + 3 + 2 + 2, r.ChangedAppBytes);
         var a = FirmwareAnalyzer.Analyze(r.Output);
-        Assert.True(a.App.AsSpan(0x3233D5 - 0x243800, 4).SequenceEqual(Convert.FromHexString("c0ef06e0")));
-        // Encendido desde reposo: las mismas instrucciones que el firmware del Soyea (0x3257A1 / 0x3257AC).
+        Assert.True(a.App!.AsSpan(0x3233D5 - 0x243800, 4).SequenceEqual(Convert.FromHexString("c0ef06e0")));
         Assert.True(a.App.AsSpan(0x32394C - 0x243800, 3).SequenceEqual(Convert.FromHexString("508037")));
         Assert.True(a.App.AsSpan(0x323957 - 0x243800, 3).SequenceEqual(Convert.FromHexString("508078")));
+        Assert.Equal("50e037", Convert.ToHexStringLower(r.Output.AsSpan(0x23195, 3)));   // RAM 0x243115
+        Assert.Equal("50e078", Convert.ToHexStringLower(r.Output.AsSpan(0x231A0, 3)));   // RAM 0x243120
+        // Las mismas instrucciones que el firmware del Soyea.
         var soyea = FindFirmware("MST_EXT_SPI_ISP_20230301_153737.BIN");
         if (soyea is not null)
         {
-            var sa = FirmwareAnalyzer.Analyze(File.ReadAllBytes(soyea)).App!;
+            var sf = File.ReadAllBytes(soyea);
+            var sa = FirmwareAnalyzer.Analyze(sf).App!;
             Assert.True(sa.AsSpan(0x3257A1 - 0x243800, 3).SequenceEqual(Convert.FromHexString("508037")));
             Assert.True(sa.AsSpan(0x3257AC - 0x243800, 3).SequenceEqual(Convert.FromHexString("508078")));
+            Assert.Equal("50e037", Convert.ToHexStringLower(sf.AsSpan(0x23195, 3)));
+            Assert.Equal("50e078", Convert.ToHexStringLower(sf.AsSpan(0x231A0, 3)));
         }
+    }
+
+    [Theory]
+    [InlineData("1280x800", 1280, 800, 1440, 823, 71)]
+    [InlineData("1280x720", 1280, 720, 1650, 750, 74)]
+    [InlineData("1024x768", 1024, 768, 1344, 806, 65)]
+    [InlineData("800x600", 800, 600, 1056, 628, 40)]
+    public void AtecResolucionesEscribenLosTiemposDelEstandar(string res, int w, int h, int ht, int vt, int dclk)
+    {
+        if (Load("Atec_32_KPC_Salva.BIN", "atec-32l18d-lp141wx1") is not var (fw, p)) { Assert.Skip("No está el original del ATEC."); return; }
+        var r = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["resolucion"] = res },
+            cancel: TestContext.Current.CancellationToken);
+        var e = FirmwareAnalyzer.Analyze(r.Output).App!.AsSpan(0x4E3A78 - 0x243800, 92).ToArray();
+        int U16(int k) => e[k] | (e[k + 1] << 8);
+        Assert.Equal((w, h), (U16(28), U16(30)));
+        Assert.Equal((ht, vt, dclk), (U16(34), U16(40), (int)e[45]));
+        Assert.Equal(U16(24), e[20] + e[21]);                       // HStart = HSync + HBackPorch
+        Assert.Equal(U16(26), e[22] + e[23]);                       // VStart = VSync + VBackPorch
+        Assert.True(U16(36) <= ht && ht <= U16(32) && U16(42) <= vt && vt <= U16(38) && e[46] <= dclk && dclk <= e[44]);
+        if (res != "1280x800") // márgenes calculados (el LP141WX1 usa los de su hoja de datos)
+            Assert.True(U16(36) >= w + e[20] + e[21] + 16);         // porche delantero ≥ 16
+        Assert.Equal(2, e[64]);                                     // 8 bits por defecto
+        // 1280x800 a 8 bits es la versión probada (Atec32L18D_LP141WX1_8bit.BIN); las demás no tienen versión conocida.
+        Assert.Equal(res == "1280x800", r.MatchesKnown);
     }
 
     // ------------------------------------------------------------------ mando genérico (etapa 8)
@@ -359,7 +393,7 @@ public class RealFirmwareTests
         var kt = p.KeyTable!;
         // SLEEP (botón 0x45) → INFO (0x22), y cliente 12 34.
         var map = kt.Default.Select(k => k.Code == 0x45 ? k with { Index = 0x22 } : k).ToList();
-        var r = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["mando"] = "soyea" },
+        var r = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["resolucion"] = "1280x800", ["mando"] = "soyea" },
             cancel: TestContext.Current.CancellationToken, keyMap: map, clientCode: new NecCustomer(0x12, 0x34));
         Assert.True(r.KeyMapEdited && r.ClientCodeEdited);
         Assert.Equal(new NecCustomer(0x12, 0x34), r.ClientCode);
@@ -369,8 +403,10 @@ public class RealFirmwareTests
         Assert.Equal("508012", Convert.ToHexStringLower(app.AsSpan(0x32394C - 0x243800, 3)));   // reposo: 1.er byte
         Assert.Equal("508034", Convert.ToHexStringLower(app.AsSpan(0x323957 - 0x243800, 3)));   // reposo: 2.º byte
         Assert.Equal(0x22, app[0x422090 - 0x243800 + 0x45]);
-        // Respecto al original: panel (25) + 3 bytes del inmediato + 2 de reposo + 1 de la tabla.
-        Assert.Equal(25 + 3 + 2 + 1, r.ChangedAppBytes);
+        Assert.Equal("50e012", Convert.ToHexStringLower(r.Output.AsSpan(0x23195, 3)));  // entrada en reposo: 1.er byte
+        Assert.Equal("50e034", Convert.ToHexStringLower(r.Output.AsSpan(0x231A0, 3)));  // entrada en reposo: 2.º byte
+        // Respecto al original: panel (25) + 3 bytes del inmediato + 2 de inicialización IR + 2 de entrada en reposo + 1 de la tabla.
+        Assert.Equal(25 + 3 + 2 + 2 + 1, r.ChangedAppBytes);
         // Un código con el 2.º byte > 7F no se puede poner en el ATEC.
         Assert.Throws<BuildException>(() => FirmwareBuilder.Build(fw, p, new Dictionary<string, string>(),
             cancel: TestContext.Current.CancellationToken, clientCode: new NecCustomer(0x00, 0xBF)));

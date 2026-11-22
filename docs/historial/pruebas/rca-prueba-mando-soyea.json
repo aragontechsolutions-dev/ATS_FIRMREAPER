@@ -1,0 +1,41 @@
+{
+  "formato": 1,
+  "id": "rca-prueba-mando-soyea",
+  "version": 1,
+  "nombre": "RCA (BD_MST030B_10AL8_12052) — PRUEBA mando Soyea v1",
+  "descripcion": "Prueba: el TV obedece al mando Soyea LKK32CMB (cliente 37 78). Las 39 funciones del mando RCA repartidas en botones del Soyea.",
+  "estado": "sin-verificar",
+  "original": {
+    "sha256": "669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307"
+  },
+  "app": {
+    "baseRam": "0x203800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x398AB0",
+      "hasta": "0x398B54",
+      "motivo": "código de cliente y lista código→tecla del mando (se copia a RAM en 0x262AEF)"
+    }
+  ],
+  "parchesFijos": [
+    {
+      "direccion": "0x398AB0",
+      "original": "0707",
+      "nuevo": "7837",
+      "descripcion": "Código de cliente: 07 07 → 37 78 (Soyea; también para el reposo, 0x2A798A lo lee de aquí)"
+    },
+    {
+      "direccion": "0x398AB4",
+      "original": "020100003e2300000f1e000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00001320000011020000552800001e1c00001a1b0000445e0000071200000b130000011f00002d1a00006019000061180000650f000062100000681100002b290000282a00006e2b0000242c00002643000035630000375700004a4000004752000048530000505400003d550000ffff0000",
+      "nuevo": "0002000001030000020400000305000004060000050700000608000007090000080a0000090b00000b2000000c0100000d1f00000e1e00000f1c00001411000015120000161300001719000018180000192800001a2300001c1b00001d1a000021290000222a0000232b0000242c0000280f000029100000455e000046430000476300004b5200004c5300004e400000535700005454000055550000ffff0000",
+      "descripcion": "Lista código→tecla con los botones del mando Soyea (prueba v1)"
+    }
+  ],
+  "opciones": [],
+  "salidasConocidas": []
+}

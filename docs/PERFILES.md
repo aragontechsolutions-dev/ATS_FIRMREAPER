@@ -53,7 +53,7 @@ leen de los scripts de referencia; no se copian a mano).
 | `original.sha256` | Huella del volcado ORIGINAL al que se aplica. Con otro archivo, el programa se niega. |
 | `app.baseRam` | Dirección de RAM del primer byte de la app descomprimida = destino RAM (cabecera +0x04) + `0x3800`. Se comprueba contra el firmware. |
 | `compresion` | `{"metodo":"zopfli","iteraciones":5}` (LG, Konka) o `{"metodo":"zlib","nivel":9}` (ATEC; idéntico a zlib 1.3). Debe ser el mismo compresor que usó el script para que el resultado coincida con la versión probada. |
-| `zonasPermitidas` | Rangos `[desde, hasta)` en RAM donde se permite escribir, con su `motivo`. Máx. 64 KB cada una, sin solaparse, dentro de la app. |
+| `zonasPermitidas` | Rangos `[desde, hasta)` en RAM donde se permite escribir, con su `motivo`. Máx. 64 KB cada una, sin solaparse, dentro de la app. También se admite el **código de arranque sin comprimir** (los 0x800 bytes justo antes de `app.baseRam`, flash `0x23080`–`0x23880`), sin cruzar al principio de la app; nunca MS_IMG_INFO ni la tabla TEL. |
 | `parchesFijos` | Se aplican siempre. |
 | `opciones` | Tipo `lista`: el usuario elige un valor; cada valor trae sus parches (puede no traer ninguno). |
 | parche | `direccion` (RAM, `0x…`), `original` y `nuevo` (hex en minúsculas, misma longitud, máx. 4096 bytes, distintos), `descripcion`. |
@@ -63,6 +63,14 @@ leen de los scripts de referencia; no se copian a mano).
 
 | `tablaMando` (opcional) | Tabla botón → función editable: `formato` (`lista8` por defecto, `lista4`, `directa256`), `direccion`, `entradas` (listas), `prefijoCodigo` (solo `lista8`), **o bien** `opcion`/`valor` (la tabla es el parche de ese valor) **o bien** `original` (hex de la tabla del firmware: se edita en su sitio), `funciones` (`indice` + `nombre`, las únicas permitidas), `botones` (`codigo` + `nombre`) y `nota` opcional para el editor. |
 | `clienteMando` (opcional) | Código de cliente del mando editable: `direccion`, `formato` (`bytes-invertidos` o `aeon-sfeqi`, este con `registro`), `original` (en el orden de envío, p. ej. `"00 BF"`) y `reposo` opcional: copias para encender desde reposo, cada una `{"direccion","byte":1|2,"registro"}` = instrucción `bn.ori rN,r0,byte`. |
+
+### Parches en el código de arranque sin comprimir
+
+Los primeros 0x3800 bytes de la aplicación van sin comprimir en la flash (`0x20080`–`0x23880`): ahí están MS_IMG_INFO,
+la tabla TEL y, al final, código de arranque. Un parche con dirección menor que `app.baseRam` se escribe
+**directamente en la flash** (flash = `0x23880 − (baseRam − dirección)`), solo si cae en `0x23080`–`0x23880` y
+después de la tabla TEL; se comprueban sus bytes originales y se recalcula el CRC-32 de la cabecera (que cubre esa
+zona). Lo usa el ATEC para la rutina de entrada en reposo (`0x243115`/`0x243120`).
 
 ### La tabla del mando
 

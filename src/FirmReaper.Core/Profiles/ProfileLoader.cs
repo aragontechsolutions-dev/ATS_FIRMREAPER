@@ -266,7 +266,11 @@ public static partial class ProfileLoader
             uint from = ParseAddr(z.Desde, "zona.desde");
             uint to = ParseAddr(z.Hasta, "zona.hasta");
             if (to <= from) Fail($"Zona vacía o invertida: {z.Desde}–{z.Hasta}.");
-            if (from < baseRam) Fail($"Zona {z.Desde} antes del inicio de la app ({f.App.BaseRam}).");
+            // Antes de la app comprimida solo se admite el código de arranque sin comprimir (flash 0x23080–0x23880),
+            // y sin cruzar al principio de la app: nunca MS_IMG_INFO ni la tabla TEL.
+            uint stubFrom = baseRam - (uint)(MStarLayout.DeflateOffset - MStarLayout.StubCodeOffset);
+            if (from < baseRam && (from < stubFrom || to > baseRam))
+                Fail($"Zona {z.Desde} antes del inicio de la app ({f.App.BaseRam}) y fuera del código de arranque sin comprimir.");
             if (to - from > MaxZoneBytes) Fail($"Zona demasiado grande ({to - from} bytes; máximo {MaxZoneBytes}).");
             if (string.IsNullOrWhiteSpace(z.Motivo)) Fail("Toda zona debe explicar su motivo.");
             zones.Add(new PatchZone(from, to, z.Motivo));
@@ -487,8 +491,8 @@ public static partial class ProfileLoader
                 if (r.Registro is < 0 or > 31) Fail("clienteMando.reposo.registro fuera de rango (0–31).");
                 standby.Add(new ClientStandbyField(ParseAddr(r.Direccion, "clienteMando.reposo.direccion"), r.Byte, r.Registro));
             }
-            if (standby.Count > 2 || standby.Select(x => x.Which).Distinct().Count() != standby.Count)
-                Fail("clienteMando.reposo: como mucho un campo por byte.");
+            if (standby.Count > 8 || standby.Select(x => x.Address).Distinct().Count() != standby.Count)
+                Fail("clienteMando.reposo: como mucho 8 campos y sin direcciones repetidas.");
             spec = new ClientCodeSpec
             {
                 Address = spec.Address, Format = spec.Format, Register = spec.Register, Original = orig, Standby = standby,

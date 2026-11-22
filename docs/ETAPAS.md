@@ -220,6 +220,20 @@ cargar perfiles. LG y Konka no tienen el problema. Detalle: `docs/historial/READ
 - Etapas 6, 8 y 9. Publicada al fusionar el PR #3 (2026-11-18), antes de la corrección del reposo del ATEC.
   Notas: `docs/NOTAS_VERSION_1.2.0.md`.
 
+## ATEC: encendido desde reposo confirmado + opción de resolución (1.3.0, 2026-11-22)
+
+- El usuario probó `8e797d5d…`: el mando Soyea funciona, apaga y **enciende desde reposo**. Faltaba la rutina de
+  entrada en reposo (`0x2430F1`), que escribe el código fijo en el código de arranque sin comprimir.
+- Generador: parches en el código de arranque sin comprimir (flash `0x23080`–`0x23880`) con CRC recalculado.
+- Perfil ATEC v6: opción **Resolución del panel** (1366x768 original, 1280x800 LP141WX1, 1280x720, 1024x768, 800x600)
+  separada de **Salida LVDS** (8/6 bits); mando Soyea en 5 sitios; código de cliente con 4 campos de reposo.
+  Por defecto: resolución original. Las versiones documentadas siguen saliendo idénticas.
+- Detalle: `docs/historial/README_ATEC_RESOLUCIONES.md` y `README_ATEC_MANDO_SOYEA.md`. 252 pruebas.
+
 ## Versión 1.2.1
 - Corrección del encendido desde reposo con el mando Soyea (o un código elegido) en el ATEC (ver arriba).
   Notas: `docs/NOTAS_VERSION_1.2.1.md`.
+
+## Versión 1.3.0
+- Encendido desde reposo del ATEC con el mando Soyea (probado) y opción de resolución del panel.
+  Notas: `docs/NOTAS_VERSION_1.3.0.md`.

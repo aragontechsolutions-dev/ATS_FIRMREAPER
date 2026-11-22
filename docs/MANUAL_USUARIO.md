@@ -1,4 +1,4 @@
-# FirmReaper 1.2.1 — Manual de usuario
+# FirmReaper 1.3 — Manual de usuario
 
 Programa para Windows que **analiza** volcados de firmware de placas de TV MStar (memoria SPI de 4 MB) y
 **genera versiones modificadas** de los firmwares que conoce, verificando todo antes de escribir.
@@ -23,7 +23,7 @@ Programa para Windows que **analiza** volcados de firmware de placas de TV MStar
 |---|---|---|
 | LG 42LF652VX | TP.VST56.PB801 | Mando Soyea LKK32CMB (sí/no), espejo de imagen (original/desactivado), logo de arranque (sin cambios / girado / propio), código de cliente y tabla del mando editables |
 | Konka TV4-32K16 | TP.VST59S.PB813 | Espejo (opción MIRROR en el menú de fábrica / fijo), logo de arranque (girado 180° / propio / sin cambios), código de cliente y tabla del mando editables |
-| ATEC 32L18D | BD_MST061B_10AZU_14014 | Panel LG.Philips LP141WX1 1280x800 (salida LVDS de 8 o 6 bits); mando Soyea LKK32CMB (opcional); logo de arranque (sin cambios / girado / propio); código de cliente y tabla del mando editables |
+| ATEC 32L18D | BD_MST061B_10AZU_14014 | Resolución del panel (1366x768 original, 1280x800 LP141WX1, 1280x720, 1024x768, 800x600) y salida LVDS de 8 o 6 bits; mando Soyea LKK32CMB (también enciende desde reposo); logo de arranque (sin cambios / girado / propio); código de cliente y tabla del mando editables |
 
 **No hace:**
 
@@ -188,22 +188,41 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 
 | Opción | Valores |
 |---|---|
-| Salida LVDS | **8 bits (probado: FUNCIONÓ)** / 6 bits + dither (probado: NO funcionó) |
-| Mando | **ATEC original** / Soyea LKK32CMB (también para encender desde reposo; ver nota) |
+| Resolución del panel | **1366x768 (original)** / 1280x800 LP141WX1 (probado: FUNCIONÓ) / 1280x720 / 1024x768 / 800x600 (sin probar) |
+| Salida LVDS | **8 bits** (con LP141WX1 FUNCIONÓ) / 6 bits + dither (con LP141WX1 NO funcionó) |
+| Mando | **ATEC original** / Soyea LKK32CMB (probado: FUNCIONÓ, también enciende desde reposo) |
 | Logo de arranque | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 | Código de cliente / Tabla del mando | Ver 4.4 |
 
-- Cambia la entrada del panel a 1280x800 (LP141WX1). La salida de 8 bits necesita **mapeo JEIDA**; el par 3
-  de datos queda sin conectar.
-- Tras grabarlo: menú de fábrica → *Restore/Reset factory*, por si la base de datos guarda valores del
-  panel anterior.
-- **Mando Soyea:** el firmware del ATEC es el mismo que el del Soyea (misma placa) y su tabla de botones es
-  idéntica; solo cambia el código del mando. Con esta opción el TV obedece al mando Soyea **y deja de obedecer
-  al mando original del ATEC**.
-- **Corregido en la 1.2.1:** con la 1.1.0 y la 1.2.0, el mando Soyea funcionaba recién grabado pero **no encendía el
-  TV desde reposo** (el firmware guarda una segunda copia del código para el reposo, que no se cambiaba). Si grabaste
-  un archivo del ATEC con "Mando: Soyea" o con un código de cliente elegido, genera y graba de nuevo con la 1.2.1. Encender desde reposo con el
-  archivo corregido está **pendiente de probar**.
+**Resolución del panel.** Escribe en la tabla del panel (entrada #1, la que usa este TV) la resolución y los
+tiempos del panel que vas a conectar, siempre de **un canal LVDS**:
+
+| Resolución | De dónde salen los tiempos | Total H×V | Reloj |
+|---|---|---|---|
+| 1366x768 | los del firmware original (no se cambia nada) | 1560×806 | 76 MHz |
+| 1280x800 | hoja de datos del LP141WX1 (probado en el TV) | 1440×823 | 71 MHz |
+| 1280x720 | estándar 720p (CEA-861) | 1650×750 | 74,25 MHz |
+| 1024x768 | estándar VESA DMT | 1344×806 | 65 MHz |
+| 800x600 | estándar VESA DMT | 1056×628 | 40 MHz |
+
+- Son los tiempos **estándar**: la mayoría de paneles de esa resolución los aceptan, pero **cada panel tiene los
+  suyos**. Compara con la hoja de datos de tu panel (total horizontal y vertical, y reloj) antes de grabar.
+- Los márgenes mínimo y máximo de la tabla (que los estándares no dan) se calculan con una regla fija: total
+  horizontal −5 % / +5 %, total vertical −2 % / +3 %, reloj −7 % / +7 %.
+- **Sin probar en el TV** salvo 1280x800. Si la imagen no sale o sale mal, vuelve a grabar el original.
+- Con un panel distinto de 8 bits usa **"6 bits + dither"** solo si su hoja de datos dice 6 bits (con el LP141WX1 no
+  funcionó: necesitó 8 bits con mapeo JEIDA y el par 3 sin conectar).
+- Resoluciones mayores (1600x900, 1920x1080…) necesitan doble canal LVDS: ver la etapa 7 (pendiente de datos).
+- Tras grabarlo: menú de fábrica → *Restore/Reset factory*, por si la base de datos guarda valores del panel anterior.
+
+**Mando Soyea (probado: FUNCIONÓ).** El firmware del ATEC es el del Soyea (misma placa y misma tabla de botones);
+solo cambia el código del mando, que está en **5 sitios**: la comparación con el TV encendido, la inicialización del
+receptor de infrarrojos y la rutina que prepara el **encendido desde reposo**. El programa cambia los 5. Con esta
+opción el TV obedece al mando Soyea **y deja de obedecer al mando original del ATEC**.
+
+- Las versiones 1.1.0 a 1.2.1 no cambiaban todos esos sitios: el mando funcionaba pero **no encendía el TV desde
+  reposo**. Si grabaste un archivo del ATEC con "Mando: Soyea" o con un código de cliente elegido, genera y graba de
+  nuevo con la 1.3.0. Con 1280x800 + 8 bits + Soyea sale `8e797d5d…`, el archivo probado.
 - **Espejo:** no hace falta modificar el firmware: el menú de fábrica del ATEC ya tiene **"Mirror Enable"**, que
   espeja imagen y menús (sin probar en el TV; no sé el código de entrada de este modelo). Con el panel montado al
   revés, usa además "Logo de arranque: girado".
@@ -394,6 +413,7 @@ Crear un perfil requiere analizar el firmware (direcciones, bytes originales). E
 | ATEC original `Atec_32_KPC_Salva.BIN` | `19491133…` | Original |
 | `Atec32L18D_LP141WX1_8bit.BIN` | `ab3d3485…` | Funcionó (huella del archivo grabado sin confirmar) |
 | `Atec32L18D_LP141WX1_6bit.BIN` | `7bd55c39…` | NO funcionó |
+| ATEC 1280x800 8 bits + mando Soyea (`ATEC_8bit_mando_Soyea_PRUEBA_reposo.BIN`) | `8e797d5d…` | Funcionó (mando, apagar y encender desde reposo) |
 | Soyea `MST_EXT_SPI_ISP_20230301_153737.BIN` | `fc9fed8f…` | Referencia (no se modifica) |
 
 Las huellas completas aparecen en el programa (franja de identificación) y en `firmreaper-cli catalogo`.
@@ -417,5 +437,5 @@ El programa no guarda ajustes. Solo crea `%LOCALAPPDATA%\FirmReaper\errores.log`
 
 ---
 
-*FirmReaper 1.2.1 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
+*FirmReaper 1.3.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
 tablas AEON).*

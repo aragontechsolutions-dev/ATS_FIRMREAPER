@@ -195,4 +195,57 @@ public class BuilderTests
             Directory.Delete(dir, true);
         }
     }
+
+    // ------------------------------------------------------------------ código de arranque sin comprimir
+
+    /// <summary>Perfil cuyo único parche está en el código de arranque sin comprimir (RAM 0x243100 = flash 0x23180).</summary>
+    private static Profile StubProfile(byte[] fw, string? original = null)
+    {
+        int fo = 0x23180;
+        string orig = original ?? Convert.ToHexStringLower(fw.AsSpan(fo, 4));
+        string nuevo = Convert.ToHexStringLower(fw.AsSpan(fo, 4).ToArray().Select(b => (byte)~b).ToArray());
+        return ProfileFor(fw, j =>
+        {
+            j["zonasPermitidas"]!.AsArray().Add(JsonNode.Parse("""{"desde":"0x243100","hasta":"0x243110","motivo":"arranque"}"""));
+            j["parchesFijos"] = JsonNode.Parse($$"""[{"direccion":"0x243100","original":"{{orig}}","nuevo":"{{nuevo}}","descripcion":"arranque"}]""");
+        });
+    }
+
+    [Fact]
+    public void ParcheEnElCodigoDeArranqueSinComprimir()
+    {
+        var fw = SyntheticImage.Build();
+        var r = FirmwareBuilder.Build(fw, StubProfile(fw), new Dictionary<string, string>(), cancel: TestContext.Current.CancellationToken);
+        var o = r.Output;
+        // Se escribe directamente en la flash, el CRC de la cabecera se recalcula y la app comprimida no cambia.
+        Assert.Equal(fw.AsSpan(0x23180, 4).ToArray().Select(b => (byte)~b).ToArray(), o.AsSpan(0x23180, 4).ToArray());
+        Assert.True(FirmwareAnalyzer.Analyze(o).ContainerValid);
+        Assert.True(o.AsSpan(MStarLayout.DeflateOffset).SequenceEqual(fw.AsSpan(MStarLayout.DeflateOffset)));
+        Assert.True(o.AsSpan(0, 0x20014).SequenceEqual(fw.AsSpan(0, 0x20014)));
+        Assert.True(o.AsSpan(0x20018, 0x23180 - 0x20018).SequenceEqual(fw.AsSpan(0x20018, 0x23180 - 0x20018)));
+        Assert.Equal(4, r.ChangedAppBytes);
+        Assert.Equal(r.OldHeader with { Crc = r.NewHeader.Crc }, r.NewHeader); // solo cambia el CRC
+        Assert.NotEqual(r.OldHeader.Crc, r.NewHeader.Crc);
+    }
+
+    [Fact]
+    public void ParcheDeArranqueConOriginalDistintoSeRechaza()
+    {
+        var fw = SyntheticImage.Build();
+        var orig = Convert.ToHexStringLower(fw.AsSpan(0x23180, 4).ToArray().Select(b => (byte)(b ^ 1)).ToArray());
+        var ex = Assert.Throws<BuildException>(() => FirmwareBuilder.Build(fw, StubProfile(fw, orig),
+            new Dictionary<string, string>(), cancel: TestContext.Current.CancellationToken));
+        Assert.Contains("no coinciden", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("0x241100", "0x241110")] // MS_IMG_INFO
+    [InlineData("0x242000", "0x242010")] // tabla TEL
+    [InlineData("0x2437F0", "0x243810")] // cruza el inicio de la app comprimida
+    public void ZonaAntesDeLaAppFueraDelArranqueSeRechaza(string desde, string hasta)
+    {
+        var j = ProfileTests.Minimal();
+        j["zonasPermitidas"]!.AsArray().Add(JsonNode.Parse($$"""{"desde":"{{desde}}","hasta":"{{hasta}}","motivo":"x"}"""));
+        Assert.Throws<InvalidDataException>(() => ProfileTests.Parse(j));
+    }
 }
