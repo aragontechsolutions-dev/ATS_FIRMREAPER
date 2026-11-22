@@ -77,3 +77,33 @@ La 1.2.0 (publicada el 2026-11-18) también tenía el fallo; se corrige en la **
 Archivo corregido con las mismas opciones (8 bits + Soyea): SHA-256 `0b1bd2019841865cc875d8472eb9affb515d971dcbdc0759f35e2314915d0532`.
 
 **Pendiente de probar:** el archivo corregido (encender desde reposo con el mando Soyea).
+
+## Segunda corrección (2026-11-22, tarde): encender desde reposo — PRUEBA
+
+**Probado por el usuario** con el archivo corregido (`0b1bd201…5d0532`): todo funciona con el mando Soyea, también
+apagar, **salvo encender desde reposo**.
+
+**Causa.** Además de la inicialización del receptor IR (`0x32394C`/`0x323957`), la rutina de **entrada en reposo**
+(`0x2430F1`, texto `"=> StandBy"`) vuelve a escribir el código justo antes de apagar, fijo en dos instrucciones:
+
+```
+243115  bn.ori r7,r0,0x36 ; sb 0x7b48(r6),r7     RIU byte 0x7B48 = registro IR 0x3DA4, byte bajo
+243120  bn.ori r7,r0,0x77 ; sb 0x7b49(r6),r7     RIU byte 0x7B49 = registro IR 0x3DA4, byte alto
+24312b  movi r5,0xc ; sb 0x7b64/0x7b65/0x7b6c/0x7b6d   tecla POWER (0x0C, igual en ATEC y Soyea)
+```
+
+El Soyea tiene en el mismo sitio `0x37`/`0x78` (`50e037`/`50e078`). (En el análisis anterior esta pareja se vio
+pero se descartó por error: se comparó mal con el Soyea.)
+
+**Dónde está:** `0x243115` y `0x243120` quedan **antes** de la base de la app (`0x243800`), en los primeros 0x3800
+bytes que van **sin comprimir** en la flash (flash `0x23195` y `0x231A0`), cubiertos por el CRC-32 de la cabecera.
+FirmReaper aún no parchea esa zona (solo la app comprimida): se añadirá si la prueba funciona.
+
+**Archivo de prueba:** `ATEC_8bit_mando_Soyea_PRUEBA_reposo.BIN`, SHA-256
+`8e797d5dbb8056ec36630b3653eb194a35e08a515e86d404f6a4706ef92aaecd`. Respecto a `0b1bd201…`: flash `0x23197` `36→37`,
+`0x231A2` `77→78` y el CRC de la cabecera (`0x7AC2E26B`). El análisis de FirmReaper lo da por válido.
+
+LG, Konka y RCA leen el código de reposo del campo principal (LG `0x243124` ← `0x39DEFE`; Konka `0x2A557E` ←
+`0x38FFA2`; RCA `0x2A6918` ← `0x398AB0`): no tienen este problema.
+
+**Pendiente de probar:** encender desde reposo con el mando Soyea.
