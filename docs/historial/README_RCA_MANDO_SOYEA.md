@@ -230,3 +230,10 @@ dígitos (el TV muestra el número):
 | `28` (PAGE UP) | 5 | los otros 25 códigos Soyea conocidos | 0 |
 
 Los dígitos del mando (`00`–`09`) no están en la lista para no confundir. Con el resultado se hará la v5.
+
+**Resultado del diagnóstico v4 (usuario):** mando configurado con el código **010 (SOYEA DTV)**. Ni en USB ni en
+TV apareció ningún número. Fallo del diseño del diagnóstico: se dio por hecho que este TV muestra en pantalla el
+número marcado, y no está comprobado (sin canales sintonizados o fuera de la fuente TV puede no mostrar nada). El
+resultado no dice nada sobre los códigos. Antes de otro diagnóstico se pregunta al usuario cómo se comportan, con la
+v2/v3 y viendo la TV, los botones VOL±/CH± propios frente a la cruceta. Si hace falta, el siguiente diagnóstico
+usará la barra de volumen (VOL± sí está comprobado), que se ve en cualquier fuente.
