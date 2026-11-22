@@ -339,3 +339,20 @@ archivos lo que arranca un archivo es la selección (OK, VK `0x14`).
 Perfil `docs/historial/pruebas/rca-prueba-mando-konka-c.json`; `rca-prueba-mando-konka-c.BIN`, SHA-256
 `c75e8150d2711ec9685e8ccaf52a9554eeeb15e522090fc33ebfa3f96b5003e0`, CRC `0x1CF8F0BD`, 78 bytes cambiados. Si ►II
 no hace nada ni en la lista, el botón no envía `47` (la deducción "►II hacía caption = código 47" sería falsa).
+
+**Resultado de C (usuario):** ►II hace lo mismo que OK, pero en este reproductor **OK solo marca (selecciona) el
+archivo**, no lo reproduce. Se pide buscar la función que reproduce.
+
+### La función que reproduce desde la lista (comprobado)
+- Ejecutor de acciones del reproductor: `0x29E6A2(acción)`, `switch` con tabla `0x333BA0`. La acción **`0x310` =
+  `EN_EXE_DMP_FILE_PAGE_PLAYBACK`** (`0x29EB07`); `0x30E` = `EN_EXE_DMP_FILE_PAGE_SEL` (OK, marcar).
+- Tabla tecla→acción de las 12 casillas de la lista (`0x3BF398`, usada por las 12 ventanas en `0x3A6444`…
+  `0x3A696C`): VK `0x15`→`0x30A`, `0x13`→`0x30B`, `0x12`→`0x30D`, `0x0E`→`0x30C`, `0x14` (OK)→`0x30E`,
+  `0x10`→`0x30F`, **`0x3B` (PLAY) y `0x3D` (PLAY/PAUSA) → `0x310`**, `0x2A`→`0x3A3`, `0x22`→`0x312`, `0x21`→`0x313`.
+  El Konka tiene la misma tabla (`0x3BEE8C`, acciones desplazadas `0x321`).
+- `0x310`: si el elemento tiene el atributo `0x10` exige que haya archivos marcados (`0x2325B4`); después arranca la
+  reproducción (modo 2 = lista marcada, modo 4 = sin marcar).
+- Conclusión: las teclas que reproducen son justo las de las variantes A (`0x73` → VK `0x3D`) y B (`0x4D` → VK
+  `0x3B`). Por qué no funcionaron: **NO SÉ todavía**. Hipótesis: hace falta marcar antes con OK (atributo `0x10`), o
+  la tecla rápida del reproductor (`0x2A3A37`) la consume si quedó la bandera de reproducción (`0x3D0460 & 4`).
+  Se pide al usuario probar la A marcando antes con OK y decir cómo arranca los vídeos en el Konka.
