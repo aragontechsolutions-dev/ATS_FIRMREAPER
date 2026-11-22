@@ -252,10 +252,10 @@ son otros códigos y se buscarán en el diagnóstico siguiente.
 
 **Resultado del diagnóstico 2 (usuario):** VOL+/VOL− y derecha/izquierda de la cruceta mueven la barra de volumen;
 abajo de la cruceta no hace nada; arriba apaga el TV (y no lo enciende: normal, en reposo solo despierta el código
-`0C`); PLAY no hace nada (normal, no estaba en la lista). CH+/CH−: sin dato.
+`0C`); PLAY no hace nada (normal, no estaba en la lista). **CH+ también apaga el TV** (confirmado después): mismo código `17` que arriba.
 
 Conclusión: con el código **010** del KT1440, la cruceta envía los códigos del Soyea: derecha `15`, izquierda `16`
-(**los mismos que VOL+/VOL−**), arriba `17`, abajo `18` (casi seguro los mismos que CH+/CH−, falta confirmarlo).
+(**los mismos que VOL+/VOL−**), arriba `17` (**el mismo que CH+**, confirmado), abajo `18` (casi seguro el mismo que CH−).
 El TV recibe exactamente lo mismo, así que **no puede distinguir la cruceta de VOL/CH**: lo pedido no es posible
 con el código 010.
 
