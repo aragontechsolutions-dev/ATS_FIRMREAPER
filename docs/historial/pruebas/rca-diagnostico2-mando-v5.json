@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "id": "rca-prueba-mando-soyea",
+  "version": 5,
+  "nombre": "RCA (BD_MST030B_10AL8_12052) — DIAGNÓSTICO 2 mando KT1440 (v5)",
+  "descripcion": "Diagnóstico 2: código 15 sube volumen, 16 baja volumen, 17 apaga, el resto no hace nada.",
+  "estado": "sin-verificar",
+  "original": {
+    "sha256": "669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307"
+  },
+  "app": {
+    "baseRam": "0x203800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x398AB0",
+      "hasta": "0x398B54",
+      "motivo": "código de cliente y lista código→tecla del mando (se copia a RAM en 0x262AEF)"
+    },
+    {
+      "desde": "0x2A693E",
+      "hasta": "0x2A6940",
+      "motivo": "entrada en reposo (0x2A68E3): tecla que enciende el TV (RIU 0x7B64/65/6C/6D)"
+    }
+  ],
+  "parchesFijos": [
+    {
+      "direccion": "0x398AB0",
+      "original": "0707",
+      "nuevo": "7837",
+      "descripcion": "Código de cliente: 07 07 → 37 78 (Soyea; también para el reposo, 0x2A798A lo lee de aquí)"
+    },
+    {
+      "direccion": "0x398AB4",
+      "original": "020100003e2300000f1e000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00001320000011020000552800001e1c00001a1b0000445e0000071200000b130000011f00002d1a00006019000061180000650f000062100000681100002b290000282a00006e2b0000242c00002643000035630000375700004a4000004752000048530000505400003d550000ffff0000",
+      "nuevo": "0c010000151200001613000017010000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000",
+      "descripcion": "Lista de diagnóstico 2: 0C=POWER, 15=VOL+, 16=VOL-, 17=POWER"
+    },
+    {
+      "direccion": "0x2A693E",
+      "original": "98c2",
+      "nuevo": "98cc",
+      "descripcion": "Entrada en reposo: bt.movi r6,0x2 -> 0xc (tecla de encendido = POWER del Soyea)"
+    }
+  ],
+  "opciones": [],
+  "salidasConocidas": []
+}

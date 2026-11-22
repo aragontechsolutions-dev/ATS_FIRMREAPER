@@ -237,3 +237,15 @@ número marcado, y no está comprobado (sin canales sintonizados o fuera de la f
 resultado no dice nada sobre los códigos. Antes de otro diagnóstico se pregunta al usuario cómo se comportan, con la
 v2/v3 y viendo la TV, los botones VOL±/CH± propios frente a la cruceta. Si hace falta, el siguiente diagnóstico
 usará la barra de volumen (VOL± sí está comprobado), que se ve en cualquier fuente.
+
+### Diagnóstico 2 (v5)
+El usuario no puede responder las preguntas sin probar, así que se descarta por pasos usando solo efectos
+comprobados que se ven en cualquier fuente: barra de volumen (valores `0x12`/`0x13`, comprobados en la v2) y
+apagado (`0x01`, comprobado). Lista: `0C`→POWER, `15`→`0x12`, `16`→`0x13`, `17`→`0x01` (apaga); nada más (`18`
+y todos los demás códigos no hacen nada). Perfil `docs/historial/pruebas/rca-diagnostico2-mando-v5.json`;
+`rca-DIAGNOSTICO2-mando.BIN`, SHA-256 `e616e6e6522ac3167625c055d71ebbffe2628cc81bb69f948738acdfe3a241ff`,
+CRC `0x3C027F55`, 80 bytes cambiados (cliente, lista y tecla de reposo).
+
+Lectura esperada: si la cruceta da derecha=SUBE, izquierda=BAJA, arriba=APAGA, abajo=NADA, envía los códigos del
+Soyea `15`–`18`. Si VOL±/CH± dan lo mismo, **son los mismos códigos** y el TV no puede separarlos. Si dan NADA,
+son otros códigos y se buscarán en el diagnóstico siguiente.
