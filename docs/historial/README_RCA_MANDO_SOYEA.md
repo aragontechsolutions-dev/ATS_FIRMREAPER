@@ -362,3 +362,16 @@ Etiqueta: "RCA RC3202 RV (OK) — TP.VST59S-PB813 — 5". Comprobado en los dos 
 TV4-32K16 dicen `[Board]: BD_V59S_PB813` y `CUS04_ATV_MM_M10`, es decir, **la misma placa TP.VST59S.PB813 y la
 misma rama de software** (por eso la tabla del Konka sirve tal cual). Búsqueda en internet: no hay nada publicado
 sobre "RC3202RV" ni sobre "BD_MST030B_10AL8"; de la placa solo hay firmwares genéricos en foros (sin datos del mando).
+
+**Prueba con la variante A (usuario):** marcar con OK y pulsar ►II: no; con ROJO: no; sin marcar, recién
+encendido: no; no hay vista previa. Vídeos en la raíz del USB. No sabe cómo se arranca un vídeo en el Konka.
+
+**Pruebas E1/E2** (`tools/aeon/build_cave_rca_play.py`, mismo gancho `0x275411` y hueco `0x341112` que la v3; la
+v3 demostró que el gancho se ejecuta dentro del USB). Base: variante A (►II → `0x73` → VK `0x3D`).
+- **E1**: en el subestado `0x12`, con VK `0x3D` y sin reproducción en curso (`[0x3D0460] & 4 == 0`), llama a
+  `0x29E6A2(0x310)` (EN_EXE_DMP_FILE_PAGE_PLAYBACK) y devuelve 1, como las teclas rápidas que llaman a ese ejecutor
+  (p. ej. `0x2A3872`). 65 bytes. `rca-prueba-mando-konka-e1.BIN`, SHA-256
+  `a1907639f345302ca109172c264337201972bfe2783f279ca13691b44b0925f4`, 142 bytes cambiados.
+- **E2** (diagnóstico): mismas condiciones, cambia el VK por `0x12` (una flecha de la lista). Si el cursor se mueve,
+  la tecla llega a la interfaz y el fallo está en la acción. 47 bytes. `rca-prueba-mando-konka-e2.BIN`, SHA-256
+  `7fa5236e12f7bc61859f54207d206f6d94bbfafb48d1edbfa466a9e7b223d18a`, 124 bytes cambiados.
