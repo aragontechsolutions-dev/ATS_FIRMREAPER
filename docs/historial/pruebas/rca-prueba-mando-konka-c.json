@@ -1,0 +1,41 @@
+{
+  "formato": 1,
+  "id": "rca-prueba-mando-konka-c",
+  "version": 4,
+  "nombre": "RCA (BD_MST030B_10AL8_12052) — PRUEBA mando Konka v4C (KT1440 código 005)",
+  "descripcion": "Lista del Konka TV4-32K16 con ►II = OK (arranca el vídeo elegido en el USB); rojo = PLAY/PAUSA en el USB.",
+  "estado": "sin-verificar",
+  "original": {
+    "sha256": "669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307"
+  },
+  "app": {
+    "baseRam": "0x203800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x398AB4",
+      "hasta": "0x398B58",
+      "motivo": "lista código→tecla (0x262AEF) y primera entrada de la lista del campo +2 (0x262B9A)"
+    }
+  ],
+  "parchesFijos": [
+    {
+      "direccion": "0x398AB4",
+      "original": "020100003e2300000f1e000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00001320000011020000552800001e1c00001a1b0000445e0000071200000b130000011f00002d1a00006019000061180000650f000062100000681100002b290000282a00006e2b0000242c00002643000035630000375700004a4000004752000048530000505400003d550000ffff0000",
+      "nuevo": "02010000011f00006e21000028220000212800002427000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00001102000013200000071200000b13000012140000101500001e1c00000f1e00001a1b00002d1a000068110000650f000062100000600d0000610e000047110000461d000045290000482a0000502b00003d2c00003e230000445e0000422d0000ffff0000",
+      "descripcion": "Lista del Konka TV4-32K16 (0x38FFA4) sin las teclas 0C, 59, 5D, 61, 62 y 2E; código 47 (►II del KT1440) → 0x11 OK (en la lista del USB arranca el archivo elegido)"
+    },
+    {
+      "direccion": "0x398B54",
+      "original": "ffff0000",
+      "nuevo": "29730000",
+      "descripcion": "Campo +2 (reproductor USB): ROJO (0x29) → 0x73 PLAY/PAUSA (solo actúa con algo reproduciéndose)"
+    }
+  ],
+  "opciones": [],
+  "salidasConocidas": []
+}

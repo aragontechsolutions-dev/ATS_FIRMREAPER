@@ -327,3 +327,15 @@ Konka) era falsa. El rojo en el USB también hacía REWIND.
 `347a225c25c568ff26d79951da3921494ef5d39cec242841b8dce909cd50b9bd`) o `0x4D` (PLAY, variante B, SHA-256
 `946cfa62231f06d75511ee9a51a620fa01e15cb822ce018ee8ca6eccebd4b65b`); la entrada `+2` del rojo, igual. Perfiles
 `docs/historial/pruebas/rca-prueba-mando-konka-a.json` y `-b.json`.
+
+**Resultado de A y B (usuario):** ninguna funciona; el objetivo es que ►II **arranque un vídeo** en el USB.
+
+**Causa (comprobada):** los casos VK_PLAY (`0x2A3D02`) y VK_PLAY_PAUSE (`0x2A3A37`) empiezan con
+`0x2325DD()`, que devuelve las banderas `[0x3CF54C] | [0x3CF54C+0x48]` & `0x3C0` (reproducción en curso, la misma
+prueba que `0x278DC1` en el LG), y `0x271A3B() & 4`. Si no hay nada reproduciéndose, no hacen nada. En la lista de
+archivos lo que arranca un archivo es la selección (OK, VK `0x14`).
+
+**Variante C:** `47` → `0x11` (OK) y rojo (campo `+2`) → `0x73` (PLAY/PAUSA, solo con algo reproduciéndose).
+Perfil `docs/historial/pruebas/rca-prueba-mando-konka-c.json`; `rca-prueba-mando-konka-c.BIN`, SHA-256
+`c75e8150d2711ec9685e8ccaf52a9554eeeb15e522090fc33ebfa3f96b5003e0`, CRC `0x1CF8F0BD`, 78 bytes cambiados. Si ►II
+no hace nada ni en la lista, el botón no envía `47` (la deducción "►II hacía caption = código 47" sería falsa).
