@@ -302,3 +302,28 @@ quedan como en el original. Sin rutinas nuevas.
   KT1440 envíe otro código (se pregunta).
 - `rca-prueba-mando-konka.BIN` v2, SHA-256 `0183c1df2fe92ecac08080331434c6c739af3bcb7e2f937ec4e3041dbd6edaf1`,
   CRC `0xA189DB6A`, 78 bytes cambiados (lista y entrada `+2`).
+
+**Resultado de la v2 (usuario):** ►II no funciona.
+
+**Causa (comprobada en el código):** en el reproductor USB del RCA (`0x2A3619`, tabla `0x334C8C`) cada tecla rápida
+imprime su nombre. Cruzando caso → VK → tecla (tabla `0x32DEDC`):
+
+| Tecla | VK | Texto del caso |
+|---|---|---|
+| `0x73` | `0x3D` | "hotkey VK_PLAY_PAUSE" (`0x2A3A37`) |
+| `0x4D` | `0x3B` | "hotkey VK_PLAY " (`0x2A3D02`) |
+| `0x4F` | `0x3C` | "hotkey VK_PAUSE" |
+| `0x4E` | `0x3E` | "hotkey VK_STOP" |
+| `0x4C` | `0x3F` | "hotkey VK_NEXT" |
+| `0x4B` | `0x40` | "hotkey VK_PREVIOUS" |
+| `0x51` | `0x41` | "hotkey VK_FF" |
+| `0x52` | `0x42` | "hotkey VK_REWIND" |
+| `0x46` | `0x55` | "hot VK_SUBTITLE" |
+
+`0x52` es **REWIND**, no PLAY: la suposición "`0x52` = PLAY" (por el mando original del RCA y la lista `+2` del
+Konka) era falsa. El rojo en el USB también hacía REWIND.
+
+**Prueba v3 (dos variantes):** `47` → `0x73` (PLAY/PAUSA, variante A, SHA-256
+`347a225c25c568ff26d79951da3921494ef5d39cec242841b8dce909cd50b9bd`) o `0x4D` (PLAY, variante B, SHA-256
+`946cfa62231f06d75511ee9a51a620fa01e15cb822ce018ee8ca6eccebd4b65b`); la entrada `+2` del rojo, igual. Perfiles
+`docs/historial/pruebas/rca-prueba-mando-konka-a.json` y `-b.json`.
