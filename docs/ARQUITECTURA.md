@@ -34,7 +34,7 @@ entrópica, la IDCT y la salida YCbCr; el ensanchado de la crominancia y el colo
 | `Compression/Zopfli/ExactLog.cs` | Logaritmo determinista = glibc (evita diferencias Windows/Linux) |
 | `Profiles/Profile.cs`, `ProfileLoader.cs` | Formato JSON de perfiles y su validación |
 | `Profiles/ProfileRegistry.cs` | Perfiles integrados + carpeta externa `perfiles\` |
-| `Profiles/Builtin/*.json` | Perfiles integrados (LG, Konka, ATEC) |
+| `Profiles/Builtin/*.json` | Perfiles integrados (LG, Konka, ATEC, placa LM2SA ×2) |
 | `Patching/FirmwareBuilder.cs` | Aplica parches, recomprime, recalcula cabecera/CRC y verifica |
 | `Patching/OutputWriter.cs` | Escritura atómica, sin sobrescribir, con copia de seguridad |
 | `Reporting/BuildReport.cs` | Informe de cada firmware generado |
@@ -124,6 +124,7 @@ byte a byte los de Pillow.
 | Código de cliente mal escrito | Solo se acepta exactamente 2 bytes hexadecimales; en el ATEC se rechaza `b2 > 7F` (el inmediato con signo nunca coincidiría y el TV dejaría de obedecer a cualquier mando de ese tipo) |
 | Parches en el código de arranque sin comprimir (1.3.0) | Solo en flash `0x23080`–`0x23880`, después de la tabla TEL (comprobado al cargar el perfil y al generar); bytes originales comprobados en la flash; CRC-32 de la cabecera recalculado; verificación final: idéntico al original fuera de esos bytes; MS_IMG_INFO y TEL quedan intactos |
 | Resolución del panel (1.3.0) | Solo tiempos publicados (hoja de datos, CEA-861, VESA DMT); márgenes por regla fija documentada; un canal LVDS (no se activa el doble canal); cada parche dentro de la entrada #1; la del LP141WX1 comprobada igual a la de `patch_panel.py` |
+| Perfiles de la placa LM2SA (1.4.0) | Generados por la misma función que el ATEC, que se niega a escribir el perfil si la huella, la entrada #1 (1366x768, nombre `WXGA_AU20_T200XW02`), las instrucciones del mando/reposo o el logo no son los esperados; zonas permitidas = las mismas 5 que el ATEC en sus direcciones; recompresión Zopfli verificada; el perfil del ATEC sale idéntico |
 | Código de cliente cambiado solo en parte (lo que pasó en el ATEC de la 1.1.0: encendido sí, reposo no) | Los campos de reposo se declaran en el perfil y se escriben siempre junto al principal; al cargar, una opción que toque el cliente debe cambiar TODOS sus campos al mismo código |
 | Escribir fuera del campo del cliente | El perfil fija dirección y formato; al cargar se exige que esté en una zona permitida y que todo parche que lo toque sea EXACTAMENTE ese campo y parta del original declarado; al generar se comprueban los bytes originales y que solo cambió lo previsto |
 | Tabla editada que desborde | Tamaño fijo por formato; en las listas, máximo `entradas − 1` teclas (Konka: 45, porque detrás hay otros datos); funciones solo de la lista cerrada del perfil (`0xFF` reservada); sin botones repetidos |

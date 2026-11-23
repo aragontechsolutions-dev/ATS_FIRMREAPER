@@ -39,6 +39,8 @@ public class ProfileTests
         Assert.Contains(list, p => p.Id == "lg-42lf652vx-soyea" && p.Verified);
         Assert.Contains(list, p => p.Id == "konka-tv4-32k16-mirror" && p.Verified);
         Assert.Contains(list, p => p.Id == "atec-32l18d-lp141wx1" && p.Compression.Method == CompressionMethod.Zlib && p.Compression.Value == 9);
+        Assert.Contains(list, p => p.Id == "lm2sa-v16-20210531" && p.Verified && p.Compression.Method == CompressionMethod.Zopfli);
+        Assert.Contains(list, p => p.Id == "lm2sa-v16-20210614" && p.Verified && p.Compression.Method == CompressionMethod.Zopfli);
     }
 
     [Fact]

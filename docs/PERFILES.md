@@ -11,7 +11,9 @@ El programa no "adivina" nada: cada parche depende de direcciones encontradas an
 | Externo | carpeta `perfiles\` junto a `FirmReaper.exe` | Se carga al iniciar, **sin recompilar**. No puede usar el `id` de uno integrado. |
 
 Los integrados de los scripts se generan con `python3 tools/perfiles/generar_perfiles.py` (los bytes se
-leen de los scripts de referencia; no se copian a mano).
+leen de los scripts de referencia; no se copian a mano). Los del ATEC y de la placa LM2SA (mismo programa base)
+los genera una sola función (`perfil_familia_061b`) que lee los bytes del original en `firmware_local/originales`
+y comprueba cada instrucción antes de escribir el perfil.
 
 ## Formato (versión 1)
 

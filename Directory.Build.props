@@ -9,7 +9,7 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <Company>ATS</Company>
     <Product>FirmReaper</Product>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <!-- Permite compilar el proyecto WPF también desde Linux (no ejecutarlo). -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
