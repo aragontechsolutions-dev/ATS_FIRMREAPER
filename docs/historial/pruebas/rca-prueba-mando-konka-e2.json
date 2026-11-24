@@ -1,0 +1,63 @@
+{
+  "formato": 1,
+  "id": "rca-prueba-mando-konka-e2",
+  "version": 5,
+  "nombre": "RCA (BD_V59S_PB813) — PRUEBA mando Konka E2 (KT1440 código 005)",
+  "descripcion": "DIAGNÓSTICO: ►II mueve el cursor en la lista del USB; lista del Konka con ►II = 0x73 (VK 0x3D).",
+  "estado": "sin-verificar",
+  "original": {
+    "sha256": "669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307"
+  },
+  "app": {
+    "baseRam": "0x203800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x398AB4",
+      "hasta": "0x398B58",
+      "motivo": "lista código→tecla (0x262AEF) y primera entrada de la lista del campo +2 (0x262B9A)"
+    },
+    {
+      "desde": "0x275411",
+      "hasta": "0x275415",
+      "motivo": "llamada a las teclas rápidas ZUI (0x284EDE): gancho"
+    },
+    {
+      "desde": "0x341112",
+      "hasta": "0x341141",
+      "motivo": "textos de depuración JPEG/MPO sin referencias: rutina nueva"
+    }
+  ],
+  "parchesFijos": [
+    {
+      "direccion": "0x398AB4",
+      "original": "020100003e2300000f1e000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00001320000011020000552800001e1c00001a1b0000445e0000071200000b130000011f00002d1a00006019000061180000650f000062100000681100002b290000282a00006e2b0000242c00002643000035630000375700004a4000004752000048530000505400003d550000ffff0000",
+      "nuevo": "02010000011f00006e21000028220000212800002427000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00001102000013200000071200000b13000012140000101500001e1c00000f1e00001a1b00002d1a000068110000650f000062100000600d0000610e000047730000461d000045290000482a0000502b00003d2c00003e230000445e0000422d0000ffff0000",
+      "descripcion": "Lista del Konka TV4-32K16 (0x38FFA4) sin las teclas 0C, 59, 5D, 61, 62 y 2E; código 47 (►II del KT1440) → 0x73 PLAY/PAUSA (VK 0x3D, \"hotkey VK_PLAY_PAUSE\")"
+    },
+    {
+      "direccion": "0x398B54",
+      "original": "ffff0000",
+      "nuevo": "29730000",
+      "descripcion": "Campo +2 (reproductor USB): ROJO (0x29) → 0x73 PLAY/PAUSA (VK 0x3D, \"hotkey VK_PLAY_PAUSE\")"
+    },
+    {
+      "direccion": "0x275411",
+      "original": "e401f59a",
+      "nuevo": "e4197a02",
+      "descripcion": "bg.jal 0x284EDE -> bg.jal 0x341112"
+    },
+    {
+      "direccion": "0x341112",
+      "original": "50726f677265737369766520696d6167652073697a6520746f6f206269672e2e2e20646f206e6f742068616e646c65",
+      "nuevo": "c0e007a1ece7376a5ce2412000835c67a120006bc0e007a1ece7046254e7045ce0012000275060120c6a08e7e87b43",
+      "descripcion": "Rutina E2 (tools/aeon/build_cave_rca_play.py)"
+    }
+  ],
+  "opciones": [],
+  "salidasConocidas": []
+}

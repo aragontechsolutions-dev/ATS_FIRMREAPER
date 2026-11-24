@@ -1,4 +1,4 @@
-# FirmReaper 1.3 — Manual de usuario
+# FirmReaper 1.4 — Manual de usuario
 
 Programa para Windows que **analiza** volcados de firmware de placas de TV MStar (memoria SPI de 4 MB) y
 **genera versiones modificadas** de los firmwares que conoce, verificando todo antes de escribir.
@@ -129,7 +129,7 @@ mala conexión de la pinza.
 
 1. Abre el **original** (franja verde, "ORIGINAL reconocido").
 2. Ve a la pestaña **Generar**.
-3. Elige las opciones (ver apartados 4.1 a 4.5).
+3. Elige las opciones (ver apartados 4.1 a 4.6).
 4. Pulsa **Generar…** y elige la **carpeta** donde guardar el resultado.
 5. Espera (de 1 a 15 segundos según el modelo). El registro muestra cada paso. **Cancelar** detiene el
    proceso sin guardar nada.
@@ -189,7 +189,7 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 | Opción | Valores |
 |---|---|
 | Resolución del panel | **1366x768 (original)** / 1280x800 LP141WX1 (probado: FUNCIONÓ) / 1280x720 / 1024x768 / 800x600 (sin probar) |
-| Salida LVDS | **8 bits** (con LP141WX1 FUNCIONÓ) / 6 bits + dither (con LP141WX1 NO funcionó) |
+| Salida LVDS | **Sin cambios (la que trae: 8 bits)** / 8 bits (con LP141WX1 FUNCIONÓ; aquí da el mismo archivo) / 6 bits + dither (con LP141WX1 NO funcionó) |
 | Mando | **ATEC original** / Soyea LKK32CMB (probado: FUNCIONÓ, también enciende desde reposo) |
 | Logo de arranque | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 | Código de cliente / Tabla del mando | Ver 4.4 |
@@ -214,6 +214,10 @@ tiempos del panel que vas a conectar, siempre de **un canal LVDS**:
   funcionó: necesitó 8 bits con mapeo JEIDA y el par 3 sin conectar).
 - Resoluciones mayores (1600x900, 1920x1080…) necesitan doble canal LVDS: ver la etapa 7 (pendiente de datos).
 - Tras grabarlo: menú de fábrica → *Restore/Reset factory*, por si la base de datos guarda valores del panel anterior.
+
+**Salida LVDS.** "Sin cambios" (por defecto) deja la que trae el firmware. En el ATEC y en la placa LM2SA ya es de
+**8 bits**, así que "8 bits" da exactamente el mismo archivo; la opción existe para elegirla de forma explícita (si un
+firmware no viniera en 8 bits, la escribiría). "6 bits + dither" solo si la hoja de datos de tu panel dice 6 bits.
 
 **Mando Soyea (probado: FUNCIONÓ).** El firmware del ATEC es el del Soyea (misma placa y misma tabla de botones);
 solo cambia el código del mando, que está en **5 sitios**: la comparación con el TV encendido, la inicialización del
@@ -287,6 +291,35 @@ receptor de 38 kHz y un programa que muestre los códigos NEC: el primer byte de
 - Solo el Konka "girado" está probado en el TV. Los logos del LG y del ATEC están **sin probar**.
 
 ---
+
+### 4.6 Placa LM2SA V1.6 (PA20406-2-36ZG) — dos firmwares
+
+Hay un perfil para cada firmware conocido de esta placa. El programa reconoce cuál es por su huella:
+
+| Firmware original | Perfil | Programa del TV |
+|---|---|---|
+| `MST_EXT_SPI_ISP_20210531_113958.BIN` (`d0d2b24f…`) | `lm2sa-v16-20210531` | compilado el 16-04-2015 |
+| `MST_EXT_SPI_ISP_20210614_165953.BIN` (`aa8b1502…`) | `lm2sa-v16-20210614` | compilado el 22-05-2014 (más antiguo) |
+
+Los dos llevan el **mismo programa base que el ATEC 32L18D** (mismo identificador de placa
+`BD_MST061B_10AZU_14014`, misma tabla de paneles, misma rutina del mando y del reposo). Por eso tienen **las mismas
+opciones que el ATEC (4.3)**, con las direcciones de cada firmware:
+
+| Opción | Valores |
+|---|---|
+| Resolución del panel | **1366x768 (original)** / 1280x800 LP141WX1 / 1280x720 / 1024x768 / 800x600 |
+| Salida LVDS | **Sin cambios (la que trae: 8 bits)** / 8 bits (aquí da el mismo archivo) / 6 bits + dither |
+| Mando | **ATEC original** (cliente 36 77) / Soyea LKK32CMB (también enciende desde reposo) |
+| Logo de arranque | **Sin cambios** / Girado 180° / Propio (720 × 480, ver 4.5) |
+| Código de cliente / Tabla del mando | Ver 4.4 |
+
+- **Nada está probado todavía en esta placa.** Con "1280x800 + 8 bits + Soyea" el programa cambia exactamente los
+  mismos bytes que en la versión del ATEC que funcionó (panel, código del mando en 5 sitios), pero en otro firmware.
+- **Espejo:** igual que el ATEC, el menú de fábrica ya tiene **"Mirror Enable"** (comprobado en el recurso de textos
+  del menú); no hace falta modificar el firmware.
+- **Logo:** recurso `0x0300`, JPEG de 720 × 480 (hueco de 55 086 bytes).
+- El original deja solo 6 bytes (20210531) o 1 byte (20210614) libres: el programa recomprime con Zopfli (unos
+  39 000 bytes libres). Tarda unos segundos más que con el ATEC.
 
 ## 5. Archivos que se guardan
 
@@ -415,6 +448,8 @@ Crear un perfil requiere analizar el firmware (direcciones, bytes originales). E
 | `Atec32L18D_LP141WX1_6bit.BIN` | `7bd55c39…` | NO funcionó |
 | ATEC 1280x800 8 bits + mando Soyea (`ATEC_8bit_mando_Soyea_PRUEBA_reposo.BIN`) | `8e797d5d…` | Funcionó (mando, apagar y encender desde reposo) |
 | Soyea `MST_EXT_SPI_ISP_20230301_153737.BIN` | `fc9fed8f…` | Referencia (no se modifica) |
+| Placa LM2SA V1.6 original `MST_EXT_SPI_ISP_20210531_113958.BIN` | `d0d2b24f…` | Original |
+| Placa LM2SA V1.6 original `MST_EXT_SPI_ISP_20210614_165953.BIN` | `aa8b1502…` | Original |
 
 Las huellas completas aparecen en el programa (franja de identificación) y en `firmreaper-cli catalogo`.
 
@@ -437,5 +472,5 @@ El programa no guarda ajustes. Solo crea `%LOCALAPPDATA%\FirmReaper\errores.log`
 
 ---
 
-*FirmReaper 1.3.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
+*FirmReaper 1.4.0 — ATS. Componentes de terceros: ver `THIRD_PARTY_NOTICES.md` (Zopfli, zlib, LibJpeg.NET,
 tablas AEON).*

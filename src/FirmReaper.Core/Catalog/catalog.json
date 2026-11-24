@@ -2,6 +2,22 @@
   "version": 1,
   "imagenes": [
     {
+      "sha256": "d0d2b24f4bda26564c62f7c8e1747dbdcddfc500b2ab73b796853be4913cf239",
+      "tipo": "original",
+      "modelo": "Placa LM2SA V1.6 (PA20406-2-36ZG)",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "Placa LM2SA V1.6 — firmware original MST_EXT_SPI_ISP_20210531_113958.BIN",
+      "notas": "Programa compilado el 16-04-2015 (misma fecha que el ATEC 32L18D). Panel 1366x768 (WXGA_AU20_T200XW02). Logo 720x480."
+    },
+    {
+      "sha256": "aa8b1502e7d88faa0c77f7cef86a5fbf739261846ebd94e02b891e53a978b421",
+      "tipo": "original",
+      "modelo": "Placa LM2SA V1.6 (PA20406-2-36ZG)",
+      "placa": "BD_MST061B_10AZU_14014",
+      "nombre": "Placa LM2SA V1.6 — firmware original MST_EXT_SPI_ISP_20210614_165953.BIN",
+      "notas": "Programa compilado el 22-05-2014 (más antiguo que el de 20210531). Panel 1366x768 (WXGA_AU20_T200XW02). Logo 720x480."
+    },
+    {
       "sha256": "19491133011eaca67db793dcfb068771e19a58dac42eff849ca30993fbad647b",
       "tipo": "original",
       "modelo": "ATEC 32L18D",

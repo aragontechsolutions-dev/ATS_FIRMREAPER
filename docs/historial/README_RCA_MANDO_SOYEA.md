@@ -1,4 +1,4 @@
-# RCA (BD_MST030B_10AL8_12052) — mando Soyea: análisis y PRUEBA v1 (2026-11-22)
+# RCA (BD_MST030B_10AL8_12052) — mando Soyea: análisis y PRUEBAS v1–v3 (2026-11-22)
 
 Original: `RCA_letra_roja_fondo_blanco_con_perros.BIN`, SHA-256 `669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307`.
 Contenedor MStar válido; app en RAM `0x200000` (base `0x203800`), misma familia que el Konka (mismo controlador IR,
@@ -10,6 +10,7 @@ textos "IR:%02dh", "<Ir Resend…>"). Direcciones = RAM de la app.
 |---|---|---|
 | Código de cliente (en memoria `b2 b1`, como el Konka) | `0x398AB0` | `07 07` |
 | Reposo (registros IR `0x3DA4`/`0x3DA5`) | `0x2A798A` / `0x2A7BC5` los calculan **desde `0x398AB0`** | — |
+| Tecla que enciende desde reposo (RIU `0x7B64/65/6C/6D`) | `0x2A693E` `bt.movi r6,0x2` (fija) | `02` (v2: `0C`) |
 | Lista código→tecla `[código, tecla, 0, 0]`, fin en tecla `FF` | `0x398AB4`; cargador `0x262AEF` (copia a RAM `0x3EBEE4`) | 39 teclas |
 | Detrás de la lista | `0x398B54`, `0x398B58`, `0x398B5C`, `0x398B60`: otras listas (las usa `0x262B5A`…) | **no se tocan** → máximo 39 teclas |
 
@@ -78,3 +79,299 @@ comprobadas van a su botón; las demás, al botón más probable ("supuesto"). B
 encender con el Soyea; (3) en el menú: ¿VOL+/VOL− mueven a derecha/izquierda? ¿CH+/CH− mueven arriba/abajo?
 
 Con los resultados se hará la v2 (definitiva) y, si funciona, el perfil integrado del RCA.
+
+
+## Prueba v2 (2026-11-22)
+
+**Resultado de la v1 (usuario):** el Soyea apaga el TV pero **no lo enciende** desde reposo; las flechas, OK y otras
+teclas no funcionan.
+
+### Causas encontradas
+1. **Encendido desde reposo.** La rutina de entrada en reposo (`0x2A68E3`, la que escribe "=> StandBy") copia bien el
+   cliente desde `0x398AB0`, pero la **tecla que despierta el TV** (registros RIU `0x7B64`/`0x7B65`/`0x7B6C`/`0x7B6D`)
+   está fija: `bt.movi r6,0x2` en `0x2A693E` (bytes `98 c2`) = código `02`, el POWER del mando RCA. El POWER del Soyea
+   es `0C` → se cambia a `bt.movi r6,0xc` (`98 cc`, codificación comprobada con `tools/aeon/aeonasm.py`). Es el mismo
+   tipo de fallo que tuvo el ATEC (allí era el cliente; aquí, la tecla).
+2. **CH± con valores equivocados.** En la v1 CH+/CH− llevaban `0x19`/`0x18` (los de los botones arriba/abajo del mando
+   RCA). La rutina `0x262F9B` (igual que en el Konka) usa `0x14`/`0x15` para CH± y `0x0D`–`0x10` para las flechas.
+3. **Flechas.** El Soyea no tiene flechas propias: su cruceta envía VOL+ (`15`), VOL− (`16`), CH+ (`17`) y CH− (`18`).
+   La conversión flecha↔VOL/CH del firmware (`0x262F9B`) solo se ejecuta en otro modo de entrada (modo 2), no con el
+   mando normal. En la v2 la cruceta da VOL±/CH± y las **flechas de verdad** (`0x0D`–`0x10`) van en PAGE UP/PAGE DOWN
+   (arriba/abajo) y PREV/NEXT (izquierda/derecha). La prueba dirá si los menús se mueven con la cruceta o solo con esos
+   cuatro botones; si es lo segundo, la v3 pondrá las flechas en la cruceta.
+4. **OK** ya tenía en la v1 el valor comprobado `0x11`; si sigue sin funcionar hace falta el resultado botón a botón
+   (NO SÉ todavía por qué falló: puede que pareciera no funcionar porque el cursor no se movía).
+
+### Archivo
+Perfil: `docs/historial/pruebas/rca-prueba-mando-soyea.json` (versión 2). `rca-prueba-mando-soyea.BIN`, SHA-256
+`e372b6066ddb28cb64bf5df10697fe6b45d38fbb256094c70ec3c4e2025b6d75`, CRC `0xE6BDA94A`. Cambian 76 bytes de la app:
+cliente (2), lista (72 dentro de `0x398AB4`–`0x398B53`) y tecla de reposo (1 byte real de la instrucción). Las listas
+de `0x398B54` en adelante, SBOOT, PM, TEL, recursos y base de datos quedan idénticos (verificado por FirmReaper y por
+una comparación independiente en Python). Zopfli 5: 17 489 bytes libres.
+
+Seguridad: el parche de reposo está en una zona permitida de 2 bytes (`0x2A693E`–`0x2A6940`) y se comprueba el valor
+original (`98c2`) antes de escribir; si el firmware no es exactamente este, FirmReaper no genera nada.
+
+| Código Soyea | Botón Soyea | Valor RCA | Por qué | Qué hace en el TV (rellenar) |
+|---|---|---|---|---|
+| `00` | 0 | `0x02` | comprobado | |
+| `01` | 1 | `0x03` | comprobado | |
+| `02` | 2 | `0x04` | comprobado | |
+| `03` | 3 | `0x05` | comprobado | |
+| `04` | 4 | `0x06` | comprobado | |
+| `05` | 5 | `0x07` | comprobado | |
+| `06` | 6 | `0x08` | comprobado | |
+| `07` | 7 | `0x09` | comprobado | |
+| `08` | 8 | `0x0A` | comprobado | |
+| `09` | 9 | `0x0B` | comprobado | |
+| `0B` | RETURN | `0x20` | supuesto | |
+| `0C` | POWER | `0x01` | comprobado | |
+| `0D` | SOURCE | `0x1F` | supuesto | |
+| `0E` | MUTE | `0x1E` | supuesto | |
+| `0F` | MENU | `0x1C` | supuesto | |
+| `14` | OK | `0x11` | comprobado | |
+| `15` | VOL+ (cruceta derecha) | `0x12` | comprobado | |
+| `16` | VOL- (cruceta izquierda) | `0x13` | comprobado | |
+| `17` | CH+ (cruceta arriba) | `0x14` | comprobado | |
+| `18` | CH- (cruceta abajo) | `0x15` | comprobado | |
+| `19` | PICTURE | `0x28` | supuesto | |
+| `1A` | AUDIO | `0x23` | supuesto | |
+| `1C` | INFO | `0x1B` | supuesto | |
+| `1D` | EXIT | `0x1A` | supuesto | |
+| `21` | ROJO | `0x29` | supuesto | |
+| `22` | VERDE | `0x2A` | supuesto | |
+| `23` | AMARILLO | `0x2B` | supuesto | |
+| `24` | AZUL | `0x2C` | supuesto | |
+| `28` | PAGE UP | `0x0D` | ARRIBA (comprobado) | |
+| `29` | PAGE DOWN | `0x0E` | ABAJO (comprobado) | |
+| `45` | SLEEP | `0x5E` | supuesto | |
+| `46` | CC | `0x43` | supuesto | |
+| `47` | SUBTITLE | `0x63` | supuesto | |
+| `4B` | PLAY | `0x52` | supuesto | |
+| `4C` | STOP | `0x53` | supuesto | |
+| `4E` | PREV | `0x0F` | IZQUIERDA (comprobado) | |
+| `53` | NEXT | `0x10` | DERECHA (comprobado) | |
+| `54` | REW | `0x54` | supuesto | |
+| `55` | FF | `0x55` | supuesto | |
+
+Sin función en el Soyea: DASH (`0A`), FAV (`20`), TV/RADIO (`25`), MTS (`40`), CH.LIST (`49`), TEMP_DET (`4F`), EPG
+(`51`), `56`, `57`. Se quitaron de la v1 los valores no comprobados `0x19`, `0x18`, `0x57` y `0x40` (sin nombre).
+
+## Prueba v3 (2026-11-22)
+
+**Resultado de la v2 (usuario):** encendido/apagado, OK, VOL y CH (cruceta) funcionan; **en el reproductor USB la
+cruceta sigue cambiando volumen y canal**: no hay forma de moverse por los archivos.
+
+### Cómo recibe las teclas el reproductor USB (comprobado en el código)
+1. La tecla (RAM `0x3CA9C9`) pasa por `0x29908C`, que solo actúa en los estados ZUI 2–3 (`0x3D3764`), y por
+   `0x2850D3`, un `switch` (tabla `0x32DEDC`) que la traduce a la **tecla virtual (VK)** de la interfaz:
+   flechas `0x0D`/`0x0E`/`0x0F`/`0x10` → VK `0x0E`/`0x12`/`0x13`/`0x15`, OK `0x11` → VK `0x14`, dígitos
+   `0x02`–`0x0B` → VK `0x16`–`0x1F`, POWER `0x01` → VK `0x0F`, y **`0x12` → VK `0x27`, `0x13` → VK `0x0C`,
+   `0x14` → VK `0x0D`, `0x15` → VK `0x05`, `0x16` → VK `0x06`**.
+2. La navegación por defecto de la ZUI (`0x2729DF`) mueve el foco solo con VK `0x0E` (arriba), `0x12` (abajo),
+   `0x13` (izquierda) y `0x15` (derecha).
+3. `0x2753D3` recibe el mensaje de tecla (VK en `+8`) y, en el estado 2, llama en `0x275411` a `0x284EDE`, que
+   reparte según el subestado `0x3D3768`. El **subestado `0x12` es el reproductor USB** (`0x2A3619`, textos
+   "VK_VOLUME_PLUS MINUS", "VK_CHANNEL_PLUS or VK_CHANNEL_MINUS"): ahí VK `0x0C`/`0x0D` suben/bajan el volumen
+   (`0x19D` +1/−1) y VK `0x05`/`0x06` son canal. Las flechas siguen su propia lógica del reproductor.
+
+### Cambio de la v3
+- `0x275411`: `bg.jal 0x284EDE` → `bg.jal 0x341112`.
+- `0x341112` (78 bytes): si el subestado es `0x12` (reproductor USB), cambia en el mensaje VK `0x27` → DERECHA
+  (`0x15`), `0x0C` → IZQUIERDA (`0x13`), `0x0D` → ARRIBA (`0x0E`), `0x05` → ABAJO (`0x12`) — los cuatro VK que da
+  la cruceta del Soyea con la tabla de la v2 —; después sigue en `0x284EDE` igual que el original. Solo usa r3 y
+  r7 (`0x284EDE` machaca r7 al entrar); r10 (el mensaje) lo conserva la función que llama.
+- Hueco: textos de depuración del decodificador JPEG/MPO (`"Progressive image size too big..."`, `"APP2"`,
+  `"_pu8In_buf_ofs = %lx"`, `"num of entry = %d"`): **ninguna** instrucción `addi`/`ori` usa sus direcciones y
+  ningún dato de 32 bits apunta a ellos (comprobado en todo el programa). El texto siguiente (`0x341194`) no se toca.
+- Rutina generada y verificada (desensamblada de vuelta) con `tools/aeon/build_cave_rca_v3.py`.
+- Fuera del reproductor USB no cambia nada: viendo la TV y en los menús la cruceta sigue como en la v2.
+
+**Efecto esperado (sin probar):** en el reproductor USB la cruceta solo se desplaza. Durante la reproducción
+izquierda/derecha harán lo que hagan las flechas del mando original en el reproductor, **no el volumen** (mismo
+compromiso que la v3 del LG). Si hace falta el volumen al reproducir, se afinará como la v5 del LG.
+
+**Duda abierta:** según la traducción a VK y la lista de teclas con repetición (`0x2634D0`: flechas, `0x13`–`0x16`,
+`0x1C`), en este firmware VOL+/VOL−/CH+/CH− podrían ser `0x13`/`0x14`/`0x15`/`0x16` y no `0x12`–`0x15` como en el
+Konka. Con la tabla actual, en los menús el botón VOL− del Soyea daría "volumen +" y CH+ "volumen −". Se pide al
+usuario comprobar el sentido de cada botón; si sale cruzado, la v4 corrige la tabla.
+
+Archivo: `rca-prueba-mando-soyea.BIN`, SHA-256 `ee56f24c659d2de4404439184a285c916488f8c4107b9bed8140191fcc9d0190`,
+CRC `0x05D3521E`. Cambian 152 bytes de la app (cliente 2, lista 73, reposo 1, gancho 3, rutina 73); nada más.
+
+## Resultado de la v3 y diagnóstico v4 (2026-11-22)
+
+**El mando real no es el Soyea LKK32CMB:** es un universal **GSSG KT1440** (foto del usuario), que tiene cruceta
+propia **y** botones VOL±/CH± aparte. El usuario quiere la cruceta solo como flechas y VOL/CH en sus botones.
+
+**Resultado de la v3 (usuario):** PLAY no funciona; la flecha arriba hace de abajo, la derecha hace de izquierda;
+abajo e izquierda no hacen nada.
+
+Interpretación (sin confirmar):
+- Con la v3, arriba llega al reproductor como VK `0x0E` y derecha como VK `0x15`, tanto si la cruceta envía los
+  códigos de VOL/CH (rutina) como si envía PAGE UP/NEXT (tabla). Que arriba baje y derecha vaya a la izquierda
+  indica que **los nombres de dirección que di a la navegación (`0x2729DF`) están invertidos**: probablemente VK
+  `0x0E` = abajo, `0x12` = arriba, `0x13` = derecha, `0x15` = izquierda ("no funcionaron" = el cursor ya estaba en
+  el borde). Esto también afecta a la numeración de las flechas en la lista (`0x0D`–`0x10`).
+- No se sabe si la cruceta del KT1440 envía los mismos códigos que VOL±/CH± (como el Soyea LKK32CMB, que no tiene
+  flechas) o códigos propios. **Si son los mismos, el TV no puede distinguirlos** y lo pedido no es posible.
+
+**Diagnóstico v4** (`docs/historial/pruebas/rca-diagnostico-mando-v4.json`, `rca-DIAGNOSTICO-mando.BIN`,
+SHA-256 `bde10ef79e19629dbb263d5ce8466bf9bd2e1a043537952d7e5d0e82ac5980a2`, CRC `0x87F71F82`, 80 bytes
+cambiados): sin la rutina de la v3. La lista solo deja POWER, OK, MENU y EXIT, y convierte los códigos dudosos en
+dígitos (el TV muestra el número):
+
+| Código | Número | Código | Número |
+|---|---|---|---|
+| `15` (VOL+ Soyea) | 1 | `29` (PAGE DOWN) | 6 |
+| `16` (VOL−) | 2 | `4E` (PREV) | 7 |
+| `17` (CH+) | 3 | `53` (NEXT) | 8 |
+| `18` (CH−) | 4 | `4B` (PLAY) | 9 |
+| `28` (PAGE UP) | 5 | los otros 25 códigos Soyea conocidos | 0 |
+
+Los dígitos del mando (`00`–`09`) no están en la lista para no confundir. Con el resultado se hará la v5.
+
+**Resultado del diagnóstico v4 (usuario):** mando configurado con el código **010 (SOYEA DTV)**. Ni en USB ni en
+TV apareció ningún número. Fallo del diseño del diagnóstico: se dio por hecho que este TV muestra en pantalla el
+número marcado, y no está comprobado (sin canales sintonizados o fuera de la fuente TV puede no mostrar nada). El
+resultado no dice nada sobre los códigos. Antes de otro diagnóstico se pregunta al usuario cómo se comportan, con la
+v2/v3 y viendo la TV, los botones VOL±/CH± propios frente a la cruceta. Si hace falta, el siguiente diagnóstico
+usará la barra de volumen (VOL± sí está comprobado), que se ve en cualquier fuente.
+
+### Diagnóstico 2 (v5)
+El usuario no puede responder las preguntas sin probar, así que se descarta por pasos usando solo efectos
+comprobados que se ven en cualquier fuente: barra de volumen (valores `0x12`/`0x13`, comprobados en la v2) y
+apagado (`0x01`, comprobado). Lista: `0C`→POWER, `15`→`0x12`, `16`→`0x13`, `17`→`0x01` (apaga); nada más (`18`
+y todos los demás códigos no hacen nada). Perfil `docs/historial/pruebas/rca-diagnostico2-mando-v5.json`;
+`rca-DIAGNOSTICO2-mando.BIN`, SHA-256 `e616e6e6522ac3167625c055d71ebbffe2628cc81bb69f948738acdfe3a241ff`,
+CRC `0x3C027F55`, 80 bytes cambiados (cliente, lista y tecla de reposo).
+
+Lectura esperada: si la cruceta da derecha=SUBE, izquierda=BAJA, arriba=APAGA, abajo=NADA, envía los códigos del
+Soyea `15`–`18`. Si VOL±/CH± dan lo mismo, **son los mismos códigos** y el TV no puede separarlos. Si dan NADA,
+son otros códigos y se buscarán en el diagnóstico siguiente.
+
+**Resultado del diagnóstico 2 (usuario):** VOL+/VOL− y derecha/izquierda de la cruceta mueven la barra de volumen;
+abajo de la cruceta no hace nada; arriba apaga el TV (y no lo enciende: normal, en reposo solo despierta el código
+`0C`); PLAY no hace nada (normal, no estaba en la lista). **CH+ también apaga el TV** (confirmado después): mismo código `17` que arriba.
+
+Conclusión: con el código **010** del KT1440, la cruceta envía los códigos del Soyea: derecha `15`, izquierda `16`
+(**los mismos que VOL+/VOL−**), arriba `17` (**el mismo que CH+**, confirmado), abajo `18` (casi seguro el mismo que CH−).
+El TV recibe exactamente lo mismo, así que **no puede distinguir la cruceta de VOL/CH**: lo pedido no es posible
+con el código 010.
+
+Siguiente paso propuesto: probar el KT1440 en el código **004/005 (Konka)**. El mando Konka original (cliente
+`07 07`, igual que el RCA original) tiene códigos propios para las flechas (`60 61 65 62`), OK (`68`), VOL (`07 0B`)
+y CH (`12 10`). La lista del RCA original ya usa `60 61 65 62 68 07 0B` con ese mismo cliente, así que la prueba
+se hace con el **firmware original**, sin modificar.
+
+## Cambio de enfoque: mando KT1440 en el código 005 (Konka) — prueba 2026-11-22
+
+**Dato del usuario:** con el firmware original del Konka TV4-32K16 y el KT1440 en el código **005**, funciona todo
+menos PLAY. Se pide replicar esa configuración en el RCA.
+
+### Comparación Konka ↔ RCA (comprobado en el código)
+- Código de cliente: **`07 07` en los dos** (Konka `0x38FFA2`, RCA `0x398AB0`). La tecla que enciende desde
+  reposo en el RCA (`0x2A693E`, `02`) es el POWER del mando Konka (código `02`). **No hace falta tocar ninguna de
+  las dos**.
+- Traducción tecla → VK de la interfaz: Konka `0x2823B3` (tabla `0x32BA14`), RCA `0x2850D3` (tabla `0x32DEDC`).
+  Para todas las teclas `0x01`–`0x28` (POWER, dígitos, flechas, OK, VOL, CH, MENU, EXIT, MUTE, SOURCE…) **dan el
+  mismo VK**; desde `0x29` el RCA tiene la numeración de VK desplazada en algunos (otra versión del software).
+  Por tanto, los valores de la lista del Konka significan lo mismo en el RCA.
+- Lista código→tecla del Konka (`0x38FFA4`): 45 teclas; el RCA admite 39. Se quitan las 6 con menos seguridad:
+  `0x0C` (código `2C`), `0x59` (`35`), `0x5D` (`1F`), `0x61` (`41`), `0x62` (`37`) — sin VK en ninguno de los dos
+  y sin uso en el RCA original — y `0x2E` (`43`), cuyo VK es distinto en el RCA (`0x48` frente a `0x4D`).
+- Listas del campo `+2` (las usa `0x262FC3` en el "contexto 2", el reproductor): en el Konka (`0x39005C`) rojo,
+  verde, amarillo y azul pasan a `0x52`–`0x55` (PLAY, STOP, REW, FF), `0x43`→`0x63`, `0x1D`→`0x57`, `0x23`→`0x24`.
+  En el RCA esa lista empieza en `0x398B54` y la del campo `+1` en `0x398B58`, así que solo cabe **una** entrada:
+  se pone la primera del Konka, **ROJO (`0x29`) → PLAY (`0x52`)**. Las listas `+1`, `+3`, `+4` siguen vacías.
+
+### Archivo
+Perfil `docs/historial/pruebas/rca-prueba-mando-konka.json` (id `rca-prueba-mando-konka`).
+`rca-prueba-mando-konka.BIN`, SHA-256 `0f41c3450c39efd65460ef6ae59178233f2fa308ab73230486fb4b6d903a4bdc`,
+CRC `0x6D1EBDC2`. Cambian 78 bytes de la app, todos entre `0x398AB8` y `0x398B55`; cliente y tecla de reposo
+quedan como en el original. Sin rutinas nuevas.
+
+**Resultado (usuario):** la prueba con la tabla del Konka **funciona**; solo el botón ►II del KT1440 hace
+"caption" (subtítulos) en vez de PLAY.
+
+### Prueba Konka v2 (botón PLAY)
+- En la lista del Konka el código `47` lleva a `0x43`, que es la única tecla de la lista con ese valor, y ►II hace
+  "caption". Por eso ►II envía el código `47`.
+- El mando original del RCA usa justo ese código para PLAY: `47` → `0x52` (lista original, entrada `0x398B40`).
+  Se cambia `47` → `0x52`. Consecuencia: ningún botón queda en `0x43` (subtítulos), salvo que el botón SUB del
+  KT1440 envíe otro código (se pregunta).
+- `rca-prueba-mando-konka.BIN` v2, SHA-256 `0183c1df2fe92ecac08080331434c6c739af3bcb7e2f937ec4e3041dbd6edaf1`,
+  CRC `0xA189DB6A`, 78 bytes cambiados (lista y entrada `+2`).
+
+**Resultado de la v2 (usuario):** ►II no funciona.
+
+**Causa (comprobada en el código):** en el reproductor USB del RCA (`0x2A3619`, tabla `0x334C8C`) cada tecla rápida
+imprime su nombre. Cruzando caso → VK → tecla (tabla `0x32DEDC`):
+
+| Tecla | VK | Texto del caso |
+|---|---|---|
+| `0x73` | `0x3D` | "hotkey VK_PLAY_PAUSE" (`0x2A3A37`) |
+| `0x4D` | `0x3B` | "hotkey VK_PLAY " (`0x2A3D02`) |
+| `0x4F` | `0x3C` | "hotkey VK_PAUSE" |
+| `0x4E` | `0x3E` | "hotkey VK_STOP" |
+| `0x4C` | `0x3F` | "hotkey VK_NEXT" |
+| `0x4B` | `0x40` | "hotkey VK_PREVIOUS" |
+| `0x51` | `0x41` | "hotkey VK_FF" |
+| `0x52` | `0x42` | "hotkey VK_REWIND" |
+| `0x46` | `0x55` | "hot VK_SUBTITLE" |
+
+`0x52` es **REWIND**, no PLAY: la suposición "`0x52` = PLAY" (por el mando original del RCA y la lista `+2` del
+Konka) era falsa. El rojo en el USB también hacía REWIND.
+
+**Prueba v3 (dos variantes):** `47` → `0x73` (PLAY/PAUSA, variante A, SHA-256
+`347a225c25c568ff26d79951da3921494ef5d39cec242841b8dce909cd50b9bd`) o `0x4D` (PLAY, variante B, SHA-256
+`946cfa62231f06d75511ee9a51a620fa01e15cb822ce018ee8ca6eccebd4b65b`); la entrada `+2` del rojo, igual. Perfiles
+`docs/historial/pruebas/rca-prueba-mando-konka-a.json` y `-b.json`.
+
+**Resultado de A y B (usuario):** ninguna funciona; el objetivo es que ►II **arranque un vídeo** en el USB.
+
+**Causa (comprobada):** los casos VK_PLAY (`0x2A3D02`) y VK_PLAY_PAUSE (`0x2A3A37`) empiezan con
+`0x2325DD()`, que devuelve las banderas `[0x3CF54C] | [0x3CF54C+0x48]` & `0x3C0` (reproducción en curso, la misma
+prueba que `0x278DC1` en el LG), y `0x271A3B() & 4`. Si no hay nada reproduciéndose, no hacen nada. En la lista de
+archivos lo que arranca un archivo es la selección (OK, VK `0x14`).
+
+**Variante C:** `47` → `0x11` (OK) y rojo (campo `+2`) → `0x73` (PLAY/PAUSA, solo con algo reproduciéndose).
+Perfil `docs/historial/pruebas/rca-prueba-mando-konka-c.json`; `rca-prueba-mando-konka-c.BIN`, SHA-256
+`c75e8150d2711ec9685e8ccaf52a9554eeeb15e522090fc33ebfa3f96b5003e0`, CRC `0x1CF8F0BD`, 78 bytes cambiados. Si ►II
+no hace nada ni en la lista, el botón no envía `47` (la deducción "►II hacía caption = código 47" sería falsa).
+
+**Resultado de C (usuario):** ►II hace lo mismo que OK, pero en este reproductor **OK solo marca (selecciona) el
+archivo**, no lo reproduce. Se pide buscar la función que reproduce.
+
+### La función que reproduce desde la lista (comprobado)
+- Ejecutor de acciones del reproductor: `0x29E6A2(acción)`, `switch` con tabla `0x333BA0`. La acción **`0x310` =
+  `EN_EXE_DMP_FILE_PAGE_PLAYBACK`** (`0x29EB07`); `0x30E` = `EN_EXE_DMP_FILE_PAGE_SEL` (OK, marcar).
+- Tabla tecla→acción de las 12 casillas de la lista (`0x3BF398`, usada por las 12 ventanas en `0x3A6444`…
+  `0x3A696C`): VK `0x15`→`0x30A`, `0x13`→`0x30B`, `0x12`→`0x30D`, `0x0E`→`0x30C`, `0x14` (OK)→`0x30E`,
+  `0x10`→`0x30F`, **`0x3B` (PLAY) y `0x3D` (PLAY/PAUSA) → `0x310`**, `0x2A`→`0x3A3`, `0x22`→`0x312`, `0x21`→`0x313`.
+  El Konka tiene la misma tabla (`0x3BEE8C`, acciones desplazadas `0x321`).
+- `0x310`: si el elemento tiene el atributo `0x10` exige que haya archivos marcados (`0x2325B4`); después arranca la
+  reproducción (modo 2 = lista marcada, modo 4 = sin marcar).
+- Conclusión: las teclas que reproducen son justo las de las variantes A (`0x73` → VK `0x3D`) y B (`0x4D` → VK
+  `0x3B`). Por qué no funcionaron: **NO SÉ todavía**. Hipótesis: hace falta marcar antes con OK (atributo `0x10`), o
+  la tecla rápida del reproductor (`0x2A3A37`) la consume si quedó la bandera de reproducción (`0x3D0460 & 4`).
+  Se pide al usuario probar la A marcando antes con OK y decir cómo arranca los vídeos en el Konka.
+
+### Modelo del TV (etiqueta del usuario, 2026-11-22)
+Etiqueta: "RCA RC3202 RV (OK) — TP.VST59S-PB813 — 5". Comprobado en los dos firmwares: el del RCA y el del Konka
+TV4-32K16 dicen `[Board]: BD_V59S_PB813` y `CUS04_ATV_MM_M10`, es decir, **la misma placa TP.VST59S.PB813 y la
+misma rama de software** (por eso la tabla del Konka sirve tal cual). Búsqueda en internet: no hay nada publicado
+sobre "RC3202RV" ni sobre "BD_MST030B_10AL8"; de la placa solo hay firmwares genéricos en foros (sin datos del mando).
+
+**Prueba con la variante A (usuario):** marcar con OK y pulsar ►II: no; con ROJO: no; sin marcar, recién
+encendido: no; no hay vista previa. Vídeos en la raíz del USB. No sabe cómo se arranca un vídeo en el Konka.
+
+**Pruebas E1/E2** (`tools/aeon/build_cave_rca_play.py`, mismo gancho `0x275411` y hueco `0x341112` que la v3; la
+v3 demostró que el gancho se ejecuta dentro del USB). Base: variante A (►II → `0x73` → VK `0x3D`).
+- **E1**: en el subestado `0x12`, con VK `0x3D` y sin reproducción en curso (`[0x3D0460] & 4 == 0`), llama a
+  `0x29E6A2(0x310)` (EN_EXE_DMP_FILE_PAGE_PLAYBACK) y devuelve 1, como las teclas rápidas que llaman a ese ejecutor
+  (p. ej. `0x2A3872`). 65 bytes. `rca-prueba-mando-konka-e1.BIN`, SHA-256
+  `a1907639f345302ca109172c264337201972bfe2783f279ca13691b44b0925f4`, 142 bytes cambiados.
+- **E2** (diagnóstico): mismas condiciones, cambia el VK por `0x12` (una flecha de la lista). Si el cursor se mueve,
+  la tecla llega a la interfaz y el fallo está en la acción. 47 bytes. `rca-prueba-mando-konka-e2.BIN`, SHA-256
+  `7fa5236e12f7bc61859f54207d206f6d94bbfafb48d1edbfa466a9e7b223d18a`, 124 bytes cambiados.

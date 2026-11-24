@@ -463,4 +463,66 @@ public class RealFirmwareTests
         // Y la comparación del cliente del Soyea es exactamente la instrucción que escribe el parche.
         Assert.True(s.AsSpan(0x3251E3 - 0x243800, 4).SequenceEqual(Convert.FromHexString("c0ef06e0")));
     }
+
+    // ------------------------------------------------------------------ placa LM2SA V1.6 (1.4.0)
+
+    [Theory]
+    [InlineData("MST_EXT_SPI_ISP_20210531_113958.BIN", "lm2sa-v16-20210531", 0x4D106C, 0x31EAC1)]
+    [InlineData("MST_EXT_SPI_ISP_20210614_165953.BIN", "lm2sa-v16-20210614", 0x4BB06C, 0x31E049)]
+    public void Lm2saCambiaLoMismoQueElAtecProbado(string file, string id, int panel, int ir)
+    {
+        if (Load(file, id) is not var (fw, p)) { Assert.Skip("No está el original de la placa LM2SA."); return; }
+        var atec = ProfileLoader.LoadBuiltin().Single(x => x.Id == "atec-32l18d-lp141wx1");
+        var r = FirmwareBuilder.Build(fw, p,
+            new Dictionary<string, string> { ["resolucion"] = "1280x800", ["bits"] = "8", ["mando"] = "soyea" },
+            cancel: TestContext.Current.CancellationToken);
+        // Los mismos 32 bytes que la versión del ATEC probada en el TV (panel 25 + cliente 3 + reposo 2 + arranque 2).
+        Assert.Equal(25 + 3 + 2 + 2, r.ChangedAppBytes);
+        var app = FirmwareAnalyzer.Analyze(r.Output).App!;
+        var e = app.AsSpan(panel - 0x243800, 92).ToArray();
+        var ea = atec.Options.Single(o => o.Id == "resolucion").Values.Single(v => v.Id == "1280x800").Patches;
+        Assert.Equal(Convert.ToHexStringLower(ea[0].New), Convert.ToHexStringLower(e.AsSpan(20, 27)));
+        Assert.Equal(Convert.ToHexStringLower(ea[1].New), Convert.ToHexStringLower(e.AsSpan(76, 8)));
+        Assert.Equal("c0ef06e0", Convert.ToHexStringLower(app.AsSpan(ir - 0x243800, 4)));
+        Assert.Equal("508037", Convert.ToHexStringLower(app.AsSpan(ir + 0x577 - 0x243800, 3)));
+        Assert.Equal("508078", Convert.ToHexStringLower(app.AsSpan(ir + 0x582 - 0x243800, 3)));
+        Assert.Equal("50e037", Convert.ToHexStringLower(r.Output.AsSpan(0x23195, 3)));
+        Assert.Equal("50e078", Convert.ToHexStringLower(r.Output.AsSpan(0x231A0, 3)));
+        // Recursos y base de datos sin tocar.
+        var first = (int)FirmwareAnalyzer.Analyze(fw).Tel!.Entries.Min(t => t.Offset);
+        Assert.True(r.Output.AsSpan(first).SequenceEqual(fw.AsSpan(first)));
+    }
+
+    [Theory]
+    [InlineData("MST_EXT_SPI_ISP_20210531_113958.BIN", "lm2sa-v16-20210531", 0x2C86A0)]
+    [InlineData("MST_EXT_SPI_ISP_20210614_165953.BIN", "lm2sa-v16-20210614", 0x2C0440)]
+    public void Lm2saLogoGiradoSoloCambiaElRecurso(string file, string id, int resOff)
+    {
+        if (Load(file, id) is not var (fw, p)) { Assert.Skip("No está el original de la placa LM2SA."); return; }
+        const int ResLen = 55088;
+        var r = FirmwareBuilder.Build(fw, p, new Dictionary<string, string> { ["logo"] = "girado" },
+            cancel: TestContext.Current.CancellationToken);
+        var o = r.Output;
+        Assert.True(o.AsSpan(0, resOff).SequenceEqual(fw.AsSpan(0, resOff)));          // la app no cambia
+        Assert.True(o.AsSpan(resOff + ResLen).SequenceEqual(fw.AsSpan(resOff + ResLen)));
+        Assert.True(Crc16Tel.IsValid(o.AsSpan(resOff, ResLen)));
+        var info = FirmReaper.Core.Imaging.JpegInfo.Parse(o.AsSpan(resOff, ResLen - 2).ToArray());
+        Assert.Equal((720, 480), (info.Width, info.Height));
+    }
+
+    [Theory]
+    [InlineData("Atec_32_KPC_Salva.BIN", "atec-32l18d-lp141wx1")]
+    [InlineData("MST_EXT_SPI_ISP_20210531_113958.BIN", "lm2sa-v16-20210531")]
+    [InlineData("MST_EXT_SPI_ISP_20210614_165953.BIN", "lm2sa-v16-20210614")]
+    public void SalidaLvdsSinCambiosY8BitsDanElMismoArchivo(string file, string id)
+    {
+        if (Load(file, id) is not var (fw, p)) { Assert.Skip("No está el original."); return; }
+        Assert.Equal("original", p.Options.Single(o => o.Id == "bits").Default);
+        string Sha(string bits) => FirmwareBuilder.Build(fw, p,
+            new Dictionary<string, string> { ["resolucion"] = "1280x800", ["bits"] = bits },
+            cancel: TestContext.Current.CancellationToken).OutputSha256;
+        // Estos firmwares ya traen 8 bits (TiBitMode 2, OutputFormat 0, sin dither): "8" no cambia nada más.
+        Assert.Equal(Sha("original"), Sha("8"));
+        Assert.NotEqual(Sha("original"), Sha("6"));
+    }
 }

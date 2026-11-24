@@ -1,0 +1,673 @@
+{
+  "formato": 1,
+  "id": "lm2sa-v16-20210614",
+  "version": 1,
+  "nombre": "Placa LM2SA V1.6 — firmware 20210614 (programa del 22-05-2014) — resolución, mando y logo",
+  "descripcion": "Mismo programa base que el ATEC 32L18D (ID de placa BD_MST061B_10AZU_14014): resolución del panel (1366x768 original o menor) y salida LVDS de 8/6 bits; mando Soyea (también para encender desde reposo) o código propio; logo (720x480). Las demás resoluciones usan tiempos estándar: comprueba que tu panel los admite (hoja de datos). Espejo de imagen y menús: ya existe en el menú de fábrica (Mirror Enable). Nada de este perfil está probado todavía en esta placa.",
+  "estado": "verificado",
+  "original": {
+    "sha256": "aa8b1502e7d88faa0c77f7cef86a5fbf739261846ebd94e02b891e53a978b421"
+  },
+  "app": {
+    "baseRam": "0x243800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x243115",
+      "hasta": "0x243123",
+      "motivo": "entrada en reposo (0x2430F1): código de cliente para despertar; código de arranque sin comprimir"
+    },
+    {
+      "desde": "0x31E049",
+      "hasta": "0x31E04D",
+      "motivo": "comparación del código de cliente del mando (rutina IR 0x31E01E)"
+    },
+    {
+      "desde": "0x31E5C0",
+      "hasta": "0x31E5CE",
+      "motivo": "código de cliente para encender desde reposo (registros IR 0x3DA4/0x3DA5)"
+    },
+    {
+      "desde": "0x4BB06C",
+      "hasta": "0x4BB0C8",
+      "motivo": "entrada #1 de la tabla de paneles (la que usa este TV)"
+    },
+    {
+      "desde": "0x412460",
+      "hasta": "0x412560",
+      "motivo": "tabla código→función del mando (256 bytes; rutina IR 0x31E01E)"
+    }
+  ],
+  "parchesFijos": [],
+  "opciones": [
+    {
+      "id": "resolucion",
+      "etiqueta": "Resolución del panel",
+      "tipo": "lista",
+      "porDefecto": "original",
+      "valores": [
+        {
+          "id": "original",
+          "etiqueta": "1366x768 — original (panel T200XW02)",
+          "parches": []
+        },
+        {
+          "id": "1280x800",
+          "etiqueta": "1280x800 — panel LP141WX1 (misma entrada que la probada en el ATEC; sin probar en esta placa)",
+          "parches": [
+            {
+              "direccion": "0x4BB080",
+              "original": "142804223c00260056050003ba0618068605360326031503584c3c",
+              "nuevo": "2050060f7000150000052003c805a00558055003370329034b4742",
+              "descripcion": "Panel 1280x800 (hoja de datos LP141WX1): sincronismos/porches, inicio, tamaño, totales 1368/1440/1480 x 809/823/848, DCLK 66/71/75 MHz"
+            },
+            {
+              "direccion": "0x4BB0B8",
+              "original": "0eea200009711600",
+              "nuevo": "0cec1d00d8541a00",
+              "descripcion": "Límites del PLL (MaxSET/MinSET) para ese DCLK"
+            }
+          ]
+        },
+        {
+          "id": "1280x720",
+          "etiqueta": "1280x720 — tiempos estándar 720p (CEA-861) — sin probar",
+          "parches": [
+            {
+              "direccion": "0x4BB080",
+              "original": "142804223c00260056050003ba0618068605360326031503584c3c",
+              "nuevo": "28dc0514040119000005d002c406720620060403ee02ea02504a45",
+              "descripcion": "Panel 1280x720 (CEA-861 720p60: 74,25 MHz, 1650x750): sincronismos/porches, inicio, tamaño, totales 1568/1650/1732 x 746/750/772, DCLK 69/74/80 MHz"
+            },
+            {
+              "direccion": "0x4BB0B8",
+              "original": "0eea200009711600",
+              "nuevo": "019f1c008aaf1800",
+              "descripcion": "Límites del PLL (MaxSET/MinSET) para ese DCLK"
+            }
+          ]
+        },
+        {
+          "id": "1024x768",
+          "etiqueta": "1024x768 — tiempos estándar VESA DMT — sin probar",
+          "parches": [
+            {
+              "direccion": "0x4BB080",
+              "original": "142804223c00260056050003ba0618068605360326031503584c3c",
+              "nuevo": "88a0061d28012300000400038305400538053e032603240346413c",
+              "descripcion": "Panel 1024x768 (VESA DMT 1024x768@60: 65 MHz, 1344x806): sincronismos/porches, inicio, tamaño, totales 1336/1344/1411 x 804/806/830, DCLK 60/65/70 MHz"
+            },
+            {
+              "direccion": "0x4BB0B8",
+              "original": "0eea200009711600",
+              "nuevo": "0eea200055361c00",
+              "descripcion": "Límites del PLL (MaxSET/MinSET) para ese DCLK"
+            }
+          ]
+        },
+        {
+          "id": "800x600",
+          "etiqueta": "800x600 — tiempos estándar VESA DMT — sin probar",
+          "parches": [
+            {
+              "direccion": "0x4BB080",
+              "original": "142804223c00260056050003ba0618068605360326031503584c3c",
+              "nuevo": "80580417d8001b00200358025504200408048702740274022b2825",
+              "descripcion": "Panel 800x600 (VESA DMT 800x600@60: 40 MHz, 1056x628): sincronismos/porches, inicio, tamaño, totales 1032/1056/1109 x 628/628/647, DCLK 37/40/43 MHz"
+            },
+            {
+              "direccion": "0x4BB0B8",
+              "original": "0eea200009711600",
+              "nuevo": "df5f350049ed2d00",
+              "descripcion": "Límites del PLL (MaxSET/MinSET) para ese DCLK"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bits",
+      "etiqueta": "Salida LVDS",
+      "tipo": "lista",
+      "porDefecto": "original",
+      "valores": [
+        {
+          "id": "original",
+          "etiqueta": "Sin cambios — la que trae el firmware (8 bits)",
+          "parches": []
+        },
+        {
+          "id": "8",
+          "etiqueta": "8 bits — en este firmware es lo mismo que «Sin cambios»",
+          "parches": []
+        },
+        {
+          "id": "6",
+          "etiqueta": "6 bits + dither (en el ATEC con LP141WX1 NO funcionó)",
+          "parches": [
+            {
+              "direccion": "0x4BB070",
+              "original": "0260",
+              "nuevo": "0360",
+              "descripcion": "m_bPanelDither = 1 (dither para 6 bits)"
+            },
+            {
+              "direccion": "0x4BB0AC",
+              "original": "0200000000000000",
+              "nuevo": "0300000001000000",
+              "descripcion": "m_ucTiBitMode = 3 y m_ucOutputFormatBitMode = 1 (6 bits)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mando",
+      "etiqueta": "Mando",
+      "tipo": "lista",
+      "porDefecto": "atec",
+      "valores": [
+        {
+          "id": "atec",
+          "etiqueta": "ATEC original (cliente 36 77)",
+          "parches": []
+        },
+        {
+          "id": "soyea",
+          "etiqueta": "Soyea LKK32CMB (cliente 37 78), también enciende desde reposo (mismos cambios que el ATEC; sin probar en esta placa)",
+          "parches": [
+            {
+              "direccion": "0x31E049",
+              "original": "c0eee6c0",
+              "nuevo": "c0ef06e0",
+              "descripcion": "IR: bg.sfeqi r7,0x7736 -> bg.sfeqi r7,0x7837 (código de cliente del mando Soyea)"
+            },
+            {
+              "direccion": "0x31E5C0",
+              "original": "508036",
+              "nuevo": "508037",
+              "descripcion": "IR reposo: bn.ori r4,r0,0x36 -> 0x37 (registro 0x3DA4, 1.er byte del cliente)"
+            },
+            {
+              "direccion": "0x31E5CB",
+              "original": "508077",
+              "nuevo": "508078",
+              "descripcion": "IR reposo: bn.ori r4,r0,0x77 -> 0x78 (registro 0x3DA5, 2.º byte del cliente)"
+            },
+            {
+              "direccion": "0x243115",
+              "original": "50e036",
+              "nuevo": "50e037",
+              "descripcion": "Entrada en reposo: bn.ori r7,r0,0x36 -> 0x37 (RIU 0x7B48 = IR 0x3DA4, byte bajo)"
+            },
+            {
+              "direccion": "0x243120",
+              "original": "50e077",
+              "nuevo": "50e078",
+              "descripcion": "Entrada en reposo: bn.ori r7,r0,0x77 -> 0x78 (RIU 0x7B49 = IR 0x3DA4, byte alto)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "logo",
+      "etiqueta": "Logo de arranque",
+      "tipo": "lista",
+      "porDefecto": "original",
+      "valores": [
+        {
+          "id": "original",
+          "etiqueta": "Sin cambios",
+          "parches": []
+        },
+        {
+          "id": "girado",
+          "etiqueta": "Girado 180° — sin probar en el TV",
+          "parches": [],
+          "logo": "girar"
+        },
+        {
+          "id": "propio",
+          "etiqueta": "Propio (imagen; se ajusta a 720x480) — sin probar en el TV",
+          "parches": [],
+          "logo": "propio"
+        }
+      ]
+    }
+  ],
+  "logo": {
+    "idTel": "0x0300",
+    "crc16": true,
+    "longitudJpeg": 55079,
+    "ancho": 720,
+    "alto": 480
+  },
+  "clienteMando": {
+    "direccion": "0x31E049",
+    "formato": "aeon-sfeqi",
+    "registro": 7,
+    "original": "36 77",
+    "reposo": [
+      {
+        "direccion": "0x31E5C0",
+        "byte": 1,
+        "registro": 4
+      },
+      {
+        "direccion": "0x31E5CB",
+        "byte": 2,
+        "registro": 4
+      },
+      {
+        "direccion": "0x243115",
+        "byte": 1,
+        "registro": 7
+      },
+      {
+        "direccion": "0x243120",
+        "byte": 2,
+        "registro": 7
+      }
+    ]
+  },
+  "tablaMando": {
+    "formato": "directa256",
+    "direccion": "0x412460",
+    "original": "000102030405060708090a0b0c0d0e0fffffffff14101112132627ff221dffff30191a1b1c6effff3c3dffffffffffffffffffffffffffffffffffffffffffff2cffffffff2a2b3aff2fff2523ff1e58ff66ff211f207170ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "nota": "Las funciones se llaman como el botón del mando Soyea/ATEC que las produce. La cruceta de ese mando envía VOL±/CH±; dentro de los menús el firmware (el mismo del Soyea) las usa como flechas.",
+    "funciones": [
+      {
+        "indice": "0x00",
+        "nombre": "0"
+      },
+      {
+        "indice": "0x01",
+        "nombre": "1"
+      },
+      {
+        "indice": "0x02",
+        "nombre": "2"
+      },
+      {
+        "indice": "0x03",
+        "nombre": "3"
+      },
+      {
+        "indice": "0x04",
+        "nombre": "4"
+      },
+      {
+        "indice": "0x05",
+        "nombre": "5"
+      },
+      {
+        "indice": "0x06",
+        "nombre": "6"
+      },
+      {
+        "indice": "0x07",
+        "nombre": "7"
+      },
+      {
+        "indice": "0x08",
+        "nombre": "8"
+      },
+      {
+        "indice": "0x09",
+        "nombre": "9"
+      },
+      {
+        "indice": "0x0A",
+        "nombre": "-/-- (DASH)"
+      },
+      {
+        "indice": "0x0B",
+        "nombre": "RETURN (canal anterior)"
+      },
+      {
+        "indice": "0x0C",
+        "nombre": "POWER"
+      },
+      {
+        "indice": "0x0D",
+        "nombre": "SOURCE (fuente)"
+      },
+      {
+        "indice": "0x0E",
+        "nombre": "MUTE"
+      },
+      {
+        "indice": "0x0F",
+        "nombre": "MENU"
+      },
+      {
+        "indice": "0x10",
+        "nombre": "VOL+ / DERECHA en menús"
+      },
+      {
+        "indice": "0x11",
+        "nombre": "VOL- / IZQUIERDA en menús"
+      },
+      {
+        "indice": "0x12",
+        "nombre": "CH+ / ARRIBA en menús"
+      },
+      {
+        "indice": "0x13",
+        "nombre": "CH- / ABAJO en menús"
+      },
+      {
+        "indice": "0x14",
+        "nombre": "OK (SELECT)"
+      },
+      {
+        "indice": "0x19",
+        "nombre": "ROJO"
+      },
+      {
+        "indice": "0x1A",
+        "nombre": "VERDE"
+      },
+      {
+        "indice": "0x1B",
+        "nombre": "AMARILLO"
+      },
+      {
+        "indice": "0x1C",
+        "nombre": "AZUL"
+      },
+      {
+        "indice": "0x1D",
+        "nombre": "EXIT"
+      },
+      {
+        "indice": "0x1E",
+        "nombre": "PREV"
+      },
+      {
+        "indice": "0x1F",
+        "nombre": "REW"
+      },
+      {
+        "indice": "0x20",
+        "nombre": "FF"
+      },
+      {
+        "indice": "0x21",
+        "nombre": "NEXT"
+      },
+      {
+        "indice": "0x22",
+        "nombre": "INFO"
+      },
+      {
+        "indice": "0x23",
+        "nombre": "STOP"
+      },
+      {
+        "indice": "0x25",
+        "nombre": "PLAY"
+      },
+      {
+        "indice": "0x26",
+        "nombre": "PICTURE (modo imagen)"
+      },
+      {
+        "indice": "0x27",
+        "nombre": "AUDIO"
+      },
+      {
+        "indice": "0x2A",
+        "nombre": "SLEEP"
+      },
+      {
+        "indice": "0x2B",
+        "nombre": "CC"
+      },
+      {
+        "indice": "0x2C",
+        "nombre": "MTS"
+      },
+      {
+        "indice": "0x2F",
+        "nombre": "CH.LIST (lista de canales)"
+      },
+      {
+        "indice": "0x30",
+        "nombre": "FAV"
+      },
+      {
+        "indice": "0x3A",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "indice": "0x3C",
+        "nombre": "PAGE UP"
+      },
+      {
+        "indice": "0x3D",
+        "nombre": "PAGE DOWN"
+      },
+      {
+        "indice": "0x58",
+        "nombre": "TEMP_DET"
+      },
+      {
+        "indice": "0x66",
+        "nombre": "EPG"
+      },
+      {
+        "indice": "0x6E",
+        "nombre": "TV/RADIO"
+      },
+      {
+        "indice": "0x70",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      },
+      {
+        "indice": "0x71",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      }
+    ],
+    "botones": [
+      {
+        "codigo": "0x00",
+        "nombre": "0"
+      },
+      {
+        "codigo": "0x01",
+        "nombre": "1"
+      },
+      {
+        "codigo": "0x02",
+        "nombre": "2"
+      },
+      {
+        "codigo": "0x03",
+        "nombre": "3"
+      },
+      {
+        "codigo": "0x04",
+        "nombre": "4"
+      },
+      {
+        "codigo": "0x05",
+        "nombre": "5"
+      },
+      {
+        "codigo": "0x06",
+        "nombre": "6"
+      },
+      {
+        "codigo": "0x07",
+        "nombre": "7"
+      },
+      {
+        "codigo": "0x08",
+        "nombre": "8"
+      },
+      {
+        "codigo": "0x09",
+        "nombre": "9"
+      },
+      {
+        "codigo": "0x0A",
+        "nombre": "-/-- (DASH)"
+      },
+      {
+        "codigo": "0x0B",
+        "nombre": "RETURN (canal anterior)"
+      },
+      {
+        "codigo": "0x0C",
+        "nombre": "POWER"
+      },
+      {
+        "codigo": "0x0D",
+        "nombre": "SOURCE (fuente)"
+      },
+      {
+        "codigo": "0x0E",
+        "nombre": "MUTE"
+      },
+      {
+        "codigo": "0x0F",
+        "nombre": "MENU"
+      },
+      {
+        "codigo": "0x14",
+        "nombre": "OK (SELECT)"
+      },
+      {
+        "codigo": "0x15",
+        "nombre": "VOL+ / DERECHA en menús"
+      },
+      {
+        "codigo": "0x16",
+        "nombre": "VOL- / IZQUIERDA en menús"
+      },
+      {
+        "codigo": "0x17",
+        "nombre": "CH+ / ARRIBA en menús"
+      },
+      {
+        "codigo": "0x18",
+        "nombre": "CH- / ABAJO en menús"
+      },
+      {
+        "codigo": "0x19",
+        "nombre": "PICTURE (modo imagen)"
+      },
+      {
+        "codigo": "0x1A",
+        "nombre": "AUDIO"
+      },
+      {
+        "codigo": "0x1C",
+        "nombre": "INFO"
+      },
+      {
+        "codigo": "0x1D",
+        "nombre": "EXIT"
+      },
+      {
+        "codigo": "0x20",
+        "nombre": "FAV"
+      },
+      {
+        "codigo": "0x21",
+        "nombre": "ROJO"
+      },
+      {
+        "codigo": "0x22",
+        "nombre": "VERDE"
+      },
+      {
+        "codigo": "0x23",
+        "nombre": "AMARILLO"
+      },
+      {
+        "codigo": "0x24",
+        "nombre": "AZUL"
+      },
+      {
+        "codigo": "0x25",
+        "nombre": "TV/RADIO"
+      },
+      {
+        "codigo": "0x28",
+        "nombre": "PAGE UP"
+      },
+      {
+        "codigo": "0x29",
+        "nombre": "PAGE DOWN"
+      },
+      {
+        "codigo": "0x40",
+        "nombre": "MTS"
+      },
+      {
+        "codigo": "0x45",
+        "nombre": "SLEEP"
+      },
+      {
+        "codigo": "0x46",
+        "nombre": "CC"
+      },
+      {
+        "codigo": "0x47",
+        "nombre": "SUBTITLE"
+      },
+      {
+        "codigo": "0x49",
+        "nombre": "CH.LIST (lista de canales)"
+      },
+      {
+        "codigo": "0x4B",
+        "nombre": "PLAY"
+      },
+      {
+        "codigo": "0x4C",
+        "nombre": "STOP"
+      },
+      {
+        "codigo": "0x4E",
+        "nombre": "PREV"
+      },
+      {
+        "codigo": "0x4F",
+        "nombre": "TEMP_DET"
+      },
+      {
+        "codigo": "0x51",
+        "nombre": "EPG"
+      },
+      {
+        "codigo": "0x53",
+        "nombre": "NEXT"
+      },
+      {
+        "codigo": "0x54",
+        "nombre": "REW"
+      },
+      {
+        "codigo": "0x55",
+        "nombre": "FF"
+      },
+      {
+        "codigo": "0x56",
+        "nombre": "KEY 0x82 (función del fabricante)"
+      },
+      {
+        "codigo": "0x57",
+        "nombre": "KEY 0x81 (función del fabricante)"
+      }
+    ]
+  },
+  "salidasConocidas": []
+}

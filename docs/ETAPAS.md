@@ -237,3 +237,20 @@ cargar perfiles. LG y Konka no tienen el problema. Detalle: `docs/historial/READ
 ## Versión 1.3.0
 - Encendido desde reposo del ATEC con el mando Soyea (probado) y opción de resolución del panel.
   Notas: `docs/NOTAS_VERSION_1.3.0.md`.
+
+## Placa LM2SA V1.6: dos firmwares nuevos (1.4.0, 2026-11-23)
+
+- Firmwares del usuario `MST_EXT_SPI_ISP_20210531_113958.BIN` y `..._20210614_165953.BIN`: mismo programa base que
+  el ATEC (ID `BD_MST061B_10AZU_14014`), distintas direcciones y versiones (2015 / 2014).
+- Generador: la parte del ATEC pasa a ser una función común (`perfil_familia_061b`) para los tres; el perfil del
+  ATEC sale idéntico.
+- Perfiles `lm2sa-v16-20210531` y `lm2sa-v16-20210614`: resolución, bits, mando (Soyea en 5 sitios), logo
+  (720x480), código de cliente y tabla editables; espejo en el menú de fábrica ("Mirror Enable"). Zopfli 5.
+- Catálogo: los dos originales. Detalle: `docs/historial/README_LM2SA_PERFILES.md`. 256 pruebas.
+
+## Versión 1.4.0
+- Perfiles de la placa LM2SA V1.6. Notas: `docs/NOTAS_VERSION_1.4.0.md`.
+
+## RCA (mando): en pausa (2026-11-23)
+- La tabla del Konka (KT1440 código 005) funciona salvo ►II; pruebas E1/E2 enviadas sin resultado. Ver
+  `docs/historial/README_RCA_MANDO_SOYEA.md`. No hay perfil integrado del RCA todavía.

@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "id": "rca-prueba-mando-soyea",
+  "version": 4,
+  "nombre": "RCA (BD_MST030B_10AL8_12052) — DIAGNÓSTICO mando KT1440 (v4)",
+  "descripcion": "Diagnóstico: cada botón dudoso muestra un número para saber qué código envía el mando KT1440.",
+  "estado": "sin-verificar",
+  "original": {
+    "sha256": "669bdb5e3a8ad4bbe42639546671c560c47add9577d8a63d2f3f8397135aa307"
+  },
+  "app": {
+    "baseRam": "0x203800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x398AB0",
+      "hasta": "0x398B54",
+      "motivo": "código de cliente y lista código→tecla del mando (se copia a RAM en 0x262AEF)"
+    },
+    {
+      "desde": "0x2A693E",
+      "hasta": "0x2A6940",
+      "motivo": "entrada en reposo (0x2A68E3): tecla que enciende el TV (RIU 0x7B64/65/6C/6D)"
+    }
+  ],
+  "parchesFijos": [
+    {
+      "direccion": "0x398AB0",
+      "original": "0707",
+      "nuevo": "7837",
+      "descripcion": "Código de cliente: 07 07 → 37 78 (Soyea; también para el reposo, 0x2A798A lo lee de aquí)"
+    },
+    {
+      "direccion": "0x398AB4",
+      "original": "020100003e2300000f1e000004030000050400000605000008060000090700000a0800000c0900000d0a00000e0b00001320000011020000552800001e1c00001a1b0000445e0000071200000b130000011f00002d1a00006019000061180000650f000062100000681100002b290000282a00006e2b0000242c00002643000035630000375700004a4000004752000048530000505400003d550000ffff0000",
+      "nuevo": "0a0200000b0200000c0100000d0200000e0200000f1c00001411000015030000160400001705000018060000190200001a0200001c0200001d1a0000200200002102000022020000230200002402000025020000280700002908000040020000450200004602000047020000490200004b0b00004c0200004e0900004f02000051020000530a000054020000550200005602000057020000ffff0000ffff0000",
+      "descripcion": "Lista de diagnóstico (v4)"
+    },
+    {
+      "direccion": "0x2A693E",
+      "original": "98c2",
+      "nuevo": "98cc",
+      "descripcion": "Entrada en reposo: bt.movi r6,0x2 -> 0xc (tecla de encendido = POWER del Soyea)"
+    }
+  ],
+  "opciones": [],
+  "salidasConocidas": []
+}
