@@ -509,4 +509,20 @@ public class RealFirmwareTests
         var info = FirmReaper.Core.Imaging.JpegInfo.Parse(o.AsSpan(resOff, ResLen - 2).ToArray());
         Assert.Equal((720, 480), (info.Width, info.Height));
     }
+
+    [Theory]
+    [InlineData("Atec_32_KPC_Salva.BIN", "atec-32l18d-lp141wx1")]
+    [InlineData("MST_EXT_SPI_ISP_20210531_113958.BIN", "lm2sa-v16-20210531")]
+    [InlineData("MST_EXT_SPI_ISP_20210614_165953.BIN", "lm2sa-v16-20210614")]
+    public void SalidaLvdsSinCambiosY8BitsDanElMismoArchivo(string file, string id)
+    {
+        if (Load(file, id) is not var (fw, p)) { Assert.Skip("No está el original."); return; }
+        Assert.Equal("original", p.Options.Single(o => o.Id == "bits").Default);
+        string Sha(string bits) => FirmwareBuilder.Build(fw, p,
+            new Dictionary<string, string> { ["resolucion"] = "1280x800", ["bits"] = bits },
+            cancel: TestContext.Current.CancellationToken).OutputSha256;
+        // Estos firmwares ya traen 8 bits (TiBitMode 2, OutputFormat 0, sin dither): "8" no cambia nada más.
+        Assert.Equal(Sha("original"), Sha("8"));
+        Assert.NotEqual(Sha("original"), Sha("6"));
+    }
 }

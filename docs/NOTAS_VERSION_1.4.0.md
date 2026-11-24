@@ -12,7 +12,7 @@ El programa reconoce y modifica dos firmwares de esta placa:
 Los dos llevan el mismo programa base que el **ATEC 32L18D**, así que tienen sus mismas opciones:
 
 - **Resolución del panel:** 1366x768 (original), 1280x800 (LP141WX1), 1280x720, 1024x768, 800x600.
-- **Salida LVDS:** 8 bits (original) o 6 bits + dither.
+- **Salida LVDS:** sin cambios (la que trae, 8 bits), 8 bits o 6 bits + dither.
 - **Mando:** ATEC original o **Soyea LKK32CMB**, que también enciende desde reposo (el código del mando cambia en los
   5 sitios, igual que en el ATEC probado).
 - **Logo de arranque:** sin cambios, girado 180° o propio (720 × 480).
@@ -23,9 +23,15 @@ Los dos llevan el mismo programa base que el **ATEC 32L18D**, así que tienen su
 que en la versión del ATEC que funcionó en el TV (comprobado), pero en otro firmware. Guarda el original y prueba
 primero con el programador a mano.
 
+## Salida LVDS: nueva opción "Sin cambios" (ATEC y placa LM2SA)
+
+Ahora hay tres valores: **Sin cambios** (por defecto: la que trae el firmware), **8 bits** y **6 bits + dither**.
+En el ATEC y en la placa LM2SA el firmware ya trae 8 bits, así que "Sin cambios" y "8 bits" dan el mismo archivo.
+
 ## Sin cambios para los demás TV
 
-Los perfiles del LG, Konka y ATEC generan exactamente los mismos archivos que con la 1.3.0.
+Los perfiles del LG, Konka y ATEC generan exactamente los mismos archivos que con la 1.3.0 (en el ATEC, "8 bits" y
+"Sin cambios" dan los mismos archivos ya probados).
 
 ## Descargas
 

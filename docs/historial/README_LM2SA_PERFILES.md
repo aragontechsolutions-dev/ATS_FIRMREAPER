@@ -40,3 +40,11 @@ El perfil del ATEC sale idéntico al de la 1.3.0.
 ## Sin probar en el TV
 Todo. Lo más cercano a lo probado es "1280x800 + 8 bits + Soyea" (mismos cambios que el archivo del ATEC que
 funcionó). No se sabe si la placa LM2SA es eléctricamente igual a la del ATEC (conector LVDS, tensión del panel).
+
+## Salida LVDS: "Sin cambios" / 8 bits / 6 bits (petición del usuario, 2026-11-24)
+La opción `bits` tiene ahora tres valores y por defecto `original` (la que trae el firmware). La entrada #1 original
+del ATEC, A y B ya es de 8 bits (`+4` sin el bit de dither, TiBitMode `2`, OutputFormat `0`): el generador calcula
+el valor "8" como los bytes que difieran de eso y aquí no hay ninguno, así que "8" no cambia nada (mismo archivo que
+"Sin cambios"; prueba `SalidaLvdsSinCambiosY8BitsDanElMismoArchivo`). Las salidas documentadas del ATEC con `bits = 8`
+se registran también con `bits = original` (mismo archivo). Se aplica a los perfiles ATEC (v6, mismo número: los
+archivos no cambian) y LM2SA.

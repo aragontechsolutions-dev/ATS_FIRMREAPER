@@ -133,11 +133,16 @@
       "id": "bits",
       "etiqueta": "Salida LVDS",
       "tipo": "lista",
-      "porDefecto": "8",
+      "porDefecto": "original",
       "valores": [
         {
+          "id": "original",
+          "etiqueta": "Sin cambios — la que trae el firmware (8 bits)",
+          "parches": []
+        },
+        {
           "id": "8",
-          "etiqueta": "8 bits (original)",
+          "etiqueta": "8 bits — en este firmware es lo mismo que «Sin cambios»",
           "parches": []
         },
         {

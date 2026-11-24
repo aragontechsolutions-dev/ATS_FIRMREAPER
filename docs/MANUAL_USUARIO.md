@@ -189,7 +189,7 @@ Si eliges exactamente las opciones de una versión ya probada, el registro dice
 | Opción | Valores |
 |---|---|
 | Resolución del panel | **1366x768 (original)** / 1280x800 LP141WX1 (probado: FUNCIONÓ) / 1280x720 / 1024x768 / 800x600 (sin probar) |
-| Salida LVDS | **8 bits** (con LP141WX1 FUNCIONÓ) / 6 bits + dither (con LP141WX1 NO funcionó) |
+| Salida LVDS | **Sin cambios (la que trae: 8 bits)** / 8 bits (con LP141WX1 FUNCIONÓ; aquí da el mismo archivo) / 6 bits + dither (con LP141WX1 NO funcionó) |
 | Mando | **ATEC original** / Soyea LKK32CMB (probado: FUNCIONÓ, también enciende desde reposo) |
 | Logo de arranque | **Sin cambios** / Girado 180° / Propio (ver 4.5) — sin probar en el TV |
 | Código de cliente / Tabla del mando | Ver 4.4 |
@@ -214,6 +214,10 @@ tiempos del panel que vas a conectar, siempre de **un canal LVDS**:
   funcionó: necesitó 8 bits con mapeo JEIDA y el par 3 sin conectar).
 - Resoluciones mayores (1600x900, 1920x1080…) necesitan doble canal LVDS: ver la etapa 7 (pendiente de datos).
 - Tras grabarlo: menú de fábrica → *Restore/Reset factory*, por si la base de datos guarda valores del panel anterior.
+
+**Salida LVDS.** "Sin cambios" (por defecto) deja la que trae el firmware. En el ATEC y en la placa LM2SA ya es de
+**8 bits**, así que "8 bits" da exactamente el mismo archivo; la opción existe para elegirla de forma explícita (si un
+firmware no viniera en 8 bits, la escribiría). "6 bits + dither" solo si la hoja de datos de tu panel dice 6 bits.
 
 **Mando Soyea (probado: FUNCIONÓ).** El firmware del ATEC es el del Soyea (misma placa y misma tabla de botones);
 solo cambia el código del mando, que está en **5 sitios**: la comparación con el TV encendido, la inicialización del
@@ -304,7 +308,7 @@ opciones que el ATEC (4.3)**, con las direcciones de cada firmware:
 | Opción | Valores |
 |---|---|
 | Resolución del panel | **1366x768 (original)** / 1280x800 LP141WX1 / 1280x720 / 1024x768 / 800x600 |
-| Salida LVDS | **8 bits** / 6 bits + dither |
+| Salida LVDS | **Sin cambios (la que trae: 8 bits)** / 8 bits (aquí da el mismo archivo) / 6 bits + dither |
 | Mando | **ATEC original** (cliente 36 77) / Soyea LKK32CMB (también enciende desde reposo) |
 | Logo de arranque | **Sin cambios** / Girado 180° / Propio (720 × 480, ver 4.5) |
 | Código de cliente / Tabla del mando | Ver 4.4 |

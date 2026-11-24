@@ -344,6 +344,14 @@ def entrada(orig_entry, t):
     return bytes(e)
 
 
+def entrada_8bits(orig_entry):
+    # 8 bits: sin dither, TiBitMode 2 (el de los paneles de 8 bits de la tabla), OutputFormat 0 (el del original).
+    e = bytearray(orig_entry)
+    e[4] &= ~0x01 & 0xFF
+    struct.pack_into("<II", e, 64, 2, 0)
+    return bytes(e)
+
+
 def entrada_6bits(orig_entry):
     # Lo que cambia patch_entry(six_bit=True) fuera de los tiempos: dither en +4; TiBitMode/OutputFormat en +64.
     e = bytearray(orig_entry)
@@ -395,6 +403,17 @@ def perfil_familia_061b(fw, c):
         ]})
     bits6 = [parche(E + 4, orig_entry[4:6].hex(), e6[4:6].hex(), "m_bPanelDither = 1 (dither para 6 bits)"),
              parche(E + 64, orig_entry[64:72].hex(), e6[64:72].hex(), "m_ucTiBitMode = 3 y m_ucOutputFormatBitMode = 1 (6 bits)")]
+    # 8 bits: solo los bytes que difieran del original (en los firmwares conocidos el original ya es de 8 bits:
+    # TiBitMode 2, OutputFormat 0, sin dither → la opción no cambia nada y da el mismo archivo que "Sin cambios").
+    e8 = entrada_8bits(orig_entry)
+    bits8 = []
+    if e8[4:6] != orig_entry[4:6]:
+        bits8.append(parche(E + 4, orig_entry[4:6].hex(), e8[4:6].hex(), "m_bPanelDither = 0 (8 bits)"))
+    if e8[64:72] != orig_entry[64:72]:
+        bits8.append(parche(E + 64, orig_entry[64:72].hex(), e8[64:72].hex(), "m_ucTiBitMode = 2 y m_ucOutputFormatBitMode = 0 (8 bits)"))
+    original_8 = not bits8
+    etq_orig = "Sin cambios — la que trae el firmware" + (" (8 bits)" if original_8 else "")
+    etq_8 = c["etiquetaBits8"] + (" — en este firmware es lo mismo que «Sin cambios»" if original_8 else "")
 
     # Mando: comparación del cliente, inicialización del receptor IR (reposo) y entrada en reposo (stub).
     ir = c["ir"]
@@ -444,9 +463,10 @@ def perfil_familia_061b(fw, c):
         "opciones": [
             {"id": "resolucion", "etiqueta": "Resolución del panel", "tipo": "lista", "porDefecto": "original",
              "valores": valores_res},
-            {"id": "bits", "etiqueta": "Salida LVDS", "tipo": "lista", "porDefecto": "8",
+            {"id": "bits", "etiqueta": "Salida LVDS", "tipo": "lista", "porDefecto": "original",
              "valores": [
-                 {"id": "8", "etiqueta": c["etiquetaBits8"], "parches": []},
+                 {"id": "original", "etiqueta": etq_orig, "parches": []},
+                 {"id": "8", "etiqueta": etq_8, "parches": bits8},
                  {"id": "6", "etiqueta": c["etiquetaBits6"], "parches": bits6},
              ]},
             # La rutina IR (0x3233AA en el ATEC) es la del Soyea (0x32519F) y su tabla código→función es la del
@@ -483,7 +503,9 @@ def perfil_familia_061b(fw, c):
             "funciones": [{"indice": "0x%02X" % t, "nombre": n} for t, n in sorted(funciones.items())],
             "botones": [{"codigo": "0x%02X" % k, "nombre": n} for k, n in sorted(BOTONES_SOYEA_D.items())],
         },
-        "salidasConocidas": c["salidas"],
+        # Las salidas documentadas con bits = 8 son también las de "Sin cambios" (mismo archivo).
+        "salidasConocidas": c["salidas"] + ([dict(k, opciones=dict(k["opciones"], bits="original"))
+                                             for k in c["salidas"] if k["opciones"].get("bits") == "8"] if original_8 else []),
     })
     return tabla_hex
 
@@ -510,7 +532,7 @@ else:
         "compresion": {"metodo": "zlib", "nivel": 9},
         "logo": {"offset": 0x2D5010, "recurso": 49136, "longitudJpeg": 49128, "ancho": 2167, "alto": 1228},
         "etiqueta1280x800": "1280x800 — panel LP141WX1 (probado: FUNCIONÓ)",
-        "etiquetaBits8": "8 bits (original; con LP141WX1 FUNCIONÓ)",
+        "etiquetaBits8": "8 bits (con LP141WX1 FUNCIONÓ)",
         "etiquetaBits6": "6 bits + dither (con LP141WX1 NO funcionó)",
         "etiquetaSoyea": "Soyea LKK32CMB (cliente 37 78), también enciende desde reposo (probado: FUNCIONÓ)",
         "salidas": [
@@ -534,7 +556,7 @@ COMUN_LM2SA = {
     "estado": "verificado",
     "compresion": {"metodo": "zopfli", "iteraciones": 5},   # zlib -9 no cabe (el original deja 6 / 1 bytes libres)
     "etiqueta1280x800": "1280x800 — panel LP141WX1 (misma entrada que la probada en el ATEC; sin probar en esta placa)",
-    "etiquetaBits8": "8 bits (original)",
+    "etiquetaBits8": "8 bits",
     "etiquetaBits6": "6 bits + dither (en el ATEC con LP141WX1 NO funcionó)",
     "etiquetaSoyea": "Soyea LKK32CMB (cliente 37 78), también enciende desde reposo (mismos cambios que el ATEC; sin probar en esta placa)",
     "salidas": [],
