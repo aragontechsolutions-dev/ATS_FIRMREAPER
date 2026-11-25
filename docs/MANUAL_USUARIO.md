@@ -267,7 +267,7 @@ receptor de 38 kHz y un programa que muestre los códigos NEC: el primer byte de
 **Un código de cliente elegido o una tabla editada no están probados en el TV.** El informe lo indica ("ELEGIDO" /
 "EDITADA") y el nombre del archivo lleva `_cliente-XXXX` o `_tabla-editada`.
 
-### 4.5 Logo de arranque: girado o propio (LG, Konka, ATEC)
+### 4.5 Logo de arranque: girado o propio (LG, Konka, ATEC, placa LM2SA)
 
 - **Girado 180°:** el logo de fábrica, girado. Útil cuando la imagen del TV está espejada (panel montado al
   revés), porque el logo se dibuja antes de que actúe el espejo.
@@ -281,6 +281,7 @@ receptor de 38 kHz y un programa que muestre los códigos NEC: el primer byte de
     | LG | 1376 × 768 |
     | Konka | 1366 × 768 |
     | ATEC | 2167 × 1228 |
+    | Placa LM2SA (los dos firmwares) | 720 × 480 |
 
   - la guarda en **el mismo formato JPEG que el logo original** (el que el TV ya sabe mostrar);
   - si no cabe en el hueco, **baja la calidad** lo justo. El informe dice cuánto. Si ni con la calidad mínima
