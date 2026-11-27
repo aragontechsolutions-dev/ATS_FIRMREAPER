@@ -1,0 +1,35 @@
+{
+  "formato": 1,
+  "id": "soyea-prueba-fullhd-doble",
+  "version": 1,
+  "nombre": "Soyea (BD_MST061B_10AZU_14014) — PRUEBA panel 1920x1080 doble canal LVDS",
+  "descripcion": "Entrada #1 de la tabla de paneles (1366x768, un canal) reemplazada por los valores de la entrada #0 del propio firmware (FullHD_CMO216_H1L01: 1920x1080, doble canal).",
+  "estado": "sin-verificar",
+  "original": {
+    "sha256": "fc9fed8fef551b17c7a2da420a212cd52ba5eb075e670e7f3389c123b600a21e"
+  },
+  "app": {
+    "baseRam": "0x243800"
+  },
+  "compresion": {
+    "metodo": "zopfli",
+    "iteraciones": 5
+  },
+  "zonasPermitidas": [
+    {
+      "desde": "0x4E9460",
+      "hasta": "0x4E94BC",
+      "motivo": "entrada #1 de la tabla de paneles (WXGA_AU20_T200XW02)"
+    }
+  ],
+  "parchesFijos": [
+    {
+      "direccion": "0x4E9464",
+      "original": "02600000010101011e00900150001e00142804223c00260056050003ba0618068605360326031503584c3c001900c000a0ff500001000000000000000200000000000000000000000eea2000097116000200000001000000",
+      "nuevo": "62600000010101011e00c800dc000a002050081070001800800738045a0a98080c08c80565044c04a49678001900c0006dff200001000000000000000200000000000000100000000eea2000681518000200000001000000",
+      "descripcion": "Entrada #1 = valores de la entrada #0 FullHD_CMO216_H1L01 (1920x1080, doble canal: bit 0x20 de +4; tiempos 2200x1125, 150 MHz)"
+    }
+  ],
+  "opciones": [],
+  "salidasConocidas": []
+}
